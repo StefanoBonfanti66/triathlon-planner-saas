@@ -576,6 +576,24 @@ const DashboardPage: React.FC = () => {
     }).sort((a,b) => (a as any).timestamp - (b as any).timestamp);
   }, [races, deferredSearchTerm, filterType, filterMonth, filterDistance, filterRegion, filterSpecial, deferredFilterRadius]);
 
+  const generateRaceCard = async () => {
+    if (cardRef.current) {
+        const dataUrl = await toPng(cardRef.current, { backgroundColor: '#0f172a' });
+        const link = document.createElement('a'); link.download = `stagione-${team?.name || 'team'}-2026.png`; link.href = dataUrl; link.click();
+    }
+  };
+
+  const generateSingleRaceCard = useCallback(async (race: Race) => {
+    setActiveSingleRace(race);
+    setTimeout(async () => {
+        if (singleCardRef.current) {
+            const dataUrl = await toPng(singleCardRef.current, { backgroundColor: '#0f172a', width: 1080, height: 1080 });
+            const link = document.createElement('a'); link.download = `${team?.name || 'team'}-challenge-${race.id}.png`; link.href = dataUrl; link.click();
+            setActiveSingleRace(null);
+        }
+    }, 200);
+  }, [team]);
+
   const renderedRaceList = useMemo(() => {
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -600,24 +618,6 @@ const DashboardPage: React.FC = () => {
         </div>
     );
   }, [filteredRaces, selectedRaces, racePriorities, raceCosts, raceNotes, participantsMap, team, toggleRace, setPriority, updateCost, generateSingleRaceCard, setActiveChecklistRace, setActiveNoteRace]);
-
-  const generateRaceCard = async () => {
-    if (cardRef.current) {
-        const dataUrl = await toPng(cardRef.current, { backgroundColor: '#0f172a' });
-        const link = document.createElement('a'); link.download = `stagione-${team?.name || 'team'}-2026.png`; link.href = dataUrl; link.click();
-    }
-  };
-
-  const generateSingleRaceCard = useCallback(async (race: Race) => {
-    setActiveSingleRace(race);
-    setTimeout(async () => {
-        if (singleCardRef.current) {
-            const dataUrl = await toPng(singleCardRef.current, { backgroundColor: '#0f172a', width: 1080, height: 1080 });
-            const link = document.createElement('a'); link.download = `${team?.name || 'team'}-challenge-${race.id}.png`; link.href = dataUrl; link.click();
-            setActiveSingleRace(null);
-        }
-    }, 200);
-  }, [team]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 px-4">
