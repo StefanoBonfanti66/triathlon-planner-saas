@@ -23,12 +23,19 @@ const Header = memo(({ session, team, onOpenAdmin }: { session: any, team?: any,
                         <img src={team?.logo_url || "/Logo.png"} alt={`${team?.name || "MTT"} Logo`} className="h-12 w-[140px] object-contain" />
                     </a>
                     <div className="flex flex-col min-w-0">
-                        <h1 className="text-xl font-black text-slate-800 tracking-tight leading-none uppercase">{team?.name || "Fitri 2026"}</h1>
-                        <span className="text-[10px] font-black text-blue-700 uppercase tracking-widest mt-1 truncate max-w-[150px] md:max-w-[200px]" 
-                              title={session?.user?.user_metadata?.full_name || session?.user?.email}
-                              style={{ color: team?.primary_color }}>
-                            Atleta: {session?.user?.user_metadata?.full_name || session?.user?.email}
-                        </span>
+                        <h1 className="text-xl font-black text-slate-800 tracking-tight leading-none uppercase">{team?.name || "Race Planner"}</h1>
+                        <div className="flex items-center gap-2 mt-1">
+                            {team?.name && (
+                                <span className="text-[9px] font-black text-white px-1.5 py-0.5 rounded bg-slate-800 uppercase tracking-tighter shrink-0">
+                                    {team.name}
+                                </span>
+                            )}
+                            <span className="text-[10px] font-black text-blue-700 uppercase tracking-widest truncate max-w-[120px] md:max-w-[200px]" 
+                                  title={session?.user?.user_metadata?.full_name || session?.user?.email}
+                                  style={{ color: team?.primary_color }}>
+                                Atleta: {session?.user?.user_metadata?.full_name || session?.user?.email}
+                            </span>
+                        </div>
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
