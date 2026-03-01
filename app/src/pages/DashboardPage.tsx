@@ -51,9 +51,9 @@ const getRankColor = (rank: string) => {
 };
 
 const RaceCard = React.memo(({ 
-    race, isSelected, priority, cost, note, participants, onToggle, onPriority, onCost, onSingleCard, onChecklist, onNote 
+    race, isSelected, priority, cost, note, participants, team, onToggle, onPriority, onCost, onSingleCard, onChecklist, onNote 
 }: { 
-    race: Race, isSelected: boolean, priority: string, cost: number, note: string, participants: string[], onToggle: (id: string) => void, onPriority: (id: string, p: string) => void, onCost: (id: string, c: number) => void, onSingleCard: (race: Race) => void, onChecklist: (race: Race) => void, onNote: (race: Race) => void, getRankColor?: (r: string) => string
+    race: Race, isSelected: boolean, priority: string, cost: number, note: string, participants: string[], team?: any, onToggle: (id: string) => void, onPriority: (id: string, p: string) => void, onCost: (id: string, c: number) => void, onSingleCard: (race: Race) => void, onChecklist: (race: Race) => void, onNote: (race: Race) => void, getRankColor?: (r: string) => string
 }) => {
     const openInMaps = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -66,7 +66,7 @@ const RaceCard = React.memo(({
             <div className="flex justify-between items-start mb-5">
                 <div className="flex flex-col gap-1">
                     <div className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-full w-fit" title="Data dell'evento">
-                        <Calendar className="w-3.5 h-3.5 text-blue-500" />
+                        <Calendar className="w-3.5 h-3.5" style={{ color: team?.primary_color || '#3b82f6' }} />
                         <span className="text-[11px] font-black text-slate-700">{race.date}</span>
                     </div>
                 </div>
@@ -79,7 +79,7 @@ const RaceCard = React.memo(({
             </div>
             
             {race.event && <div className="text-sm font-black text-slate-600 uppercase tracking-wide mb-1.5 leading-snug">{race.event}</div>}
-            <h3 className="font-black text-slate-800 text-lg mb-3 leading-[1.2] group-hover:text-blue-600 transition-colors">{race.title}</h3>
+            <h3 className="font-black text-slate-800 text-lg mb-3 leading-[1.2] group-hover:text-blue-600 transition-colors" style={{ color: isSelected ? (team?.primary_color || '#2563eb') : undefined }}>{race.title}</h3>
             
             <div className="space-y-2 mb-6">
                 <div className="flex items-start gap-2.5" title="Località e Regione">
@@ -87,11 +87,11 @@ const RaceCard = React.memo(({
                     <div className="flex flex-col">
                         <div className="flex items-center gap-2">
                             <p className="text-xs font-bold text-slate-600 leading-snug">{race.location}</p>
-                            <button onClick={openInMaps} className="p-1 hover:bg-slate-100 rounded text-blue-600 transition-colors" title="Apri navigatore Google Maps" aria-label="Apri posizione in Google Maps">
+                            <button onClick={openInMaps} className="p-1 hover:bg-slate-100 rounded transition-colors" style={{ color: team?.primary_color || '#2563eb' }} title="Apri navigatore Google Maps" aria-label="Apri posizione in Google Maps">
                                 <Navigation className="w-3 h-3 rotate-45" />
                             </button>
                         </div>
-                        <span className="text-blue-600 text-[10px] font-bold uppercase tracking-tighter">{race.region}</span>
+                        <span className="text-[10px] font-bold uppercase tracking-tighter" style={{ color: team?.primary_color || '#2563eb' }}>{race.region}</span>
                     </div>
                 </div>
                 <div className="flex items-center gap-4">
@@ -118,7 +118,7 @@ const RaceCard = React.memo(({
             {participants.length > 0 && (
                 <div className="mb-4 flex flex-col gap-1.5 min-h-[40px]">
                     <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
-                        <User className="w-3 h-3 text-red-500" /> Compagni MTT ({participants.length})
+                        <User className="w-3 h-3" style={{ color: team?.primary_color || '#ef4444' }} /> Compagni {team?.name || 'del team'} ({participants.length})
                     </span>
                     <div className="flex flex-wrap gap-1">
                         {participants.map((name, i) => (
@@ -162,9 +162,10 @@ const RaceCard = React.memo(({
                                     onClick={(e) => { e.stopPropagation(); onPriority(race.id, p); }}
                                     className={`w-7 h-7 rounded-lg text-[10px] font-black transition-all ${
                                         priority === p
-                                        ? (p === 'A' ? 'bg-yellow-400 text-white shadow-sm' : p === 'B' ? 'bg-blue-400 text-white shadow-sm' : 'bg-slate-400 text-white shadow-sm')
+                                        ? (p === 'A' ? 'bg-yellow-400 text-white shadow-sm' : p === 'B' ? (team?.primary_color ? 'opacity-90' : 'bg-blue-400 text-white shadow-sm') : 'bg-slate-400 text-white shadow-sm')
                                         : 'text-slate-400 hover:bg-white'
                                     }`}
+                                    style={priority === p && p === 'B' && team?.primary_color ? { backgroundColor: team.primary_color, color: 'white' } : {}}
                                 >
                                     {p}
                                 </button>
@@ -192,7 +193,12 @@ const RaceCard = React.memo(({
                             href={race.link} 
                             target="_blank" 
                             rel="noopener noreferrer" 
-                            className="flex items-center gap-2 px-4 py-3 rounded-[1.25rem] text-blue-700 bg-blue-50 hover:bg-blue-100 transition-all border border-blue-100 font-black text-[10px] uppercase tracking-widest" 
+                            className="flex items-center gap-2 px-4 py-3 rounded-[1.25rem] transition-all border font-black text-[10px] uppercase tracking-widest" 
+                            style={{ 
+                                color: team?.primary_color || '#1d4ed8', 
+                                backgroundColor: `${team?.primary_color}10` || '#eff6ff', 
+                                borderColor: `${team?.primary_color}20` || '#dbeafe' 
+                            }}
                             title="Vai alla scheda ufficiale MyFITri" 
                             onClick={(e) => e.stopPropagation()}
                         >
@@ -205,8 +211,9 @@ const RaceCard = React.memo(({
                         className={`flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-[1.25rem] text-xs font-black uppercase tracking-widest transition-all duration-300 ${
                             isSelected
                             ? 'bg-red-50 text-red-800 hover:bg-red-100 border border-red-100'
-                            : 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-200'
+                            : 'text-white hover:brightness-110 shadow-lg'
                         }`}
+                        style={!isSelected ? { backgroundColor: team?.primary_color || '#2563eb' } : {}}
                     >
                         {isSelected ? <><Trash2 className="w-3.5 h-3.5" /> Rimuovi</> : <><Plus className="w-3.5 h-3.5" /> Aggiungi</>}
                     </button>
@@ -243,6 +250,7 @@ const DashboardPage: React.FC = () => {
   const [raceNotes, setRaceNotes] = useState<Record<string, string>>({});
   const [pendingConfirmId, setPendingConfirmId] = useState<string | null>(null);
   const [session, setSession] = useState<any>(null);
+  const [team, setTeam] = useState<any>(null);
   const [allPlans, setAllPlans] = useState<any[]>([]);
   const [allProfiles, setAllProfiles] = useState<any[]>([]);
 
@@ -263,7 +271,30 @@ const DashboardPage: React.FC = () => {
 
   const fetchData = useCallback(async () => {
     if (!session?.user) return;
-    const { data: myData } = await supabase.from('user_plans').select('*').eq('user_id', session.user.id);
+
+    // 1. Get user profile to find team_id
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('team_id')
+      .eq('id', session.user.id)
+      .single();
+
+    if (!profile?.team_id) return;
+
+    // 2. Get team configuration
+    const { data: teamData } = await supabase
+      .from('teams')
+      .select('*')
+      .eq('id', profile.team_id)
+      .single();
+    if (teamData) setTeam(teamData);
+
+    // 3. Get my plans
+    const { data: myData } = await supabase
+      .from('user_plans')
+      .select('*')
+      .eq('user_id', session.user.id);
+    
     if (myData) {
       const selected: string[] = [];
       const priorities: Record<string, string> = {};
@@ -280,10 +311,22 @@ const DashboardPage: React.FC = () => {
       setRaceCosts(costs);
       setRaceNotes(notes);
     }
-    const { data: teamPlans } = await supabase.from('user_plans').select('user_id, race_id');
-    const { data: teamProfiles } = await supabase.from('profiles').select('id, full_name');
-    if (teamPlans) setAllPlans(teamPlans);
-    if (teamProfiles) setAllProfiles(teamProfiles);
+
+    // 4. Get team-mate plans (isolated by team_id)
+    const { data: teamProfiles } = await supabase
+      .from('profiles')
+      .select('id, full_name')
+      .eq('team_id', profile.team_id);
+    
+    if (teamProfiles) {
+      setAllProfiles(teamProfiles);
+      const teamUserIds = teamProfiles.map(p => p.id);
+      const { data: teamPlans } = await supabase
+        .from('user_plans')
+        .select('user_id, race_id')
+        .in('user_id', teamUserIds);
+      if (teamPlans) setAllPlans(teamPlans);
+    }
   }, [session]);
 
   useEffect(() => { if (session) fetchData(); }, [session, fetchData]);
@@ -545,6 +588,7 @@ const DashboardPage: React.FC = () => {
                     cost={raceCosts[race.id] || 0} 
                     note={raceNotes[race.id] || ""} 
                     participants={participantsMap[race.id] || EMPTY_ARRAY}
+                    team={team}
                     onToggle={toggleRace} 
                     onPriority={setPriority} 
                     onCost={updateCost} 
@@ -555,12 +599,12 @@ const DashboardPage: React.FC = () => {
             ))}
         </div>
     );
-  }, [filteredRaces, selectedRaces, racePriorities, raceCosts, raceNotes, participantsMap, toggleRace, setPriority, updateCost, generateSingleRaceCard, setActiveChecklistRace, setActiveNoteRace]);
+  }, [filteredRaces, selectedRaces, racePriorities, raceCosts, raceNotes, participantsMap, team, toggleRace, setPriority, updateCost, generateSingleRaceCard, setActiveChecklistRace, setActiveNoteRace]);
 
   const generateRaceCard = async () => {
     if (cardRef.current) {
         const dataUrl = await toPng(cardRef.current, { backgroundColor: '#0f172a' });
-        const link = document.createElement('a'); link.download = `stagione-mtt-2026.png`; link.href = dataUrl; link.click();
+        const link = document.createElement('a'); link.download = `stagione-${team?.name || 'team'}-2026.png`; link.href = dataUrl; link.click();
     }
   };
 
@@ -569,19 +613,19 @@ const DashboardPage: React.FC = () => {
     setTimeout(async () => {
         if (singleCardRef.current) {
             const dataUrl = await toPng(singleCardRef.current, { backgroundColor: '#0f172a', width: 1080, height: 1080 });
-            const link = document.createElement('a'); link.download = `mtt-challenge-${race.id}.png`; link.href = dataUrl; link.click();
+            const link = document.createElement('a'); link.download = `${team?.name || 'team'}-challenge-${race.id}.png`; link.href = dataUrl; link.click();
             setActiveSingleRace(null);
         }
     }, 200);
-  }, []);
+  }, [team]);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 px-4">
         <div className="lg:col-span-4 space-y-6">
           <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100 sticky top-28">
             <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xs font-black text-slate-500 uppercase tracking-widest flex items-center gap-2"><Filter className="w-4 h-4 text-blue-600" /> Filtri</h2>
-                <button onClick={() => { setSearchTerm(""); setFilterType("Tutti"); setFilterMonth("Tutti"); setFilterDistance("Tutti"); setFilterRegion("Tutte"); setFilterSpecial([]); setFilterRadius(1000); }} className="text-[10px] font-bold text-blue-700 hover:underline" aria-label="Resetta tutti i filtri">Reset</button>
+                <h2 className="text-xs font-black text-slate-500 uppercase tracking-widest flex items-center gap-2"><Filter className="w-4 h-4" style={{ color: team?.primary_color || '#2563eb' }} /> Filtri</h2>
+                <button onClick={() => { setSearchTerm(""); setFilterType("Tutti"); setFilterMonth("Tutti"); setFilterDistance("Tutti"); setFilterRegion("Tutte"); setFilterSpecial([]); setFilterRadius(1000); }} className="text-[10px] font-bold hover:underline" style={{ color: team?.primary_color || '#1d4ed8' }} aria-label="Resetta tutti i filtri">Reset</button>
             </div>
             <div className="space-y-5">
               <div className="relative group">
@@ -590,7 +634,8 @@ const DashboardPage: React.FC = () => {
                   id="search-input"
                   type="text" 
                   placeholder="Cerca gara..." 
-                  className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-medium" 
+                  className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-medium focus:ring-2 focus:ring-blue-50" 
+                  style={{ '--tw-ring-color': team?.primary_color || '#3b82f6' } as any}
                   value={searchTerm} 
                   onChange={(e) => setSearchTerm(e.target.value)} 
                   aria-label="Cerca gara per titolo o località"
@@ -600,7 +645,7 @@ const DashboardPage: React.FC = () => {
                 <div>
                   <label htmlFor="radius-range" className="text-[10px] font-black text-slate-600 uppercase tracking-widest block mb-2 flex justify-between">
                     <span>Distanza massima</span>
-                    <span className="text-blue-700">{filterRadius >= 1000 ? 'Illimitato' : `${filterRadius} km`}</span>
+                    <span style={{ color: team?.primary_color || '#1d4ed8' }}>{filterRadius >= 1000 ? 'Illimitato' : `${filterRadius} km`}</span>
                   </label>
                   <input 
                     id="radius-range"
@@ -611,6 +656,7 @@ const DashboardPage: React.FC = () => {
                     value={filterRadius} 
                     onChange={(e) => setFilterRadius(parseInt(e.target.value))} 
                     className="w-full h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-blue-600" 
+                    style={{ accentColor: team?.primary_color || '#2563eb' } as any}
                   />
                 </div>
               )}
@@ -618,7 +664,14 @@ const DashboardPage: React.FC = () => {
                 <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest block mb-2">Sport</label>
                 <div className="flex flex-wrap gap-2">
                   {["Tutti", "Triathlon", "Duathlon", "Winter", "Cross"].map((t) => (
-                    <button key={t} onClick={() => setFilterType(t)} className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase transition-all ${(filterType === t) ? "bg-slate-900 text-white shadow-md" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>{t}</button>
+                    <button 
+                      key={t} 
+                      onClick={() => setFilterType(t)} 
+                      className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase transition-all ${(filterType === t) ? "text-white shadow-md" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
+                      style={(filterType === t) ? { backgroundColor: team?.primary_color || '#0f172a' } : {}}
+                    >
+                      {t}
+                    </button>
                   ))}
                 </div>
               </div>
@@ -647,24 +700,11 @@ const DashboardPage: React.FC = () => {
                   </select>
                 </div>
               </div>
-              <div><label className="text-[10px] font-black text-slate-600 uppercase tracking-widest block mb-2">Settori Speciali</label><div className="flex flex-wrap gap-2">{["Paratriathlon", "Kids", "Youth"].map((s) => (<button key={s} onClick={() => { setFilterSpecial(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]); }} className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase transition-all ${(filterSpecial.includes(s)) ? "bg-blue-700 text-white shadow-md" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>{s}</button>))}</div></div>
-              <div className="grid grid-cols-1 gap-4">
-                <div>
-                  <label htmlFor="province-select" className="text-[10px] font-black text-slate-600 uppercase tracking-widest block mb-2">La tua provincia</label>
-                  <select 
-                    id="province-select"
-                    value={homeCity} 
-                    onChange={(e) => { setHomeCity(e.target.value); localStorage.setItem("home_city", e.target.value); }} 
-                    className="w-full p-2.5 bg-slate-50 border-none rounded-xl text-xs font-bold outline-none cursor-pointer hover:bg-slate-100"
-                  >
-                    <option value="">Seleziona...</option>{Object.keys(provinceCoordinates).sort().map(p => <option key={p} value={p}>{p}</option>)}
-                  </select>
-                </div>
-              </div>
+              <div><label className="text-[10px] font-black text-slate-600 uppercase tracking-widest block mb-2">Settori Speciali</label><div className="flex flex-wrap gap-2">{["Paratriathlon", "Kids", "Youth"].map((s) => (<button key={s} onClick={() => { setFilterSpecial(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]); }} className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase transition-all ${(filterSpecial.includes(s)) ? "text-white shadow-md" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`} style={(filterSpecial.includes(s)) ? { backgroundColor: team?.primary_color || '#1d4ed8' } : {}}>{s}</button>))}</div></div>
             </div>
             <div className="mt-10 pt-10 border-t border-slate-100">
-                <div className="flex items-center justify-between mb-6"><h2 className="text-lg font-black text-slate-800">Le mie gare <span className="text-blue-700">({myPlan.length})</span></h2><div className="flex gap-2">
-                    <button onClick={exportToICS} className="text-blue-700 p-1" aria-label="Esporta in Calendario (ICS)"><Calendar className="w-4 h-4" /></button>
+                <div className="flex items-center justify-between mb-6"><h2 className="text-lg font-black text-slate-800">Le mie gare <span style={{ color: team?.primary_color || '#1d4ed8' }}>({myPlan.length})</span></h2><div className="flex gap-2">
+                    <button onClick={exportToICS} className="p-1" style={{ color: team?.primary_color || '#1d4ed8' }} aria-label="Esporta in Calendario (ICS)"><Calendar className="w-4 h-4" /></button>
                     <button onClick={exportToCSV} className="text-emerald-700 p-1" aria-label="Esporta in Excel (CSV)"><Download className="w-4 h-4" /></button>
                     <span title="Race Card stagionale" className="cursor-pointer"><Camera className="w-4 h-4 text-slate-500 hover:text-blue-700" onClick={generateRaceCard} aria-label="Genera Race Card stagionale" /></span>
                 </div></div>
@@ -672,7 +712,7 @@ const DashboardPage: React.FC = () => {
                     {myPlan.map((race) => (
                     <div key={race.id} className={`p-4 rounded-2xl border transition-all ${racePriorities[race.id] === 'A' ? 'border-yellow-200 bg-yellow-50/30' : 'border-slate-100 bg-white shadow-sm'}`}>
                         <div className="flex justify-between items-start">
-                            <div className="space-y-1"><div className="flex items-center gap-2"><span className="text-[10px] font-black text-blue-700">{race.date}</span>{racePriorities[race.id] && <span className="text-[8px] font-black px-1.5 py-0.5 rounded bg-slate-800 text-white">{racePriorities[race.id]}</span>}</div><h3 className="text-xs font-bold text-slate-700 leading-tight">{race.title}</h3></div>
+                            <div className="space-y-1"><div className="flex items-center gap-2"><span className="text-[10px] font-black" style={{ color: team?.primary_color || '#1d4ed8' }}>{race.date}</span>{racePriorities[race.id] && <span className="text-[8px] font-black px-1.5 py-0.5 rounded bg-slate-800 text-white">{racePriorities[race.id]}</span>}</div><h3 className="text-xs font-bold text-slate-700 leading-tight">{race.title}</h3></div>
                             <button onClick={() => toggleRace(race.id)} className="text-slate-500 hover:text-red-600" aria-label={`Rimuovi ${race.title} dal mio piano`}><Trash2 className="w-4 h-4" /></button>
                         </div>
                     </div>))}
@@ -689,7 +729,7 @@ const DashboardPage: React.FC = () => {
                     <h3 className="text-sm font-black uppercase text-slate-800 tracking-tight">Ti piace l'App?</h3>
                 </div>
                 <p className="text-xs font-bold text-slate-500 leading-relaxed mb-4">
-                    Supporta lo sviluppo dell'app e la manutenzione del server MTT!
+                    Supporta lo sviluppo dell'app e la manutenzione dei server!
                 </p>
                 <a 
                     href="https://ko-fi.com/stefanobonfanti" 
@@ -704,12 +744,12 @@ const DashboardPage: React.FC = () => {
         </div>
 
         <div className="lg:col-span-8 space-y-6">
-            {/* Contenitore Prossimo Obiettivo: sempre presente per stabilità layout */}
             <div className="min-h-[160px] empty:hidden">
                 {nextObjective && timeLeft ? (
-                    <div className="bg-gradient-to-r from-red-600 to-red-700 rounded-[3rem] p-8 text-white shadow-xl flex flex-col md:flex-row items-center justify-between gap-6 overflow-hidden relative animate-in fade-in duration-500">
+                    <div className="rounded-[3rem] p-8 text-white shadow-xl flex flex-col md:flex-row items-center justify-between gap-6 overflow-hidden relative animate-in fade-in duration-500"
+                         style={{ background: `linear-gradient(to right, ${team?.primary_color || '#dc2626'}, ${team?.primary_color || '#b91c1c'}dd)` }}>
                         <div className="absolute right-0 top-0 p-4 opacity-10 rotate-12">
-                            <img src="/Logo.png" alt="" className="w-48 h-auto grayscale brightness-200" />
+                            <img src={team?.logo_url || "/Logo.png"} alt="" className="w-48 h-auto grayscale brightness-200" />
                         </div>
                         <div className="relative z-10"><span className="text-[10px] font-black uppercase tracking-widest opacity-60 bg-white/20 px-2 py-1 rounded">Prossimo Obiettivo</span><h2 className="text-2xl font-black uppercase mt-2">{nextObjective.title}</h2></div>
                         <div className="flex gap-4 text-center relative z-10"><div className="bg-white/10 backdrop-blur-sm p-3 rounded-2xl min-w-[70px]"><div className="text-3xl font-black tabular-nums">{timeLeft.days}</div><div className="text-[8px] font-bold uppercase opacity-60">Giorni</div></div><div className="text-2xl mt-3 opacity-30">:</div><div className="bg-white/10 backdrop-blur-sm p-3 rounded-2xl min-w-[70px]"><div className="text-3xl font-black tabular-nums">{timeLeft.hours}</div><div className="text-[8px] font-bold uppercase opacity-60">Ore</div></div></div>
@@ -717,32 +757,31 @@ const DashboardPage: React.FC = () => {
                 ) : null}
             </div>
 
-            {/* Contenitore Analisi Stagione: sempre presente se l'utente ha gare, con altezza minima predefinita */}
             <div className="min-h-[350px] empty:hidden">
                 {myPlan.length > 0 ? (
                     <div className="bg-slate-900 rounded-[2.5rem] p-8 text-white shadow-2xl overflow-hidden relative group animate-in fade-in duration-500">
                         <div className="absolute top-0 right-0 p-8 opacity-5">
-                            <img src="/Logo.png" alt="" className="w-64 h-auto grayscale brightness-200" />
+                            <img src={team?.logo_url || "/Logo.png"} alt="" className="w-64 h-auto grayscale brightness-200" />
                         </div>
                         <div className="relative z-10">
-                            <div className="flex items-center gap-3 mb-8"><div className="bg-blue-500 p-2 rounded-xl"><Activity className="w-5 h-5 text-white" /></div><h2 className="text-xl font-black uppercase tracking-tight">Analisi Stagione</h2></div>
+                            <div className="flex items-center gap-3 mb-8"><div className="p-2 rounded-xl" style={{ backgroundColor: team?.primary_color || '#3b82f6' }}><Activity className="w-5 h-5 text-white" /></div><h2 className="text-xl font-black uppercase tracking-tight">Analisi Stagione</h2></div>
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                                 <div className="bg-white/5 p-5 rounded-3xl border border-white/10">
                                     <span className="text-[10px] font-black text-slate-300 uppercase block mb-4">Focus Target</span>
                                     <div className="flex items-end gap-3"><div className="text-3xl font-black text-yellow-400 tabular-nums">{seasonStats.priorities.A}</div><div className="text-[10px] font-bold text-slate-300 mb-1.5 uppercase">Obiettivi A</div></div>
-                                    <div className="mt-4 flex gap-1 h-1.5"><div className="bg-yellow-400 rounded-full" style={{ width: `${(seasonStats.priorities.A / myPlan.length) * 100}%` }}></div><div className="bg-blue-400 rounded-full" style={{ width: `${(seasonStats.priorities.B / myPlan.length) * 100}%` }}></div><div className="bg-slate-600 rounded-full flex-1"></div></div>
+                                    <div className="mt-4 flex gap-1 h-1.5"><div className="bg-yellow-400 rounded-full" style={{ width: `${(seasonStats.priorities.A / myPlan.length) * 100}%` }}></div><div className="rounded-full" style={{ width: `${(seasonStats.priorities.B / myPlan.length) * 100}%`, backgroundColor: team?.primary_color || '#60a5fa' }}></div><div className="bg-slate-600 rounded-full flex-1"></div></div>
                                 </div>
                                 <div className="bg-white/5 p-5 rounded-3xl border border-white/10"><span className="text-[10px] font-black text-slate-300 uppercase block mb-4">Mix Discipline</span><div className="space-y-2">{Object.entries(seasonStats.types).map(([type, count]) => (<div key={type} className="flex items-center justify-between"><span className="text-[10px] font-bold text-slate-200">{type}</span><span className="text-xs font-black tabular-nums">{count}</span></div>))}</div></div>
-                                <div className="bg-white/5 p-5 rounded-3xl border border-white/10"><span className="text-[10px] font-black text-slate-300 uppercase block mb-4">Logistica</span><div className="flex items-center gap-3"><Navigation className="w-8 h-8 text-blue-400" /><div><div className="text-2xl font-black tabular-nums">{seasonStats.totalKm}</div><div className="text-[10px] font-bold text-slate-300 uppercase">Km Stimati</div></div></div></div>
+                                <div className="bg-white/5 p-5 rounded-3xl border border-white/10"><span className="text-[10px] font-black text-slate-300 uppercase block mb-4">Logistica</span><div className="flex items-center gap-3"><Navigation className="w-8 h-8" style={{ color: team?.primary_color || '#60a5fa' }} /><div><div className="text-2xl font-black tabular-nums">{seasonStats.totalKm}</div><div className="text-[10px] font-bold text-slate-300 uppercase">Km Stimati</div></div></div></div>
                             </div>
                             <div className="mt-8 pt-8 border-t border-white/5 flex flex-col sm:flex-row items-center justify-between gap-4">
                                 <div className="flex items-center gap-4">
-                                    <div className="bg-red-600/20 p-2 rounded-lg">
-                                        <img src="/Logo.png" alt="" className="w-6 h-6 object-contain" />
+                                    <div className="bg-white/10 p-2 rounded-lg">
+                                        <img src={team?.logo_url || "/Logo.png"} alt="" className="w-6 h-6 object-contain" />
                                     </div>
-                                    <p className="text-xs font-bold text-slate-200">Vuoi gareggiare con i colori del <span className="text-red-500">MTT</span> nel 2026?</p>
+                                    <p className="text-xs font-bold text-slate-200">Vuoi gareggiare con i colori del <span style={{ color: team?.primary_color || '#ef4444' }}>{team?.name || 'team'}</span> nel 2026?</p>
                                 </div>
-                                <a href="https://www.milanotriathlonteam.com/" target="_blank" rel="noopener noreferrer" className="px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg">Diventa un MTT</a>
+                                <a href={team?.website_url || "#"} target="_blank" rel="noopener noreferrer" className="px-6 py-2.5 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg hover:brightness-110" style={{ backgroundColor: team?.primary_color || '#ef4444' }}>Visita il sito</a>
                             </div>
                         </div>
                     </div>
@@ -754,8 +793,8 @@ const DashboardPage: React.FC = () => {
                     <span className="tabular-nums">{filteredRaces.length}</span> gare trovate
                 </span>
                 <div className="flex bg-slate-100 p-1 rounded-xl shrink-0">
-                    <button onClick={() => handleViewChange('list')} className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${viewMode === 'list' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600'}`} aria-label="Visualizza come lista">Lista</button>
-                    <button onClick={() => handleViewChange('map')} className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${viewMode === 'map' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600'}`} aria-label="Visualizza su mappa">Mappa</button>
+                    <button onClick={() => handleViewChange('list')} className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${viewMode === 'list' ? 'bg-white shadow-sm' : 'text-slate-600'}`} style={viewMode === 'list' ? { color: team?.primary_color || '#2563eb' } : {}} aria-label="Visualizza come lista">Lista</button>
+                    <button onClick={() => handleViewChange('map')} className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${viewMode === 'map' ? 'bg-white shadow-sm' : 'text-slate-600'}`} style={viewMode === 'map' ? { color: team?.primary_color || '#2563eb' } : {}} aria-label="Visualizza su mappa">Mappa</button>
                 </div>
             </div>
 
@@ -774,7 +813,7 @@ const DashboardPage: React.FC = () => {
                                 <Popup>
                                     <div className="p-3 min-w-[200px] flex flex-col gap-2">
                                         <div className="flex justify-between items-start gap-4">
-                                            <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">{race.date}</span>
+                                            <span className="text-[10px] font-black bg-blue-50 px-2 py-0.5 rounded-full" style={{ color: team?.primary_color || '#2563eb' }}>{race.date}</span>
                                             <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-lg ${race.type === 'Triathlon' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}`}>{race.type}</span>
                                         </div>
                                         <h3 className="font-black text-slate-800 text-sm leading-tight mt-1">{race.title}</h3>
@@ -793,7 +832,8 @@ const DashboardPage: React.FC = () => {
                                         <div className="grid grid-cols-2 gap-2 mt-3">
                                             <button 
                                                 onClick={() => toggleRace(race.id)} 
-                                                className={`py-2 rounded-xl text-[10px] font-black uppercase transition-all ${selectedRaces.includes(race.id) ? 'bg-red-50 text-red-600 border border-red-100' : 'bg-blue-600 text-white shadow-lg'}`}
+                                                className={`py-2 rounded-xl text-[10px] font-black uppercase transition-all ${selectedRaces.includes(race.id) ? 'bg-red-50 text-red-600 border border-red-100' : 'text-white shadow-lg'}`}
+                                                style={!selectedRaces.includes(race.id) ? { backgroundColor: team?.primary_color || '#2563eb' } : {}}
                                             >
                                                 {selectedRaces.includes(race.id) ? 'Rimuovi' : 'Aggiungi'}
                                             </button>
@@ -821,22 +861,24 @@ const DashboardPage: React.FC = () => {
         {activeNoteRace && (
             <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in" role="dialog" aria-modal="true" aria-labelledby="note-modal-title">
                 <div className="bg-white rounded-[2.5rem] p-8 max-w-md w-full shadow-2xl animate-in zoom-in-95">
-                    <div className="flex justify-between items-start mb-6"><div className="bg-blue-50 p-3 rounded-2xl"><Edit3 className="w-6 h-6 text-blue-600" /></div><button onClick={() => setActiveNoteRace(null)} className="p-2 hover:bg-slate-100 rounded-xl transition-colors" aria-label="Chiudi diario di gara"><X className="w-5 h-5 text-slate-500" /></button></div>
+                    <div className="flex justify-between items-start mb-6"><div className="bg-blue-50 p-3 rounded-2xl"><Edit3 className="w-6 h-6" style={{ color: team?.primary_color || '#2563eb' }} /></div><button onClick={() => setActiveNoteRace(null)} className="p-2 hover:bg-slate-100 rounded-xl transition-colors" aria-label="Chiudi diario di gara"><X className="w-5 h-5 text-slate-500" /></button></div>
                     <h3 id="note-modal-title" className="text-xl font-black text-slate-800 mb-1 uppercase tracking-tight">Diario di Gara</h3>
                     <label htmlFor="race-notes-textarea" className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-6 block">{activeNoteRace.title}</label>
                     <textarea 
                         id="race-notes-textarea"
                         autoFocus 
-                        className="w-full h-40 p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl outline-none focus:border-blue-500 focus:bg-white transition-all text-sm font-bold text-slate-700 placeholder:text-slate-500" 
+                        className="w-full h-40 p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl outline-none focus:bg-white transition-all text-sm font-bold text-slate-700 placeholder:text-slate-500" 
+                        style={{ '--tw-focus-border-color': team?.primary_color || '#3b82f6' } as any}
                         placeholder="Esempio: Obiettivo stare sotto le 2h15, gel ogni 45 min..." 
                         value={raceNotes[activeNoteRace.id] || ""} 
                         onChange={(e) => updateNote(activeNoteRace.id, e.target.value)} 
                     />
-                    <button onClick={() => setActiveNoteRace(null)} className="w-full mt-8 py-4 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-lg transition-all">Salva Note</button>
+                    <button onClick={() => setActiveNoteRace(null)} className="w-full mt-8 py-4 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-lg transition-all hover:brightness-110" style={{ backgroundColor: team?.primary_color || '#0f172a' }}>Salva Note</button>
                 </div>
             </div>
         )}
 
+        {/* MODALE CHECKLIST */}
         {activeChecklistRace && (
             <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in" role="dialog" aria-modal="true" aria-labelledby="checklist-modal-title">
                 <div className="bg-white rounded-[2.5rem] p-8 max-w-md w-full shadow-2xl animate-in zoom-in-95">
@@ -848,29 +890,19 @@ const DashboardPage: React.FC = () => {
             </div>
         )}
 
-        {pendingConfirmId && (
-            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
-                <div className="bg-white rounded-[2.5rem] p-8 max-w-md w-full text-center animate-in zoom-in-95 shadow-2xl">
-                    <div className="bg-orange-50 w-16 h-16 rounded-3xl flex items-center justify-center mx-auto mb-6"><AlertTriangle className="w-8 h-8 text-orange-500" /></div>
-                    <h3 className="text-xl font-black mb-4 uppercase">Gara molto vicina!</h3><p className="text-slate-500 mb-8 font-medium">Hai meno di 3 giorni di recupero. Vuoi procedere?</p>
-                    <div className="flex gap-3"><button onClick={() => setPendingConfirmId(null)} className="flex-1 py-4 bg-slate-100 hover:bg-slate-200 rounded-2xl font-black text-xs uppercase transition-all">Annulla</button><button onClick={() => addRaceFinal(pendingConfirmId)} className="flex-1 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black text-xs uppercase shadow-lg transition-all">Conferma</button></div>
-                </div>
-            </div>
-        )}
-
         {/* TEMPLATE SOCIAL STAGIONALE */}
         <div style={{ position: 'absolute', left: '-9999px', top: 0 }}>
             <div ref={cardRef} className="w-[1080px] min-h-[1920px] bg-slate-900 p-20 flex flex-col text-white font-sans relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-10 opacity-5"><img src="/Logo.png" alt="" className="w-[800px] h-auto grayscale brightness-200" /></div>
-                <div className="flex items-center justify-between mb-20 border-b-4 border-red-600 pb-10 relative z-10">
-                    <div className="flex items-center gap-8"><div className="bg-red-600 p-6 rounded-[2.5rem] rotate-3 shadow-2xl"><img src="/Logo.png" alt="" className="w-20 h-auto grayscale brightness-200" /></div><div><h1 className="text-7xl font-black tracking-tighter uppercase leading-none mb-2">My 2026 Season</h1><p className="text-2xl font-bold text-red-500 uppercase tracking-[0.5em]">MTT Milano Triathlon Team</p></div></div>
+                <div className="absolute top-0 right-0 p-10 opacity-5"><img src={team?.logo_url || "/Logo.png"} alt="" className="w-[800px] h-auto grayscale brightness-200" /></div>
+                <div className="flex items-center justify-between mb-20 pb-10 relative z-10" style={{ borderBottom: `4px solid ${team?.primary_color || '#dc2626'}` }}>
+                    <div className="flex items-center gap-8"><div className="p-6 rounded-[2.5rem] rotate-3 shadow-2xl" style={{ backgroundColor: team?.primary_color || '#dc2626' }}><img src={team?.logo_url || "/Logo.png"} alt="" className="w-20 h-auto grayscale brightness-200" /></div><div><h1 className="text-7xl font-black tracking-tighter uppercase leading-none mb-2">My 2026 Season</h1><p className="text-2xl font-bold uppercase tracking-[0.5em]" style={{ color: team?.primary_color || '#dc2626' }}>{team?.name || 'Team Planner'}</p></div></div>
                     <div className="text-right text-9xl font-black text-white/10 leading-none">2026</div>
                 </div>
                 <div className="flex-1 space-y-10 relative z-10">
                     {myPlan.slice(0, 10).map((race) => (
                         <div key={race.id} className={`p-10 rounded-[3rem] flex items-center justify-between border-4 transition-all ${racePriorities[race.id] === 'A' ? 'bg-yellow-500/10 border-yellow-500' : 'bg-white/5 border-white/5'}`}>
                             <div className="flex items-center gap-10">
-                                <div className="flex flex-col items-center justify-center bg-white/10 w-28 h-28 rounded-[2rem] border-2 border-white/10"><span className="text-sm font-black uppercase text-blue-400">{race.date.split('-')[1]}</span><span className="text-4xl font-black">{race.date.split('-')[0]}</span></div>
+                                <div className="flex flex-col items-center justify-center bg-white/10 w-28 h-28 rounded-[2rem] border-2 border-white/10"><span className="text-sm font-black uppercase" style={{ color: team?.primary_color || '#60a5fa' }}>{race.date.split('-')[1]}</span><span className="text-4xl font-black">{race.date.split('-')[0]}</span></div>
                                 <div className="space-y-2">
                                     {racePriorities[race.id] === 'A' && <div className="flex items-center gap-2 text-yellow-500 mb-2"><Star className="w-6 h-6 fill-current" /><span className="text-xl font-black uppercase tracking-widest">Main Objective</span></div>}
                                     {race.event && <div className="text-xl font-black text-white/40 uppercase tracking-[0.2em] mb-1">{race.event}</div>}
@@ -878,11 +910,11 @@ const DashboardPage: React.FC = () => {
                                     <div className="flex items-center gap-4 text-white/40 text-xl font-bold"><MapPin className="w-6 h-6" /><span>{race.location} • {race.region}</span></div>
                                 </div>
                             </div>
-                            <div className="flex flex-col items-end gap-4"><span className={`px-10 py-4 rounded-3xl text-3xl font-black uppercase ${race.type === 'Triathlon' ? 'bg-blue-600' : 'bg-orange-600'}`}>{race.type}</span></div>
+                            <div className="flex flex-col items-end gap-4"><span className={`px-10 py-4 rounded-3xl text-3xl font-black uppercase`} style={{ backgroundColor: race.type === 'Triathlon' ? '#2563eb' : '#ea580c' }}>{race.type}</span></div>
                         </div>
                     ))}
                 </div>
-                <div className="mt-20 pt-10 border-t-2 border-white/10 flex justify-between items-end opacity-40 relative z-10"><div className="text-xl font-bold"><p>Generato da MTT Season Planner</p><p className="text-red-500 uppercase tracking-widest">www.milanotriathlonteam.com</p></div><div className="flex items-center gap-4"><img src="/Logo.png" alt="" className="w-10 h-auto grayscale brightness-200" /><span className="text-4xl font-black uppercase italic">Ready to Race</span></div></div>
+                <div className="mt-20 pt-10 border-t-2 border-white/10 flex justify-between items-end opacity-40 relative z-10"><div className="text-xl font-bold"><p>Generato da {team?.name || 'Team Planner'}</p><p className="uppercase tracking-widest" style={{ color: team?.primary_color || '#dc2626' }}>{team?.website_url || ''}</p></div><div className="flex items-center gap-4"><img src={team?.logo_url || "/Logo.png"} alt="" className="w-10 h-auto grayscale brightness-200" /><span className="text-4xl font-black uppercase italic">Ready to Race</span></div></div>
             </div>
         </div>
 
@@ -890,17 +922,17 @@ const DashboardPage: React.FC = () => {
         <div style={{ position: 'absolute', left: '-9999px', top: 0 }}>
             {activeSingleRace && (
                 <div ref={singleCardRef} className="w-[1080px] h-[1080px] bg-slate-900 p-20 flex flex-col items-center justify-center text-white font-sans relative overflow-hidden text-center">
-                    <div className="absolute top-0 right-0 p-10 opacity-5"><img src="/Logo.png" alt="" className="w-[600px] h-auto grayscale brightness-200" /></div>
+                    <div className="absolute top-0 right-0 p-10 opacity-5"><img src={team?.logo_url || "/Logo.png"} alt="" className="w-[600px] h-auto grayscale brightness-200" /></div>
                     <div className="z-10 space-y-10">
-                        <div className="bg-red-600 px-8 py-3 rounded-full inline-block mb-4 shadow-2xl"><span className="text-2xl font-black uppercase tracking-[0.5em]">Next Challenge</span></div>
-                        <div className="space-y-4"><h1 className="text-8xl font-black tracking-tighter leading-none uppercase drop-shadow-2xl">{activeSingleRace.event || activeSingleRace.title}</h1><p className="text-4xl font-bold text-red-500 uppercase tracking-[0.3em]">MTT Milano Triathlon Team</p></div>
-                        <div className="flex flex-col items-center gap-6 pt-10"><div className="flex items-center gap-6 bg-white/10 px-10 py-6 rounded-[2.5rem] border-2 border-white/10 shadow-xl"><Calendar className="w-12 h-12 text-blue-400" /><span className="text-6xl font-black">{activeSingleRace.date}</span></div><div className="flex items-center gap-4 text-white/60 text-3xl font-bold"><MapPin className="w-10 h-10" /><span>{activeSingleRace.location} • {activeSingleRace.region}</span></div></div>
+                        <div className="px-8 py-3 rounded-full inline-block mb-4 shadow-2xl" style={{ backgroundColor: team?.primary_color || '#dc2626' }}><span className="text-2xl font-black uppercase tracking-[0.5em]">Next Challenge</span></div>
+                        <div className="space-y-4"><h1 className="text-8xl font-black tracking-tighter leading-none uppercase drop-shadow-2xl">{activeSingleRace.event || activeSingleRace.title}</h1><p className="text-4xl font-bold uppercase tracking-[0.3em]" style={{ color: team?.primary_color || '#dc2626' }}>{team?.name || ''}</p></div>
+                        <div className="flex flex-col items-center gap-6 pt-10"><div className="flex items-center gap-6 bg-white/10 px-10 py-6 rounded-[2.5rem] border-2 border-white/10 shadow-xl"><Calendar className="w-12 h-12" style={{ color: team?.primary_color || '#60a5fa' }} /><span className="text-6xl font-black">{activeSingleRace.date}</span></div><div className="flex items-center gap-4 text-white/60 text-3xl font-bold"><MapPin className="w-10 h-10" /><span>{activeSingleRace.location} • {activeSingleRace.region}</span></div></div>
                         <div className="pt-10 flex gap-6 justify-center">
-                            <span className={`px-10 py-4 rounded-3xl text-3xl font-black uppercase shadow-lg ${activeSingleRace.type === 'Triathlon' ? 'bg-blue-600' : 'bg-orange-600'}`}>{activeSingleRace.type}</span>
+                            <span className={`px-10 py-4 rounded-3xl text-3xl font-black uppercase shadow-lg`} style={{ backgroundColor: activeSingleRace.type === 'Triathlon' ? '#2563eb' : '#ea580c' }}>{activeSingleRace.type}</span>
                             {activeSingleRace.distance && <span className="px-10 py-4 bg-slate-700 rounded-3xl text-3xl font-black uppercase tracking-widest shadow-lg">{activeSingleRace.distance}</span>}
                         </div>
                     </div>
-                    <div className="absolute bottom-10 left-0 right-0 text-center opacity-30 text-xl font-bold">www.milanotriathlonteam.com</div>
+                    <div className="absolute bottom-10 left-0 right-0 text-center opacity-30 text-xl font-bold">{team?.website_url || ''}</div>
                 </div>
             )}
         </div>

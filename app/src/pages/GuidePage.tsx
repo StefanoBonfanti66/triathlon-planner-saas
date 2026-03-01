@@ -69,7 +69,7 @@ const GuidePage: React.FC = () => {
           </div>
           <div className="bg-emerald-50/50 p-8 rounded-[2.5rem] border border-emerald-100">
             <p className="text-slate-700 font-bold leading-relaxed mb-6">
-              Questa è l'anima social del progetto MTT. In questa sezione:
+              Questa è l'anima social del progetto. In questa sezione:
             </p>
             <ul className="space-y-4">
               <li className="flex items-start gap-3 text-sm text-slate-600 font-medium">
@@ -78,7 +78,7 @@ const GuidePage: React.FC = () => {
               </li>
               <li className="flex items-start gap-3 text-sm text-slate-600 font-medium">
                 <div className="mt-1 bg-emerald-500 rounded-full p-1 text-white"><CheckCircle className="w-3 h-3" /></div>
-                <span>Sotto ogni gara trovi i <strong>Nomi Completi</strong> degli atleti MTT iscritti.</span>
+                <span>Sotto ogni gara trovi i <strong>Nomi Completi</strong> degli atleti del tuo team iscritti.</span>
               </li>
               <li className="flex items-start gap-3 text-sm text-slate-600 font-medium">
                 <div className="mt-1 bg-emerald-500 rounded-full p-1 text-white"><CheckCircle className="w-3 h-3" /></div>

@@ -24,11 +24,22 @@ const TeamCalendarPage: React.FC = () => {
   const [userRaces, setUserRaces] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [session, setSession] = useState<any>(null);
+  const [team, setTeam] = useState<any>(null);
 
-  const fetchTeamCalendar = async () => {
-    const { data, error } = await supabase.rpc('get_team_calendar');
+  const fetchTeamData = async (userId: string) => {
+    const { data: profile } = await supabase.from('profiles').select('team_id').eq('id', userId).single();
+    if (profile?.team_id) {
+      const { data: teamData } = await supabase.from('teams').select('*').eq('id', profile.team_id).single();
+      setTeam(teamData);
+      return profile.team_id;
+    }
+    return null;
+  };
+
+  const fetchTeamCalendar = async (teamId: string) => {
+    const { data, error } = await supabase.rpc('get_team_calendar', { p_team_id: teamId });
     if (error) console.error("Errore nel caricare il calendario del team:", error);
-    else setTeamCalendar(data);
+    else setTeamCalendar(data || []);
   };
 
   const fetchUserRaces = async (userId: string) => {
@@ -37,19 +48,25 @@ const TeamCalendarPage: React.FC = () => {
   };
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    const init = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
       setSession(session);
+      
       if (session?.user) {
-        fetchUserRaces(session.user.id);
+        const teamId = await fetchTeamData(session.user.id);
+        await fetchUserRaces(session.user.id);
+        if (teamId) {
+          await fetchTeamCalendar(teamId);
+        }
       }
-    });
+      setLoading(false);
+    };
 
-    fetchTeamCalendar();
-    setLoading(false);
+    init();
   }, []);
 
   const handleJoinRace = async (raceId: string) => {
-    if (!session?.user) return;
+    if (!session?.user || !team?.id) return;
 
     const { error } = await supabase
       .from('user_plans')
@@ -58,9 +75,8 @@ const TeamCalendarPage: React.FC = () => {
     if (error) {
       alert("Errore durante l'iscrizione.");
     } else {
-      // Aggiorna localmente le gare dell'utente e ricarica il calendario del team
       setUserRaces(prev => [...prev, raceId]);
-      fetchTeamCalendar();
+      fetchTeamCalendar(team.id);
     }
   };
 
@@ -76,12 +92,12 @@ const TeamCalendarPage: React.FC = () => {
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
       <div className="flex items-center gap-4 mb-10">
-        <div className="bg-blue-500 p-4 rounded-3xl text-white shadow-lg">
+        <div className="p-4 rounded-3xl text-white shadow-lg" style={{ backgroundColor: team?.primary_color || '#3b82f6' }}>
           <Users className="w-8 h-8" />
         </div>
         <div>
-          <h1 className="text-3xl font-black text-slate-800 tracking-tight uppercase">Calendario Team</h1>
-          <p className="text-slate-600 font-bold text-sm">Le gare pianificate da tutti gli atleti MTT.</p>
+          <h1 className="text-3xl font-black text-slate-800 tracking-tight uppercase">Calendario {team?.name || 'Team'}</h1>
+          <p className="text-slate-600 font-bold text-sm">Le gare pianificate da tutti gli atleti {team?.name || 'del team'}.</p>
         </div>
       </div>
 

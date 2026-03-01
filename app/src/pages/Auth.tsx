@@ -71,11 +71,11 @@ const Auth: React.FC = () => {
         <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center p-4">
             <div className="bg-white p-8 rounded-[2.5rem] shadow-xl border border-slate-100 max-w-md w-full">
                 <div className="flex flex-col items-center mb-8">
-                    <div className="mb-4">
-                        <img src="/Logo.png" alt="MTT Logo" className="h-20 w-auto object-contain" />
+                    <div className="mb-4 bg-slate-900 p-4 rounded-3xl shadow-lg">
+                        <Trophy className="h-10 w-10 text-white" />
                     </div>
-                    <h1 className="text-2xl font-black text-slate-800 uppercase tracking-tight">MTT Season Planner</h1>
-                    <p className="text-slate-600 font-bold text-xs uppercase tracking-widest mt-2">Area Atleti</p>
+                    <h1 className="text-2xl font-black text-slate-800 uppercase tracking-tight">Race Planner SaaS</h1>
+                    <p className="text-slate-600 font-bold text-[10px] uppercase tracking-[0.2em] mt-2">Multi-Team Management</p>
                 </div>
                 
                 <form onSubmit={handleAuth} className="space-y-4">
