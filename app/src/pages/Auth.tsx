@@ -3,6 +3,7 @@ import { Navigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { Trophy, Mail, Lock, User, Shield } from 'lucide-react';
 
+// V4.0 - Automated Team Onboarding
 const Auth: React.FC = () => {
     const [session, setSession] = useState<any>(null);
     const [loading, setLoading] = useState(true);
