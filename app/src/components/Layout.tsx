@@ -14,13 +14,23 @@ const Layout: React.FC = () => {
   const ADMIN_EMAIL = "bonfantistefano4@gmail.com";
   
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    const initSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
       setSession(session);
+      
+      if (session?.user?.id) {
+        // Carica i dati del team prima di togliere il caricamento
+        await fetchTeamData(session.user.id);
+      }
+      
       setLoading(false);
-    });
+    };
+
+    initSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
+      if (session?.user?.id) fetchTeamData(session.user.id);
     });
 
     return () => subscription.unsubscribe();
@@ -48,11 +58,7 @@ const Layout: React.FC = () => {
     }
   };
 
-  useEffect(() => {
-    if (session?.user?.id) {
-      fetchTeamData(session.user.id);
-    }
-  }, [session]);
+  // Rimosso l'useEffect separato per evitare ricaricamenti multipli
 
   const fetchAdminData = async () => {
     if (session?.user?.email !== ADMIN_EMAIL) return;

@@ -19,8 +19,8 @@ const Header = memo(({ session, team, onOpenAdmin }: { session: any, team?: any,
         <header className="bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-30">
             <div className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                    <a href={team?.website_url || "https://www.milanotriathlonteam.com/"} target="_blank" rel="noopener noreferrer" className="hover:scale-105 transition-transform" title={team?.name || "Sito Ufficiale"}>
-                        <img src={team?.logo_url || "/Logo.png"} alt={`${team?.name || "MTT"} Logo`} className="h-12 w-[140px] object-contain" />
+                    <a href={team?.website_url || "#"} target="_blank" rel="noopener noreferrer" className="hover:scale-105 transition-transform" title={team?.name || "Sito Ufficiale"}>
+                        <img src={team?.logo_url || "/Logo.png"} alt={`${team?.name || "Team"} Logo`} className="h-12 w-[140px] object-contain" />
                     </a>
                     <div className="flex flex-col min-w-0">
                         <h1 className="text-xl font-black text-slate-800 tracking-tight leading-none uppercase">{team?.name || "Race Planner"}</h1>
