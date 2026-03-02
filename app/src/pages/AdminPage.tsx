@@ -15,8 +15,9 @@ const ADMIN_EMAIL = "bonfantistefano4@gmail.com";
 const AdminPage: React.FC = () => {
     const [session, setSession] = useState<any>(null);
     const [loading, setLoading] = useState(true);
-    const [uploading, setUploading] = useState(false); // Stato per il caricamento file
+    const [uploading, setUploading] = useState(false);
     const [activeTab, setActiveTab] = useState<'atleti' | 'team'>('atleti');
+    const [searchTerm, setSearchTerm] = useState(''); // Ricerca atleti
     
     const [profiles, setProfiles] = useState<any[]>([]);
     const [teams, setTeams] = useState<any[]>([]);
@@ -137,14 +138,24 @@ const AdminPage: React.FC = () => {
     const handleDeleteAthlete = async (userId: string, name: string) => {
         if (!window.confirm(`Sei sicuro di voler eliminare l'atleta ${name}? Questa azione rimuoverà anche i suoi piani gara.`)) return;
         
-        // 1. Elimina i piani (per vincolo FK)
-        await supabase.from('user_plans').delete().eq('user_id', userId);
-        // 2. Elimina il profilo
-        const { error } = await supabase.from('profiles').delete().eq('id', userId);
-        
-        if (error) alert("Errore eliminazione: " + error.message);
-        else fetchAllData();
+        // CANCELLAZIONE OTTIMISTICA: Aggiorna la UI prima del server
+        setProfiles(prev => prev.filter(p => p.id !== userId));
+
+        try {
+            // 1. Elimina i piani (per vincolo FK)
+            await supabase.from('user_plans').delete().eq('user_id', userId);
+            // 2. Elimina il profilo
+            const { error } = await supabase.from('profiles').delete().eq('id', userId);
+            if (error) throw error;
+        } catch (error: any) {
+            alert("Errore eliminazione: " + error.message);
+            fetchAllData(); // Revert in caso di errore
+        }
     };
+
+    const filteredProfiles = profiles.filter(p => 
+        (p.full_name || '').toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
     const handleDeleteTeam = async (teamId: string, name: string) => {
         const athletesInTeam = profiles.filter(p => p.team_id === teamId).length;
@@ -198,20 +209,32 @@ const AdminPage: React.FC = () => {
 
             {/* CONTENUTO TAB ATLETI */}
             {activeTab === 'atleti' && (
-                <div className="bg-white rounded-[3rem] shadow-sm border border-slate-100 overflow-hidden">
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse">
-                            <thead>
-                                <tr className="bg-slate-50/50">
-                                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Atleta</th>
-                                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Team Attuale</th>
-                                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Gare</th>
-                                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Azioni</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-50">
-                                {profiles.map((atleta) => (
-                                    <tr key={atleta.id} className="hover:bg-slate-50/30 transition-colors">
+                <div className="space-y-4">
+                    <div className="relative group max-w-md">
+                        <Mail className="absolute left-4 top-3.5 w-5 h-5 text-slate-400" />
+                        <input 
+                            type="text" 
+                            placeholder="Cerca atleta per nome..." 
+                            className="w-full pl-12 pr-4 py-3.5 bg-white border-2 border-slate-100 rounded-2xl focus:border-blue-500 outline-none text-sm font-medium shadow-sm transition-all"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+
+                    <div className="bg-white rounded-[3rem] shadow-sm border border-slate-100 overflow-hidden">
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left border-collapse">
+                                <thead>
+                                    <tr className="bg-slate-50/50">
+                                        <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Atleta</th>
+                                        <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Team Attuale</th>
+                                        <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Gare</th>
+                                        <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Azioni</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-50">
+                                    {filteredProfiles.map((atleta) => (
+                                        <tr key={atleta.id} className="hover:bg-slate-50/30 transition-colors">
                                         <td className="px-8 py-5">
                                             <div className="flex flex-col">
                                                 <span className="font-black text-slate-700">{atleta.full_name || 'N/A'}</span>
