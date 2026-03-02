@@ -498,27 +498,39 @@ const DashboardPage: React.FC = () => {
   const addRaceFinal = useCallback(async (id: string) => {
     if (!session?.user) return;
     
+    // Aggiornamento ottimistico immediato della UI
+    setSelectedRaces(prev => [...prev, id]);
+    setRacePriorities(prev => ({ ...prev, [id]: 'C' }));
+    setPendingConfirmId(null);
+
     const { error } = await supabase
       .from('user_plans')
       .insert([{ user_id: session.user.id, race_id: id, priority: 'C' }]);
 
     if (error) {
       console.error("Errore aggiunta gara:", error.message);
+      // Revert in caso di errore
+      setSelectedRaces(prev => prev.filter(r => r !== id));
       alert("Errore nell'aggiunta della gara: " + error.message);
     } else {
-      await fetchData(); // Ricarica tutto per sincronizzare UI e DB
-      setPendingConfirmId(null);
+      await fetchData(); // Sincronizzazione finale con il DB
     }
   }, [session, fetchData]);
 
   const toggleRace = useCallback(async (id: string) => {
+    if (!session?.user) return;
+
     if (selectedRaces.includes(id)) {
-      if (!session?.user) return;
+      // Rimozione ottimistica immediata
+      setSelectedRaces(prev => prev.filter(r => r !== id));
+      
       const { error } = await supabase.from('user_plans').delete().eq('user_id', session.user.id).eq('race_id', id);
       if (error) {
+        // Revert in caso di errore
+        setSelectedRaces(prev => [...prev, id]);
         alert("Errore nella rimozione: " + error.message);
       } else {
-        await fetchData(); // Ricarica tutto per sincronizzare UI e DB
+        await fetchData();
       }
       return;
     }
