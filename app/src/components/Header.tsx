@@ -30,7 +30,7 @@ const Header = memo(({ session, team, onOpenAdmin }: { session: any, team?: any,
                                     {team.name}
                                 </span>
                             )}
-                            <span className="text-[10px] font-black text-blue-700 uppercase tracking-widest truncate max-w-[120px] md:max-w-[200px]" 
+                            <span className="text-[10px] font-black text-blue-800 uppercase tracking-widest truncate max-w-[120px] md:max-w-[200px]" 
                                   title={session?.user?.user_metadata?.full_name || session?.user?.email}
                                   style={{ color: team?.primary_color }}>
                                 Atleta: {session?.user?.user_metadata?.full_name || session?.user?.email}

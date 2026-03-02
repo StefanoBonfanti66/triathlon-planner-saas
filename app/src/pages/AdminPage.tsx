@@ -175,21 +175,21 @@ const AdminPage: React.FC = () => {
 
             {activeTab === 'atleti' && (
                 <div className="space-y-4">
-                    <div className="relative group max-w-md"><Mail className="absolute left-4 top-3.5 w-5 h-5 text-slate-400" /><input type="text" placeholder="Cerca atleta..." className="w-full pl-12 pr-4 py-3.5 bg-white border-2 border-slate-100 rounded-2xl focus:border-blue-500 outline-none text-sm font-medium shadow-sm transition-all" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} /></div>
+                    <div className="relative group max-w-md"><Mail className="absolute left-4 top-3.5 w-5 h-5 text-slate-500" /><input type="text" placeholder="Cerca atleta..." className="w-full pl-12 pr-4 py-3.5 bg-white border-2 border-slate-200 rounded-2xl focus:border-blue-500 outline-none text-sm font-medium shadow-sm transition-all placeholder:text-slate-400" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} /></div>
                     <div className="bg-white rounded-[3rem] shadow-sm border border-slate-100 overflow-hidden">
                         <div className="overflow-x-auto">
                             <table className="w-full text-left border-collapse">
-                                <thead><tr className="bg-slate-50/50"><th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Atleta</th><th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Team</th><th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Gare</th><th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Azioni</th></tr></thead>
-                                <tbody className="divide-y divide-slate-50">
-                                    {filteredProfiles.map((atleta) => (
-                                        <tr key={atleta.id} className="hover:bg-slate-50/30 transition-colors">
-                                            <td className="px-8 py-5"><div className="flex flex-col"><span className="font-black text-slate-700">{atleta.full_name || 'N/A'}</span><span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">{atleta.id.substring(0,8)}...</span></div></td>
-                                            <td className="px-8 py-5"><select value={atleta.team_id || ''} onChange={(e) => handleUpdateAthleteTeam(atleta.id, e.target.value || null)} className="bg-slate-100 border-none rounded-xl px-3 py-2 text-xs font-black uppercase text-slate-600 outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer" disabled={!isSuperAdmin}><option value="">Nessun Team</option>{teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select></td>
-                                            <td className="px-8 py-5 text-center"><span className="bg-blue-50 text-blue-600 px-3 py-1 rounded-full text-xs font-black">{plansCount[atleta.id] || 0}</span></td>
-                                            <td className="px-8 py-5 text-right"><button onClick={() => handleDeleteAthlete(atleta.id, atleta.full_name)} className="p-2 text-slate-400 hover:text-red-600 transition-colors"><Trash2 className="w-4 h-4" /></button></td>
-                                        </tr>
-                                    ))}
-                                </tbody>
+                            <thead><tr className="bg-slate-100"><th className="px-8 py-5 text-[11px] font-black text-slate-600 uppercase tracking-widest">Atleta</th><th className="px-8 py-5 text-[11px] font-black text-slate-600 uppercase tracking-widest">Team</th><th className="px-8 py-5 text-[11px] font-black text-slate-600 uppercase tracking-widest text-center">Gare</th><th className="px-8 py-5 text-[11px] font-black text-slate-600 uppercase tracking-widest text-right">Azioni</th></tr></thead>
+                            <tbody className="divide-y divide-slate-100">
+                                {filteredProfiles.map((atleta) => (
+                                    <tr key={atleta.id} className="hover:bg-slate-50 transition-colors">
+                                        <td className="px-8 py-5"><div className="flex flex-col"><span className="font-black text-slate-800">{atleta.full_name || 'N/A'}</span><span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">{atleta.id.substring(0,8)}...</span></div></td>
+                                        <td className="px-8 py-5"><select value={atleta.team_id || ''} onChange={(e) => handleUpdateAthleteTeam(atleta.id, e.target.value || null)} className="bg-slate-100 border-none rounded-xl px-3 py-2 text-xs font-black uppercase text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer" disabled={!isSuperAdmin}><option value="">Nessun Team</option>{teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select></td>
+                                        <td className="px-8 py-5 text-center"><span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-black">{plansCount[atleta.id] || 0}</span></td>
+                                        <td className="px-8 py-5 text-right"><button onClick={() => handleDeleteAthlete(atleta.id, atleta.full_name)} className="p-2 text-slate-500 hover:text-red-700 transition-colors"><Trash2 className="w-4 h-4" /></button></td>
+                                    </tr>
+                                ))}
+                            </tbody>
                             </table>
                         </div>
                     </div>
@@ -199,7 +199,7 @@ const AdminPage: React.FC = () => {
             {activeTab === 'team' && isSuperAdmin && (
                 <div className="space-y-6">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <div className="relative group max-w-md w-full"><Trophy className="absolute left-4 top-3.5 w-5 h-5 text-slate-400" /><input type="text" placeholder="Cerca team..." className="w-full pl-12 pr-4 py-3.5 bg-white border-2 border-slate-100 rounded-2xl focus:border-blue-500 outline-none text-sm font-medium shadow-sm transition-all" value={teamSearchTerm} onChange={(e) => setTeamSearchTerm(e.target.value)} /></div>
+                        <div className="relative group max-w-md w-full"><Trophy className="absolute left-4 top-3.5 w-5 h-5 text-slate-500" /><input type="text" placeholder="Cerca team..." className="w-full pl-12 pr-4 py-3.5 bg-white border-2 border-slate-200 rounded-2xl focus:border-blue-500 outline-none text-sm font-medium shadow-sm transition-all placeholder:text-slate-400" value={teamSearchTerm} onChange={(e) => setTeamSearchTerm(e.target.value)} /></div>
                         <button onClick={() => { setEditingTeam(null); setTeamForm({ name: '', join_code: '', primary_color: '#3b82f6', secondary_color: '#1e293b', logo_url: '', website_url: '' }); setIsTeamModalOpen(true); }} className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl hover:bg-slate-800 transition-all shrink-0"><Plus className="w-4 h-4" /> Nuovo Team</button>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -211,8 +211,8 @@ const AdminPage: React.FC = () => {
                                     <div><h3 className="font-black text-slate-800 uppercase leading-none mb-1">{team.name}</h3><span className="text-[10px] font-black px-2 py-0.5 rounded bg-slate-800 text-white uppercase tracking-tighter">{team.join_code}</span></div>
                                 </div>
                                 <div className="space-y-3 mb-8 relative z-10">
-                                    <div className="flex items-center justify-between text-xs"><span className="font-bold text-slate-400 uppercase">Colors</span><div className="flex gap-1"><div className="w-6 h-6 rounded-lg border" style={{ backgroundColor: team.primary_color }}></div><div className="w-6 h-6 rounded-lg border" style={{ backgroundColor: team.secondary_color }}></div></div></div>
-                                    <div className="flex items-center justify-between text-xs"><span className="font-bold text-slate-400 uppercase">Atleti</span><span className="font-black text-slate-700">{profiles.filter(p => p.team_id === team.id).length}</span></div>
+                                    <div className="flex items-center justify-between text-xs"><span className="font-bold text-slate-500 uppercase">Colors</span><div className="flex gap-1"><div className="w-6 h-6 rounded-lg border border-slate-200" style={{ backgroundColor: team.primary_color }}></div><div className="w-6 h-6 rounded-lg border border-slate-200" style={{ backgroundColor: team.secondary_color }}></div></div></div>
+                                    <div className="flex items-center justify-between text-xs"><span className="font-bold text-slate-500 uppercase">Atleti</span><span className="font-black text-slate-800">{profiles.filter(p => p.team_id === team.id).length}</span></div>
                                 </div>
                                 <div className="flex items-center gap-2 mt-auto pt-6 border-t border-slate-50 relative z-10">
                                     <button onClick={() => { setEditingTeam(team); setTeamForm({ name: team.name, join_code: team.join_code || '', primary_color: team.primary_color || '#3b82f6', secondary_color: team.secondary_color || '#1e293b', logo_url: team.logo_url || '', website_url: team.website_url || '' }); setIsTeamModalOpen(true); }} className="flex-1 flex items-center justify-center gap-2 py-3 bg-slate-50 text-slate-600 rounded-xl text-[10px] font-black uppercase hover:bg-blue-50 hover:text-blue-600 transition-all"><Edit2 className="w-3.5 h-3.5" /> Modifica</button>

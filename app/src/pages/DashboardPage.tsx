@@ -88,10 +88,10 @@ const RaceCard = React.memo(({
             
             <div className="space-y-2 mb-6">
                 <div className="flex items-start gap-2.5" title="Località e Regione">
-                    <MapPin className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
+                    <MapPin className="w-4 h-4 text-slate-500 mt-0.5 shrink-0" />
                     <div className="flex flex-col">
                         <div className="flex items-center gap-2">
-                            <p className="text-xs font-bold text-slate-600 leading-snug">{race.location}</p>
+                            <p className="text-xs font-bold text-slate-700 leading-snug">{race.location}</p>
                             <button onClick={openInMaps} className="p-1 hover:bg-slate-100 rounded transition-colors" style={{ color: team?.primary_color || '#2563eb' }} title="Apri navigatore Google Maps" aria-label="Apri posizione in Google Maps">
                                 <Navigation className="w-3 h-3 rotate-45" />
                             </button>
@@ -100,8 +100,8 @@ const RaceCard = React.memo(({
                     </div>
                 </div>
                 <div className="flex items-center gap-4">
-                    {race.distance && <div className="flex items-center gap-2" title="Distanza della gara"><Bike className="w-4 h-4 text-slate-400 shrink-0" /><span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{race.distance}</span></div>}
-                    {race.distanceFromHome !== undefined && race.distanceFromHome !== null && (<div className="flex items-center gap-2 bg-blue-50/50 px-2 py-1 rounded-lg border border-blue-100/50" title="Distanza stimata dalla tua provincia"><Navigation className="w-3 h-3 text-blue-600" /><span className="text-[10px] font-black text-blue-700 uppercase">~{race.distanceFromHome} KM</span></div>)}
+                    {race.distance && <div className="flex items-center gap-2" title="Distanza della gara"><Bike className="w-4 h-4 text-slate-500 shrink-0" /><span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">{race.distance}</span></div>}
+                    {race.distanceFromHome !== undefined && race.distanceFromHome !== null && (<div className="flex items-center gap-2 bg-blue-50/50 px-2 py-1 rounded-lg border border-blue-100/50" title="Distanza stimata dalla tua provincia"><Navigation className="w-3 h-3 text-blue-700" /><span className="text-[10px] font-black text-blue-800 uppercase">~{race.distanceFromHome} KM</span></div>)}
                     {(() => {
                         const weather = getWeatherData(race.region, race.date);
                         return (
@@ -617,12 +617,12 @@ const DashboardPage: React.FC = () => {
         <div className="lg:col-span-4 space-y-6">
           <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100 sticky top-28">
             <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xs font-black text-slate-500 uppercase tracking-widest flex items-center gap-2"><Filter className="w-4 h-4" style={{ color: team?.primary_color || '#2563eb' }} /> Filtri</h2>
+                <h2 className="text-xs font-black text-slate-600 uppercase tracking-widest flex items-center gap-2"><Filter className="w-4 h-4" style={{ color: team?.primary_color || '#2563eb' }} /> Filtri</h2>
                 <button onClick={() => { setSearchTerm(""); setFilterType("Tutti"); setFilterMonth("Tutti"); setFilterDistance("Tutti"); setFilterRegion("Tutte"); setFilterSpecial([]); setFilterRadius(1000); }} className="text-[10px] font-bold hover:underline" style={{ color: team?.primary_color || '#1d4ed8' }} aria-label="Resetta tutti i filtri">Reset</button>
             </div>
             <div className="space-y-5">
               <div className="relative group">
-                <Search className="absolute left-4 top-3.5 w-5 h-5 text-slate-500" />
+                <Search className="absolute left-4 top-3.5 w-5 h-5 text-slate-600" />
                 <input 
                   id="search-input"
                   type="text" 
@@ -636,7 +636,7 @@ const DashboardPage: React.FC = () => {
               </div>
               {homeCity && (
                 <div>
-                  <label htmlFor="radius-range" className="text-[10px] font-black text-slate-600 uppercase tracking-widest block mb-2 flex justify-between">
+                  <label htmlFor="radius-range" className="text-[10px] font-black text-slate-700 uppercase tracking-widest block mb-2 flex justify-between">
                     <span>Distanza massima</span>
                     <span style={{ color: team?.primary_color || '#1d4ed8' }}>{filterRadius >= 1000 ? 'Illimitato' : `${filterRadius} km`}</span>
                   </label>
