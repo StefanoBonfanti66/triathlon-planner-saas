@@ -9,6 +9,7 @@ import {
   Info, Download, Upload, Bike, Map as MapIcon, ChevronRight, Star, ExternalLink, Activity, Navigation, List, AlertTriangle, X, Camera, Image, ShoppingBag, Cloud, Sun, Edit3, MapPin as MapPinIcon,
   LogOut, Mail, Lock, User, Shield, Heart
 } from "lucide-react";
+import { Link } from "react-router-dom";
 import { toPng } from 'html-to-image';
 import racesData from "../races_full.json";
 import { provinceCoordinates } from "../coords";
@@ -79,7 +80,11 @@ const RaceCard = React.memo(({
             </div>
             
             {race.event && <div className="text-sm font-black text-slate-600 uppercase tracking-wide mb-1.5 leading-snug">{race.event}</div>}
-            <h3 className="font-black text-slate-800 text-lg mb-3 leading-[1.2] group-hover:text-blue-600 transition-colors" style={{ color: isSelected ? (team?.primary_color || '#2563eb') : undefined }}>{race.title}</h3>
+            <Link to={`/race/${race.id}`} className="block group/title">
+                <h3 className="font-black text-slate-800 text-lg mb-3 leading-[1.2] group-hover/title:text-blue-600 transition-colors" style={{ color: isSelected ? (team?.primary_color || '#2563eb') : undefined }}>
+                    {race.title}
+                </h3>
+            </Link>
             
             <div className="space-y-2 mb-6">
                 <div className="flex items-start gap-2.5" title="Località e Regione">
@@ -279,17 +284,7 @@ const DashboardPage: React.FC = () => {
       .eq('id', session.user.id)
       .single();
 
-    if (!profile?.team_id) return;
-
-    // 2. Get team configuration
-    const { data: teamData } = await supabase
-      .from('teams')
-      .select('*')
-      .eq('id', profile.team_id)
-      .single();
-    if (teamData) setTeam(teamData);
-
-    // 3. Get my plans
+    // 2. Get my plans (Personal plans should work even without a team)
     const { data: myData } = await supabase
       .from('user_plans')
       .select('*')
@@ -311,6 +306,19 @@ const DashboardPage: React.FC = () => {
       setRaceCosts(costs);
       setRaceNotes(notes);
     }
+
+    if (!profile?.team_id) {
+      console.warn("User has no team assigned.");
+      return;
+    }
+
+    // 3. Get team configuration
+    const { data: teamData } = await supabase
+      .from('teams')
+      .select('*')
+      .eq('id', profile.team_id)
+      .single();
+    if (teamData) setTeam(teamData);
 
     // 4. Get team-mate plans (isolated by team_id)
     const { data: teamProfiles } = await supabase
