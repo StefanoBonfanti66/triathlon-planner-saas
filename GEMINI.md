@@ -1,21 +1,23 @@
-# Race Planner SaaS - Command Center
-**Architetto**: Stefano Bonfanti
-**Stato**: Versione 4.0 - SaaS Pro Ready (Hierarchical Admin)
+# Race Planner SaaS - State of the Art
+**Lead Architect**: Stefano Bonfanti
+**Version**: 4.0 - Production Ready
 
-## Ultime Funzionalità Implementate (V4.0)
-- **Super Admin Dashboard**: Pagina `/admin` globale per Stefano (God Mode).
-- **Team Admin Role**: Ruolo `is_team_admin` per permettere ai presidenti di gestire solo la propria squadra.
-- **Onboarding Automatico**: Associazione istantanea al team tramite `join_code` in fase di registrazione.
-- **Dual-Color Branding**: Supporto per colore primario e secondario con gradienti dinamici.
-- **Storage Integrato**: Caricamento loghi direttamente dal pannello Admin.
-- **Race Details**: Pagina `/race/:id` con dati MyFITri e meteo.
+## Core SaaS Features
+- **Hierarchical Admin**: Global control for Stefano, Local control for Team Leaders.
+- **Dynamic Branding**: Dual-color support (`primary` & `secondary`) with auto-generated CSS gradients.
+- **Auto-Onboarding**: Secure `join_code` system linked to a database Trigger (`handle_new_user`).
+- **High Performance**: Optimistic UI updates for zero-lag interactions and real-time search filtering.
+- **Integrated Storage**: Direct file upload for team logos via Supabase Storage.
 
-## Gerarchia Accessi
-1. **Super-Admin (Stefano)**: Accesso totale a tutti i team, tutti gli atleti e impostazioni di sistema.
-2. **Team-Admin (Presidenti)**: Vedono solo i propri atleti, possono modificare i dati del proprio team e monitorare le iscrizioni interne.
-3. **Atleta**: Accesso alle funzioni di pianificazione, calendario team e social cards.
+## Technical Stack
+- **Frontend**: React 19 + TypeScript + Vite.
+- **Backend**: Supabase (Auth, DB, Storage).
+- **Security**: Advanced RLS (Row Level Security) for team data isolation.
+- **Deployment**: Vercel (Auto-build on git push).
 
-## Roadmap Futura
-- Integrazione completa API MyFITri (PDF regolamenti).
-- Modulo Carpooling per trasferte di squadra.
-- Dashboard statistiche per i Team-Admin (es. atleti più attivi).
+## Quick Admin Guide
+- **Promote to Team Admin**: Set `is_team_admin = true` in `profiles` table.
+- **Add New Team**: Use the Command Center (`/admin`) to set colors, logo, and `join_code`.
+- **Delete Policy**: Admin can safely delete athletes (and their plans) or empty teams directly from UI.
+
+**Progetto pronto per la divulgazione commerciale.** 🚀
