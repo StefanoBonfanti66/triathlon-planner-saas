@@ -5,6 +5,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { User, Calendar, Users, Plus, Check, ExternalLink } from 'lucide-react';
+import racesData from "../races_full.json";
 
 interface TeamRace {
   race_id: string;
@@ -36,24 +37,61 @@ const TeamCalendarPage: React.FC = () => {
     return null;
   };
 
-  const fetchTeamCalendar = async (teamId: string) => {
-    console.log("Fetching calendar for team:", teamId);
-    const { data, error } = await supabase.rpc('get_team_calendar', { p_team_id: teamId });
-    
-    if (error) {
-      console.error("Errore RPC get_team_calendar:", error);
-      // Prova fallback senza parametro se il primo fallisce (vecchia versione MTT)
-      const { data: fallbackData } = await supabase.rpc('get_team_calendar');
-      if (fallbackData) setTeamCalendar(fallbackData);
-    } else {
-      console.log("Calendar data received:", data);
-      setTeamCalendar(data || []);
-    }
-  };
+  const fetchTeamCalendarDirect = async (teamId: string) => {
+    try {
+      console.log("Fetching team plans for team:", teamId);
+      
+      // 1. Prendi tutti i profili del team
+      const { data: profiles } = await supabase.from('profiles').select('id, full_name').eq('team_id', teamId);
+      if (!profiles) return;
+      
+      const profileMap: Record<string, string> = {};
+      profiles.forEach(p => { profileMap[p.id] = p.full_name; });
+      const userIds = profiles.map(p => p.id);
 
-  const fetchUserRaces = async (userId: string) => {
-    const { data } = await supabase.from('user_plans').select('race_id').eq('user_id', userId);
-    if (data) setUserRaces(data.map(r => r.race_id));
+      // 2. Prendi tutti i piani di questi utenti
+      const { data: plans } = await supabase.from('user_plans').select('race_id, user_id').in('user_id', userIds);
+      if (!plans) return;
+
+      // 3. Raggruppa per gara e aggiungi info gara dal JSON locale (più veloce)
+      const raceGroups: Record<string, TeamRace> = {};
+      
+      plans.forEach(plan => {
+        if (!raceGroups[plan.race_id]) {
+          const baseRace = (racesData as any[]).find(r => r.id === plan.race_id);
+          if (baseRace) {
+            raceGroups[plan.race_id] = {
+              race_id: plan.race_id,
+              race_title: baseRace.title,
+              race_date: baseRace.date,
+              race_link: baseRace.link,
+              participants: []
+            };
+          }
+        }
+        if (raceGroups[plan.race_id] && profileMap[plan.user_id]) {
+          raceGroups[plan.race_id].participants.push(profileMap[plan.user_id]);
+        }
+      });
+
+      // 4. Raggruppa per mese
+      const months: Record<string, TeamRace[]> = {};
+      Object.values(raceGroups).forEach(race => {
+        const [d, m, y] = race.race_date.split("-");
+        const monthKey = `${y}-${m}`;
+        if (!months[monthKey]) months[monthKey] = [];
+        months[monthKey].push(race);
+      });
+
+      const formattedCalendar = Object.keys(months).sort().map(key => ({
+        month_key: key,
+        races: months[key].sort((a,b) => a.race_date.split("-").reverse().join("-").localeCompare(b.race_date.split("-").reverse().join("-")))
+      }));
+
+      setTeamCalendar(formattedCalendar);
+    } catch (err) {
+      console.error("Errore caricamento diretto calendario:", err);
+    }
   };
 
   useEffect(() => {
@@ -65,7 +103,7 @@ const TeamCalendarPage: React.FC = () => {
         const teamId = await fetchTeamData(session.user.id);
         await fetchUserRaces(session.user.id);
         if (teamId) {
-          await fetchTeamCalendar(teamId);
+          await fetchTeamCalendarDirect(teamId);
         }
       }
       setLoading(false);
