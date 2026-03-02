@@ -14,43 +14,53 @@ const ADMIN_EMAIL = "bonfantistefano4@gmail.com";
 
 const AdminPage: React.FC = () => {
     const [session, setSession] = useState<any>(null);
+    const [myProfile, setMyProfile] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [uploading, setUploading] = useState(false);
     const [activeTab, setActiveTab] = useState<'atleti' | 'team'>('atleti');
     const [searchTerm, setSearchTerm] = useState('');
-    const [teamSearchTerm, setTeamSearchTerm] = useState(''); // Ricerca team
+    const [teamSearchTerm, setTeamSearchTerm] = useState('');
     
     const [profiles, setProfiles] = useState<any[]>([]);
     const [teams, setTeams] = useState<any[]>([]);
     const [plansCount, setPlansCount] = useState<Record<string, number>>({});
-    
-    const [isTeamModalOpen, setIsTeamModalOpen] = useState(false);
-    const [editingTeam, setEditingTeam] = useState<any>(null);
-    const [teamForm, setTeamForm] = useState({
-        name: '',
-        join_code: '',
-        primary_color: '#3b82f6',
-        secondary_color: '#1e293b',
-        logo_url: '',
-        website_url: ''
-    });
+
+    const isSuperAdmin = session?.user?.email === ADMIN_EMAIL;
 
     useEffect(() => {
-        supabase.auth.getSession().then(({ data: { session } }) => {
+        const init = async () => {
+            const { data: { session } } = await supabase.auth.getSession();
             setSession(session);
-            if (session?.user?.email === ADMIN_EMAIL) {
-                fetchAllData();
-            } else {
-                setLoading(false);
+            
+            if (session?.user) {
+                const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
+                setMyProfile(profile);
+                
+                if (session.user.email === ADMIN_EMAIL || profile?.is_team_admin) {
+                    fetchAllData(session.user.email === ADMIN_EMAIL, profile?.team_id);
+                } else {
+                    setLoading(false);
+                }
             }
-        });
+        };
+        init();
     }, []);
 
-    const fetchAllData = async () => {
+    const fetchAllData = async (superAdmin: boolean, teamId?: string) => {
         setLoading(true);
+        
+        let profQuery = supabase.from('profiles').select('*').order('full_name');
+        let teamsQuery = supabase.from('teams').select('*').order('name');
+        
+        // Se è Team Admin, filtra per il suo team
+        if (!superAdmin && teamId) {
+            profQuery = profQuery.eq('team_id', teamId);
+            teamsQuery = teamsQuery.eq('id', teamId);
+        }
+
         const [profRes, teamsRes, plansRes] = await Promise.all([
-            supabase.from('profiles').select('*').order('full_name'),
-            supabase.from('teams').select('*').order('name'),
+            profQuery,
+            teamsQuery,
             supabase.from('user_plans').select('user_id')
         ]);
 
@@ -179,14 +189,20 @@ const AdminPage: React.FC = () => {
                         <Shield className="w-8 h-8" />
                     </div>
                     <div>
-                        <h1 className="text-3xl font-black text-slate-800 uppercase tracking-tight">SaaS Command Center</h1>
-                        <p className="text-slate-500 font-bold text-sm">Gestione Team e Atleti.</p>
+                        <h1 className="text-3xl font-black text-slate-800 uppercase tracking-tight">
+                            {isSuperAdmin ? 'SaaS Command Center' : `Gestione ${teams[0]?.name || 'Team'}`}
+                        </h1>
+                        <p className="text-slate-500 font-bold text-sm">
+                            {isSuperAdmin ? 'Benvenuto Stefano. Gestisci l\'intera piattaforma.' : `Benvenuto ${myProfile?.full_name || 'Admin'}. Gestisci la tua squadra.`}
+                        </p>
                     </div>
                 </div>
                 
                 <div className="flex bg-slate-100 p-1.5 rounded-[1.5rem]">
                     <button onClick={() => setActiveTab('atleti')} className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'atleti' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}><div className="flex items-center gap-2"><Users className="w-4 h-4" /> Atleti</div></button>
-                    <button onClick={() => setActiveTab('team')} className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'team' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}><div className="flex items-center gap-2"><Trophy className="w-4 h-4" /> Team</div></button>
+                    {isSuperAdmin && (
+                        <button onClick={() => setActiveTab('team')} className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'team' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}><div className="flex items-center gap-2"><Trophy className="w-4 h-4" /> Team</div></button>
+                    )}
                 </div>
             </div>
 

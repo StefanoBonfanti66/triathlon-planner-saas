@@ -60,7 +60,7 @@ const Header = memo(({ session, team, onOpenAdmin }: { session: any, team?: any,
                     
                     <div className="w-px h-6 bg-slate-200 mx-2"></div>
                     
-                    {session?.user?.email === ADMIN_EMAIL && (
+                    {(session?.user?.email === ADMIN_EMAIL || team?.is_team_admin) && (
                         <NavLink to="/admin" 
                                  className="flex items-center gap-2 px-4 py-2 bg-amber-50 border border-amber-200 text-amber-800 rounded-2xl text-sm font-bold hover:bg-amber-100 transition-all" 
                                  style={({ isActive }: { isActive: boolean }) => isActive ? { backgroundColor: '#fef3c7', borderColor: '#f59e0b' } : undefined}>

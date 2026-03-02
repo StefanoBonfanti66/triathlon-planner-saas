@@ -40,18 +40,27 @@ const Layout: React.FC = () => {
     try {
       const { data: profile } = await supabase
         .from('profiles')
-        .select('team_id')
+        .select('team_id, is_team_admin')
         .eq('id', userId)
         .single();
 
-      if (profile?.team_id) {
-        const { data: teamData } = await supabase
-          .from('teams')
-          .select('*, secondary_color')
-          .eq('id', profile.team_id)
-          .single();
+      if (profile) {
+        // Stefano ha sempre i superpoteri, altri possono essere team_admin
+        const isSuperAdmin = session?.user?.email === ADMIN_EMAIL;
+        const isAnyAdmin = isSuperAdmin || profile.is_team_admin;
         
-        if (teamData) setTeam(teamData);
+        // Passiamo queste info all'header o allo stato se serve
+        if (profile.team_id) {
+          const { data: teamData } = await supabase
+            .from('teams')
+            .select('*, secondary_color')
+            .eq('id', profile.team_id)
+            .single();
+          
+          if (teamData) setTeam({ ...teamData, is_team_admin: profile.is_team_admin, is_super_admin: isSuperAdmin });
+        } else if (isSuperAdmin) {
+          setTeam({ name: 'Super Admin', is_super_admin: true, is_team_admin: true });
+        }
       }
     } catch (error) {
       console.error("Error fetching team data:", error);
