@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
-import { Trophy, Mail, Lock, User } from 'lucide-react';
+import { Trophy, Mail, Lock, User, Shield } from 'lucide-react';
 
 const Auth: React.FC = () => {
     const [session, setSession] = useState<any>(null);
@@ -22,27 +22,61 @@ const Auth: React.FC = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [fullName, setFullName] = useState('');
+    const [teamCode, setTeamCode] = useState(''); // Nuovo stato per il codice team
     const [isSignUp, setIsSignUp] = useState(false);
     const [authLoading, setAuthLoading] = useState(false);
 
     const handleAuth = async (e: React.FormEvent) => {
         e.preventDefault();
         setAuthLoading(true);
-        const { data, error } = isSignUp 
-            ? await supabase.auth.signUp({ 
-                email, 
-                password,
-                options: { data: { full_name: fullName } }
-              })
-            : await supabase.auth.signInWithPassword({ email, password });
-        
-        if (error) {
+
+        try {
+            if (isSignUp) {
+                // 1. Verifica se il codice team è valido prima di procedere
+                const { data: teamData, error: teamError } = await supabase
+                    .from('teams')
+                    .select('id')
+                    .eq('join_code', teamCode.trim().toUpperCase())
+                    .single();
+
+                if (teamError || !teamData) {
+                    alert("Codice Squadra non valido. Contatta il tuo responsabile di team.");
+                    setAuthLoading(false);
+                    return;
+                }
+
+                // 2. Registrazione utente
+                const { data, error } = await supabase.auth.signUp({ 
+                    email, 
+                    password,
+                    options: { data: { full_name: fullName } }
+                });
+                
+                if (error) throw error;
+
+                // 3. Creazione profilo con team_id automatico (trigger SQL di backup o manuale qui)
+                if (data.user) {
+                    const { error: profileError } = await supabase
+                        .from('profiles')
+                        .upsert([{ 
+                            id: data.user.id, 
+                            full_name: fullName, 
+                            team_id: teamData.id 
+                        }]);
+                    if (profileError) console.error("Errore creazione profilo:", profileError);
+                }
+
+                if (!data.session) alert('Registrazione effettuata! Controlla la mail.');
+            } else {
+                const { error } = await supabase.auth.signInWithPassword({ email, password });
+                if (error) throw error;
+            }
+        } catch (error: any) {
             console.error("Errore Auth:", error.message);
             alert(error.message);
-        } else {
-            if (isSignUp && !data.session) alert('Registrazione effettuata! Controlla la mail.');
+        } finally {
+            setAuthLoading(false);
         }
-        setAuthLoading(false);
     };
 
     const handleResetPassword = async () => {
@@ -80,19 +114,34 @@ const Auth: React.FC = () => {
                 
                 <form onSubmit={handleAuth} className="space-y-4">
                     {isSignUp && (
-                        <div className="relative">
-                            <label htmlFor="auth-fullname" className="sr-only">Nome e Cognome</label>
-                            <User className="absolute left-4 top-3.5 w-5 h-5 text-slate-400" />
-                            <input 
-                                id="auth-fullname"
-                                type="text" 
-                                placeholder="Nome e Cognome" 
-                                className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-medium"
-                                value={fullName}
-                                onChange={(e) => setFullName(e.target.value)}
-                                required
-                            />
-                        </div>
+                        <>
+                            <div className="relative">
+                                <label htmlFor="auth-fullname" className="sr-only">Nome e Cognome</label>
+                                <User className="absolute left-4 top-3.5 w-5 h-5 text-slate-400" />
+                                <input 
+                                    id="auth-fullname"
+                                    type="text" 
+                                    placeholder="Nome e Cognome" 
+                                    className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-medium"
+                                    value={fullName}
+                                    onChange={(e) => setFullName(e.target.value)}
+                                    required
+                                />
+                            </div>
+                            <div className="relative">
+                                <label htmlFor="auth-teamcode" className="sr-only">Codice Squadra</label>
+                                <Shield className="absolute left-4 top-3.5 w-5 h-5 text-blue-600" />
+                                <input 
+                                    id="auth-teamcode"
+                                    type="text" 
+                                    placeholder="Codice Squadra (es: MTT2026)" 
+                                    className="w-full pl-12 pr-4 py-3.5 bg-blue-50 border-2 border-blue-100 rounded-2xl focus:border-blue-500 outline-none text-sm font-bold placeholder:text-blue-300 uppercase"
+                                    value={teamCode}
+                                    onChange={(e) => setTeamCode(e.target.value)}
+                                    required
+                                />
+                            </div>
+                        </>
                     )}
                     <div className="relative">
                         <label htmlFor="auth-email" className="sr-only">Email</label>
