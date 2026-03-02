@@ -694,6 +694,20 @@ const DashboardPage: React.FC = () => {
                 </div>
               </div>
               <div><label className="text-[10px] font-black text-slate-600 uppercase tracking-widest block mb-2">Settori Speciali</label><div className="flex flex-wrap gap-2">{["Paratriathlon", "Kids", "Youth"].map((s) => (<button key={s} onClick={() => { setFilterSpecial(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]); }} className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase transition-all ${(filterSpecial.includes(s)) ? "text-white shadow-md" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`} style={(filterSpecial.includes(s)) ? { backgroundColor: team?.primary_color || '#1d4ed8' } : {}}>{s}</button>))}</div></div>
+              
+              <div className="grid grid-cols-1 gap-4">
+                <div>
+                  <label htmlFor="province-select" className="text-[10px] font-black text-slate-600 uppercase tracking-widest block mb-2">La tua provincia</label>
+                  <select 
+                    id="province-select"
+                    value={homeCity} 
+                    onChange={(e) => { setHomeCity(e.target.value); localStorage.setItem("home_city", e.target.value); }} 
+                    className="w-full p-2.5 bg-slate-50 border-none rounded-xl text-xs font-bold outline-none cursor-pointer hover:bg-slate-100"
+                  >
+                    <option value="">Seleziona...</option>{Object.keys(provinceCoordinates).sort().map(p => <option key={p} value={p}>{p}</option>)}
+                  </select>
+                </div>
+              </div>
             </div>
             <div className="mt-10 pt-10 border-t border-slate-100">
                 <div className="flex items-center justify-between mb-6"><h2 className="text-lg font-black text-slate-800">Le mie gare <span style={{ color: team?.primary_color || '#1d4ed8' }}>({myPlan.length})</span></h2><div className="flex gap-2">
