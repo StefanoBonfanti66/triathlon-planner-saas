@@ -46,26 +46,22 @@ const Auth: React.FC = () => {
                     return;
                 }
 
-                // 2. Registrazione utente
+                // 2. Registrazione utente con metadati per il Trigger SQL
                 const { data, error } = await supabase.auth.signUp({ 
                     email, 
                     password,
-                    options: { data: { full_name: fullName } }
+                    options: { 
+                        data: { 
+                            full_name: fullName,
+                            team_code: teamCode.trim().toUpperCase() // Letto dal Trigger SQL
+                        } 
+                    }
                 });
                 
                 if (error) throw error;
 
-                // 3. Creazione profilo con team_id automatico (trigger SQL di backup o manuale qui)
-                if (data.user) {
-                    const { error: profileError } = await supabase
-                        .from('profiles')
-                        .upsert([{ 
-                            id: data.user.id, 
-                            full_name: fullName, 
-                            team_id: teamData.id 
-                        }]);
-                    if (profileError) console.error("Errore creazione profilo:", profileError);
-                }
+                // RIMOSSO: Inserimento manuale in profiles che causava 403.
+                // Ora ci pensa il Trigger 'handle_new_user' sul database.
 
                 if (!data.session) alert('Registrazione effettuata! Controlla la mail.');
             } else {
