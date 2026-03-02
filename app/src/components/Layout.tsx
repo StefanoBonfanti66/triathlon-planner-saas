@@ -47,7 +47,7 @@ const Layout: React.FC = () => {
       if (profile?.team_id) {
         const { data: teamData } = await supabase
           .from('teams')
-          .select('*')
+          .select('*, secondary_color')
           .eq('id', profile.team_id)
           .single();
         

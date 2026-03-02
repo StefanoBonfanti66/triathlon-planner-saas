@@ -301,7 +301,7 @@ const DashboardPage: React.FC = () => {
     if (!profile?.team_id) return;
 
     // 3. Get team info and teammate plans
-    const { data: teamData } = await supabase.from('teams').select('*').eq('id', profile.team_id).single();
+    const { data: teamData } = await supabase.from('teams').select('*, secondary_color').eq('id', profile.team_id).single();
     if (teamData) setTeam(teamData);
     
     const { data: teamProfiles } = await supabase.from('profiles').select('id, full_name').eq('team_id', profile.team_id);
@@ -754,7 +754,7 @@ const DashboardPage: React.FC = () => {
             <div className="min-h-[160px] empty:hidden">
                 {nextObjective && timeLeft ? (
                     <div className="rounded-[3rem] p-8 text-white shadow-xl flex flex-col md:flex-row items-center justify-between gap-6 overflow-hidden relative animate-in fade-in duration-500"
-                         style={{ background: `linear-gradient(to right, ${team?.primary_color || '#dc2626'}, ${team?.primary_color || '#b91c1c'}dd)` }}>
+                         style={{ background: `linear-gradient(135deg, ${team?.primary_color || '#dc2626'}, ${team?.secondary_color || '#b91c1c'})` }}>
                         <div className="absolute right-0 top-0 p-4 opacity-10 rotate-12">
                             <img src={team?.logo_url || "/Logo.png"} alt="" className="w-48 h-auto grayscale brightness-200" />
                         </div>
@@ -776,7 +776,11 @@ const DashboardPage: React.FC = () => {
                                 <div className="bg-white/5 p-5 rounded-3xl border border-white/10">
                                     <span className="text-[10px] font-black text-slate-300 uppercase block mb-4">Focus Target</span>
                                     <div className="flex items-end gap-3"><div className="text-3xl font-black text-yellow-400 tabular-nums">{seasonStats.priorities.A}</div><div className="text-[10px] font-bold text-slate-300 mb-1.5 uppercase">Obiettivi A</div></div>
-                                    <div className="mt-4 flex gap-1 h-1.5"><div className="bg-yellow-400 rounded-full" style={{ width: `${(seasonStats.priorities.A / myPlan.length) * 100}%` }}></div><div className="rounded-full" style={{ width: `${(seasonStats.priorities.B / myPlan.length) * 100}%`, backgroundColor: team?.primary_color || '#60a5fa' }}></div><div className="bg-slate-600 rounded-full flex-1"></div></div>
+                                    <div className="mt-4 flex gap-1 h-1.5">
+                                        <div className="bg-yellow-400 rounded-full" style={{ width: `${(seasonStats.priorities.A / myPlan.length) * 100}%` }}></div>
+                                        <div className="rounded-full" style={{ width: `${(seasonStats.priorities.B / myPlan.length) * 100}%`, backgroundColor: team?.secondary_color || '#60a5fa' }}></div>
+                                        <div className="bg-slate-600 rounded-full flex-1"></div>
+                                    </div>
                                 </div>
                                 <div className="bg-white/5 p-5 rounded-3xl border border-white/10"><span className="text-[10px] font-black text-slate-300 uppercase block mb-4">Mix Discipline</span><div className="space-y-2">{Object.entries(seasonStats.types).map(([type, count]) => (<div key={type} className="flex items-center justify-between"><span className="text-[10px] font-bold text-slate-200">{type}</span><span className="text-xs font-black tabular-nums">{count}</span></div>))}</div></div>
                                 <div className="bg-white/5 p-5 rounded-3xl border border-white/10"><span className="text-[10px] font-black text-slate-300 uppercase block mb-4">Logistica</span><div className="flex items-center gap-3"><Navigation className="w-8 h-8" style={{ color: team?.primary_color || '#60a5fa' }} /><div><div className="text-2xl font-black tabular-nums">{seasonStats.totalKm}</div><div className="text-[10px] font-bold text-slate-300 uppercase">Km Stimati</div></div></div></div>
