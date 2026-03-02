@@ -37,9 +37,18 @@ const TeamCalendarPage: React.FC = () => {
   };
 
   const fetchTeamCalendar = async (teamId: string) => {
+    console.log("Fetching calendar for team:", teamId);
     const { data, error } = await supabase.rpc('get_team_calendar', { p_team_id: teamId });
-    if (error) console.error("Errore nel caricare il calendario del team:", error);
-    else setTeamCalendar(data || []);
+    
+    if (error) {
+      console.error("Errore RPC get_team_calendar:", error);
+      // Prova fallback senza parametro se il primo fallisce (vecchia versione MTT)
+      const { data: fallbackData } = await supabase.rpc('get_team_calendar');
+      if (fallbackData) setTeamCalendar(fallbackData);
+    } else {
+      console.log("Calendar data received:", data);
+      setTeamCalendar(data || []);
+    }
   };
 
   const fetchUserRaces = async (userId: string) => {
@@ -87,6 +96,21 @@ const TeamCalendarPage: React.FC = () => {
 
   if (loading) {
     return <div className="text-center p-10 font-bold text-slate-500">Caricamento calendario team...</div>;
+  }
+
+  if (!team && !loading) {
+    return (
+        <div className="max-w-4xl mx-auto px-4 py-20 text-center">
+            <div className="bg-amber-50 border border-amber-200 p-8 rounded-[2.5rem] inline-block shadow-sm">
+                <Users className="w-12 h-12 text-amber-500 mx-auto mb-4" />
+                <h2 className="text-xl font-black text-slate-800 uppercase mb-2">Team non ancora assegnato</h2>
+                <p className="text-slate-600 font-bold text-sm max-w-sm">
+                    Il tuo profilo non è ancora collegato a un team. 
+                    Contatta il tuo amministratore per essere inserito nella tua squadra e vedere i piani dei tuoi compagni.
+                </p>
+            </div>
+        </div>
+    );
   }
 
   return (
