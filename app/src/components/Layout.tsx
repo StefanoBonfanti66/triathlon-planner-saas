@@ -45,11 +45,9 @@ const Layout: React.FC = () => {
         .single();
 
       if (profile) {
-        // Stefano ha sempre i superpoteri, altri possono essere team_admin
         const isSuperAdmin = session?.user?.email === ADMIN_EMAIL;
-        const isAnyAdmin = isSuperAdmin || profile.is_team_admin;
+        console.log("Profile loaded:", { name: session?.user?.email, is_team_admin: profile.is_team_admin, is_super_admin: isSuperAdmin });
         
-        // Passiamo queste info all'header o allo stato se serve
         if (profile.team_id) {
           const { data: teamData } = await supabase
             .from('teams')
@@ -57,9 +55,18 @@ const Layout: React.FC = () => {
             .eq('id', profile.team_id)
             .single();
           
-          if (teamData) setTeam({ ...teamData, is_team_admin: profile.is_team_admin, is_super_admin: isSuperAdmin });
-        } else if (isSuperAdmin) {
-          setTeam({ name: 'Super Admin', is_super_admin: true, is_team_admin: true });
+          if (teamData) {
+            setTeam({ ...teamData, is_team_admin: profile.is_team_admin, is_super_admin: isSuperAdmin });
+          } else {
+            setTeam({ name: 'Team non trovato', is_team_admin: profile.is_team_admin, is_super_admin: isSuperAdmin });
+          }
+        } else {
+          // Gestione utenti senza team (o SuperAdmin)
+          setTeam({ 
+            name: isSuperAdmin ? 'Super Admin' : 'Nessun Team', 
+            is_super_admin: isSuperAdmin, 
+            is_team_admin: profile.is_team_admin 
+          });
         }
       }
     } catch (error) {
