@@ -100,6 +100,32 @@ const AdminPage: React.FC = () => {
         else fetchAllData();
     };
 
+    const handleDeleteAthlete = async (userId: string, name: string) => {
+        if (!window.confirm(`Sei sicuro di voler eliminare l'atleta ${name}? Questa azione rimuoverà anche i suoi piani gara.`)) return;
+        
+        // 1. Elimina i piani (per vincolo FK)
+        await supabase.from('user_plans').delete().eq('user_id', userId);
+        // 2. Elimina il profilo
+        const { error } = await supabase.from('profiles').delete().eq('id', userId);
+        
+        if (error) alert("Errore eliminazione: " + error.message);
+        else fetchAllData();
+    };
+
+    const handleDeleteTeam = async (teamId: string, name: string) => {
+        const athletesInTeam = profiles.filter(p => p.team_id === teamId).length;
+        if (athletesInTeam > 0) {
+            alert(`Impossibile eliminare il team ${name}. Ci sono ancora ${athletesInTeam} atleti associati. Spostali prima di procedere.`);
+            return;
+        }
+        
+        if (!window.confirm(`Sei sicuro di voler eliminare il team ${name}?`)) return;
+        
+        const { error } = await supabase.from('teams').delete().eq('id', teamId);
+        if (error) alert("Errore eliminazione team: " + error.message);
+        else fetchAllData();
+    };
+
     if (!loading && session?.user?.email !== ADMIN_EMAIL) {
         return <Navigate to="/" replace />;
     }
@@ -174,7 +200,11 @@ const AdminPage: React.FC = () => {
                                             </span>
                                         </td>
                                         <td className="px-8 py-5 text-right">
-                                            <button className="p-2 text-slate-400 hover:text-red-600 transition-colors" title="Rimuovi (Sola lettura per ora)">
+                                            <button 
+                                                onClick={() => handleDeleteAthlete(atleta.id, atleta.full_name)}
+                                                className="p-2 text-slate-400 hover:text-red-600 transition-colors" 
+                                                title="Elimina atleta"
+                                            >
                                                 <Trash2 className="w-4 h-4" />
                                             </button>
                                         </td>
@@ -246,6 +276,13 @@ const AdminPage: React.FC = () => {
                                         className="flex-1 flex items-center justify-center gap-2 py-3 bg-slate-50 text-slate-600 rounded-xl text-[10px] font-black uppercase hover:bg-blue-50 hover:text-blue-600 transition-all"
                                     >
                                         <Edit2 className="w-3.5 h-3.5" /> Modifica
+                                    </button>
+                                    <button 
+                                        onClick={() => handleDeleteTeam(team.id, team.name)}
+                                        className="p-3 bg-slate-50 text-slate-400 rounded-xl hover:bg-red-50 hover:text-red-600 transition-all"
+                                        title="Elimina Team"
+                                    >
+                                        <Trash2 className="w-4 h-4" />
                                     </button>
                                     <a 
                                         href={team.website_url} 
