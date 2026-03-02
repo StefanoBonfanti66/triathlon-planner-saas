@@ -506,11 +506,10 @@ const DashboardPage: React.FC = () => {
       console.error("Errore aggiunta gara:", error.message);
       alert("Errore nell'aggiunta della gara: " + error.message);
     } else {
-      setSelectedRaces((prev) => [...prev, id]);
-      setRacePriorities(prev => ({ ...prev, [id]: 'C' }));
+      await fetchData(); // Ricarica tutto per sincronizzare UI e DB
       setPendingConfirmId(null);
     }
-  }, [session]);
+  }, [session, fetchData]);
 
   const toggleRace = useCallback(async (id: string) => {
     if (selectedRaces.includes(id)) {
@@ -519,9 +518,7 @@ const DashboardPage: React.FC = () => {
       if (error) {
         alert("Errore nella rimozione: " + error.message);
       } else {
-        setSelectedRaces((prev) => prev.filter((r) => r !== id));
-        setRacePriorities(prev => { const next = {...prev}; delete next[id]; return next; });
-        setRaceNotes(prev => { const next = {...prev}; delete next[id]; return next; });
+        await fetchData(); // Ricarica tutto per sincronizzare UI e DB
       }
       return;
     }
