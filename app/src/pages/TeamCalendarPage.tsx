@@ -112,6 +112,11 @@ const TeamCalendarPage: React.FC = () => {
     init();
   }, []);
 
+  const fetchUserRaces = async (userId: string) => {
+    const { data } = await supabase.from('user_plans').select('race_id').eq('user_id', userId);
+    if (data) setUserRaces(data.map(r => r.race_id));
+  };
+
   const handleJoinRace = async (raceId: string) => {
     if (!session?.user || !team?.id) return;
 
@@ -123,7 +128,7 @@ const TeamCalendarPage: React.FC = () => {
       alert("Errore durante l'iscrizione.");
     } else {
       setUserRaces(prev => [...prev, raceId]);
-      fetchTeamCalendar(team.id);
+      fetchTeamCalendarDirect(team.id);
     }
   };
 
