@@ -105,10 +105,12 @@ const AdminPage: React.FC = () => {
 
         let error;
         if (editingTeam) {
+            // Update: usiamo l'ID esistente
             const res = await supabase.from('teams').update(payload).eq('id', editingTeam.id);
             error = res.error;
         } else {
-            const res = await supabase.from('teams').insert([{ ...payload, id: editingTeam ? editingTeam.id : undefined }]);
+            // Insert: non inviamo l'ID, lasciamo che il DB lo generi (gen_random_uuid)
+            const res = await supabase.from('teams').insert([payload]);
             error = res.error;
         }
 
