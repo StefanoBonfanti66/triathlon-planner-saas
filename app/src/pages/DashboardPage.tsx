@@ -277,19 +277,8 @@ const DashboardPage: React.FC = () => {
   const fetchData = useCallback(async () => {
     if (!session?.user) return;
 
-    // 1. Get user profile to find team_id
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('team_id')
-      .eq('id', session.user.id)
-      .single();
-
-    // 2. Get my plans (Personal plans should work even without a team)
-    const { data: myData } = await supabase
-      .from('user_plans')
-      .select('*')
-      .eq('user_id', session.user.id);
-    
+    // 1. Fetch personal plans
+    const { data: myData } = await supabase.from('user_plans').select('*').eq('user_id', session.user.id);
     if (myData) {
       const selected: string[] = [];
       const priorities: Record<string, string> = {};
@@ -307,35 +296,22 @@ const DashboardPage: React.FC = () => {
       setRaceNotes(notes);
     }
 
-    if (!profile?.team_id) {
-      console.warn("User has no team assigned.");
-      return;
-    }
+    // 2. Get user profile for team context
+    const { data: profile } = await supabase.from('profiles').select('team_id').eq('id', session.user.id).single();
+    if (!profile?.team_id) return;
 
-    // 3. Get team configuration
-    const { data: teamData } = await supabase
-      .from('teams')
-      .select('*')
-      .eq('id', profile.team_id)
-      .single();
+    // 3. Get team info and teammate plans
+    const { data: teamData } = await supabase.from('teams').select('*').eq('id', profile.team_id).single();
     if (teamData) setTeam(teamData);
-
-    // 4. Get team-mate plans (isolated by team_id)
-    const { data: teamProfiles } = await supabase
-      .from('profiles')
-      .select('id, full_name')
-      .eq('team_id', profile.team_id);
     
+    const { data: teamProfiles } = await supabase.from('profiles').select('id, full_name').eq('team_id', profile.team_id);
     if (teamProfiles) {
       setAllProfiles(teamProfiles);
       const teamUserIds = teamProfiles.map(p => p.id);
-      const { data: teamPlans } = await supabase
-        .from('user_plans')
-        .select('user_id, race_id')
-        .in('user_id', teamUserIds);
+      const { data: teamPlans } = await supabase.from('user_plans').select('user_id, race_id').in('user_id', teamUserIds);
       if (teamPlans) setAllPlans(teamPlans);
     }
-  }, [session]);
+  }, [session?.user?.id]);
 
   useEffect(() => { if (session) fetchData(); }, [session, fetchData]);
 
@@ -498,43 +474,28 @@ const DashboardPage: React.FC = () => {
   const addRaceFinal = useCallback(async (id: string) => {
     if (!session?.user) return;
     
-    // UI Update immediate using functional update
-    setSelectedRaces(prev => prev.includes(id) ? prev : [...prev, id]);
+    setSelectedRaces(prev => [...prev, id]);
     setRacePriorities(prev => ({ ...prev, [id]: 'C' }));
     setPendingConfirmId(null);
 
-    const { error } = await supabase
-      .from('user_plans')
-      .insert([{ user_id: session.user.id, race_id: id, priority: 'C' }]);
-
+    const { error } = await supabase.from('user_plans').insert([{ user_id: session.user.id, race_id: id, priority: 'C' }]);
     if (error) {
-      console.error("Errore aggiunta gara:", error.message);
       setSelectedRaces(prev => prev.filter(r => r !== id));
-      alert("Errore nell'aggiunta della gara: " + error.message);
-    } else {
-      await fetchData(); // Sync background data
+      alert("Errore nell'aggiunta: " + error.message);
     }
-  }, [session?.user?.id, fetchData]);
+  }, [session]);
 
   const toggleRace = useCallback(async (id: string) => {
     if (!session?.user) return;
 
-    // Use selectedRaces state directly to determine action
-    const isCurrentlySelected = selectedRaces.includes(id);
-
-    if (isCurrentlySelected) {
-      // Remove Optimistically
+    if (selectedRaces.includes(id)) {
       setSelectedRaces(prev => prev.filter(r => r !== id));
-      
       const { error } = await supabase.from('user_plans').delete().eq('user_id', session.user.id).eq('race_id', id);
       if (error) {
         setSelectedRaces(prev => [...prev, id]);
         alert("Errore nella rimozione: " + error.message);
-      } else {
-        await fetchData();
       }
     } else {
-      // Logic for adding
       const newRace = races.find(r => r.id === id);
       if (newRace) {
         const [nd, nm, ny] = newRace.date.split("-");
@@ -542,14 +503,11 @@ const DashboardPage: React.FC = () => {
             const [rd, rm, ry] = r.date.split("-");
             return Math.ceil(Math.abs(new Date(parseInt(ny), parseInt(nm) - 1, parseInt(nd)).getTime() - new Date(parseInt(ry), parseInt(rm) - 1, parseInt(rd)).getTime()) / 86400000) < 3;
         });
-        if (tooClose) { 
-          setPendingConfirmId(id); 
-          return; 
-        }
+        if (tooClose) { setPendingConfirmId(id); return; }
       }
       addRaceFinal(id);
     }
-  }, [session?.user?.id, selectedRaces, races, myPlan, addRaceFinal, fetchData]);
+  }, [session, selectedRaces, races, myPlan, addRaceFinal]);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
