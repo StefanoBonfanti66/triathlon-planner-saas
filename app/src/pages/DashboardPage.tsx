@@ -498,8 +498,8 @@ const DashboardPage: React.FC = () => {
   const addRaceFinal = useCallback(async (id: string) => {
     if (!session?.user) return;
     
-    // Aggiornamento ottimistico immediato della UI
-    setSelectedRaces(prev => [...prev, id]);
+    // UI Update immediate using functional update
+    setSelectedRaces(prev => prev.includes(id) ? prev : [...prev, id]);
     setRacePriorities(prev => ({ ...prev, [id]: 'C' }));
     setPendingConfirmId(null);
 
@@ -509,42 +509,47 @@ const DashboardPage: React.FC = () => {
 
     if (error) {
       console.error("Errore aggiunta gara:", error.message);
-      // Revert in caso di errore
       setSelectedRaces(prev => prev.filter(r => r !== id));
       alert("Errore nell'aggiunta della gara: " + error.message);
     } else {
-      await fetchData(); // Sincronizzazione finale con il DB
+      await fetchData(); // Sync background data
     }
-  }, [session, fetchData]);
+  }, [session?.user?.id, fetchData]);
 
   const toggleRace = useCallback(async (id: string) => {
     if (!session?.user) return;
 
-    if (selectedRaces.includes(id)) {
-      // Rimozione ottimistica immediata
+    // Use selectedRaces state directly to determine action
+    const isCurrentlySelected = selectedRaces.includes(id);
+
+    if (isCurrentlySelected) {
+      // Remove Optimistically
       setSelectedRaces(prev => prev.filter(r => r !== id));
       
       const { error } = await supabase.from('user_plans').delete().eq('user_id', session.user.id).eq('race_id', id);
       if (error) {
-        // Revert in caso di errore
         setSelectedRaces(prev => [...prev, id]);
         alert("Errore nella rimozione: " + error.message);
       } else {
         await fetchData();
       }
-      return;
+    } else {
+      // Logic for adding
+      const newRace = races.find(r => r.id === id);
+      if (newRace) {
+        const [nd, nm, ny] = newRace.date.split("-");
+        const tooClose = myPlan.some(r => {
+            const [rd, rm, ry] = r.date.split("-");
+            return Math.ceil(Math.abs(new Date(parseInt(ny), parseInt(nm) - 1, parseInt(nd)).getTime() - new Date(parseInt(ry), parseInt(rm) - 1, parseInt(rd)).getTime()) / 86400000) < 3;
+        });
+        if (tooClose) { 
+          setPendingConfirmId(id); 
+          return; 
+        }
+      }
+      addRaceFinal(id);
     }
-    const newRace = races.find(r => r.id === id);
-    if (newRace) {
-      const [nd, nm, ny] = newRace.date.split("-");
-      const tooClose = myPlan.some(r => {
-          const [rd, rm, ry] = r.date.split("-");
-          return Math.ceil(Math.abs(new Date(parseInt(ny), parseInt(nm) - 1, parseInt(nd)).getTime() - new Date(parseInt(ry), parseInt(rm) - 1, parseInt(rd)).getTime()) / 86400000) < 3;
-      });
-      if (tooClose) { setPendingConfirmId(id); return; }
-    }
-    addRaceFinal(id);
-  }, [selectedRaces, races, myPlan, addRaceFinal, session]);
+  }, [session?.user?.id, selectedRaces, races, myPlan, addRaceFinal, fetchData]);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
