@@ -6,7 +6,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { 
   Shield, Users, Trophy, Plus, Edit2, Trash2, 
-  Settings, Save, X, ExternalLink, Mail, CheckCircle
+  Settings, Save, X, ExternalLink, Mail, CheckCircle, Upload
 } from 'lucide-react';
 import { Navigate } from 'react-router-dom';
 
@@ -15,6 +15,7 @@ const ADMIN_EMAIL = "bonfantistefano4@gmail.com";
 const AdminPage: React.FC = () => {
     const [session, setSession] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    const [uploading, setUploading] = useState(false); // Stato per il caricamento file
     const [activeTab, setActiveTab] = useState<'atleti' | 'team'>('atleti');
     
     const [profiles, setProfiles] = useState<any[]>([]);
@@ -62,6 +63,36 @@ const AdminPage: React.FC = () => {
             setPlansCount(counts);
         }
         setLoading(false);
+    };
+
+    const handleUploadLogo = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setUploading(true);
+        try {
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${Math.random()}.${fileExt}`;
+            const filePath = `${fileName}`;
+
+            // Upload su bucket 'team-logos'
+            const { error: uploadError } = await supabase.storage
+                .from('team-logos')
+                .upload(filePath, file);
+
+            if (uploadError) throw uploadError;
+
+            // Recupera Public URL
+            const { data: { publicUrl } } = supabase.storage
+                .from('team-logos')
+                .getPublicUrl(filePath);
+
+            setTeamForm(prev => ({ ...prev, logo_url: publicUrl }));
+        } catch (error: any) {
+            alert("Errore caricamento logo: " + error.message);
+        } finally {
+            setUploading(false);
+        }
     };
 
     const handleSaveTeam = async (e: React.FormEvent) => {
@@ -354,13 +385,39 @@ const AdminPage: React.FC = () => {
                                 </div>
                             </div>
                             <div>
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">URL Logo</label>
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Logo Team</label>
+                                <div className="flex items-center gap-4">
+                                    <div className="w-16 h-16 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 flex items-center justify-center overflow-hidden shrink-0">
+                                        {teamForm.logo_url ? (
+                                            <img src={teamForm.logo_url} alt="Preview" className="max-w-full max-h-full object-contain" />
+                                        ) : (
+                                            <Upload className="w-6 h-6 text-slate-300" />
+                                        )}
+                                    </div>
+                                    <div className="flex-1">
+                                        <input 
+                                            type="file" 
+                                            accept="image/*"
+                                            id="logo-upload"
+                                            className="hidden"
+                                            onChange={handleUploadLogo}
+                                            disabled={uploading}
+                                        />
+                                        <label 
+                                            htmlFor="logo-upload"
+                                            className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest cursor-pointer transition-all ${uploading ? 'bg-slate-100 text-slate-400' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'}`}
+                                        >
+                                            {uploading ? 'Caricamento...' : 'Carica Immagine'}
+                                        </label>
+                                        <p className="text-[9px] text-slate-400 mt-2 font-bold uppercase">PNG o JPG, max 2MB. Oppure incolla URL sotto.</p>
+                                    </div>
+                                </div>
                                 <input 
                                     type="text" 
-                                    className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-medium"
+                                    className="w-full mt-3 px-5 py-3 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-[10px] font-medium"
                                     value={teamForm.logo_url}
                                     onChange={e => setTeamForm({...teamForm, logo_url: e.target.value})}
-                                    placeholder="URL da Supabase Storage o Web"
+                                    placeholder="O incolla URL diretto..."
                                 />
                             </div>
                             <div>
