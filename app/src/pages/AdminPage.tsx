@@ -29,6 +29,7 @@ const AdminPage: React.FC = () => {
         name: '',
         join_code: '',
         primary_color: '#3b82f6',
+        secondary_color: '#1e293b',
         logo_url: '',
         website_url: ''
     });
@@ -282,8 +283,11 @@ const AdminPage: React.FC = () => {
 
                                 <div className="space-y-3 mb-8 relative z-10">
                                     <div className="flex items-center justify-between text-xs">
-                                        <span className="font-bold text-slate-400 uppercase">Colore Sociale</span>
-                                        <div className="w-6 h-6 rounded-lg shadow-inner border border-white" style={{ backgroundColor: team.primary_color }}></div>
+                                        <span className="font-bold text-slate-400 uppercase">Brand Colors</span>
+                                        <div className="flex gap-1">
+                                            <div className="w-6 h-6 rounded-lg shadow-inner border border-white" style={{ backgroundColor: team.primary_color }} title="Primario"></div>
+                                            <div className="w-6 h-6 rounded-lg shadow-inner border border-white" style={{ backgroundColor: team.secondary_color }} title="Secondario"></div>
+                                        </div>
                                     </div>
                                     <div className="flex items-center justify-between text-xs">
                                         <span className="font-bold text-slate-400 uppercase">Atleti Iscritti</span>
@@ -299,6 +303,7 @@ const AdminPage: React.FC = () => {
                                                 name: team.name,
                                                 join_code: team.join_code || '',
                                                 primary_color: team.primary_color || '#3b82f6',
+                                                secondary_color: team.secondary_color || '#1e293b',
                                                 logo_url: team.logo_url || '',
                                                 website_url: team.website_url || ''
                                             });
@@ -371,8 +376,9 @@ const AdminPage: React.FC = () => {
                                         required
                                     />
                                 </div>
+                            <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Colore Sociale</label>
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Colore Primario</label>
                                     <div className="flex items-center gap-3">
                                         <input 
                                             type="color" 
@@ -383,6 +389,19 @@ const AdminPage: React.FC = () => {
                                         <span className="text-xs font-black text-slate-600 uppercase">{teamForm.primary_color}</span>
                                     </div>
                                 </div>
+                                <div>
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Colore Secondario</label>
+                                    <div className="flex items-center gap-3">
+                                        <input 
+                                            type="color" 
+                                            className="w-12 h-12 rounded-xl cursor-pointer bg-transparent border-none"
+                                            value={teamForm.secondary_color}
+                                            onChange={e => setTeamForm({...teamForm, secondary_color: e.target.value})}
+                                        />
+                                        <span className="text-xs font-black text-slate-600 uppercase">{teamForm.secondary_color}</span>
+                                    </div>
+                                </div>
+                            </div>
                             </div>
                             <div>
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Logo Team</label>
