@@ -117,7 +117,7 @@ const AdminPage: React.FC = () => {
         } else {
             setIsTeamModalOpen(false);
             setEditingTeam(null);
-            setTeamForm({ name: '', join_code: '', primary_color: '#3b82f6', logo_url: '', website_url: '' });
+            setTeamForm({ name: '', join_code: '', primary_color: '#3b82f6', secondary_color: '#1e293b', logo_url: '', website_url: '' });
             fetchAllData();
         }
     };
@@ -255,7 +255,7 @@ const AdminPage: React.FC = () => {
                         <button 
                             onClick={() => {
                                 setEditingTeam(null);
-                                setTeamForm({ name: '', join_code: '', primary_color: '#3b82f6', logo_url: '', website_url: '' });
+                                setTeamForm({ name: '', join_code: '', primary_color: '#3b82f6', secondary_color: '#1e293b', logo_url: '', website_url: '' });
                                 setIsTeamModalOpen(true);
                             }}
                             className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl hover:bg-slate-800 transition-all"
