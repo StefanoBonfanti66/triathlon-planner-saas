@@ -18,6 +18,7 @@ const AdminPage: React.FC = () => {
     const [uploading, setUploading] = useState(false);
     const [activeTab, setActiveTab] = useState<'atleti' | 'team'>('atleti');
     const [searchTerm, setSearchTerm] = useState('');
+    const [teamSearchTerm, setTeamSearchTerm] = useState(''); // Ricerca team
     
     const [profiles, setProfiles] = useState<any[]>([]);
     const [teams, setTeams] = useState<any[]>([]);
@@ -159,6 +160,11 @@ const AdminPage: React.FC = () => {
         (p.full_name || '').toLowerCase().includes(searchTerm.toLowerCase())
     );
 
+    const filteredTeams = teams.filter(t => 
+        (t.name || '').toLowerCase().includes(teamSearchTerm.toLowerCase()) ||
+        (t.join_code || '').toLowerCase().includes(teamSearchTerm.toLowerCase())
+    );
+
     if (!loading && session?.user?.email !== ADMIN_EMAIL) {
         return <Navigate to="/" replace />;
     }
@@ -219,11 +225,21 @@ const AdminPage: React.FC = () => {
 
             {activeTab === 'team' && (
                 <div className="space-y-6">
-                    <div className="flex justify-end">
-                        <button onClick={() => { setEditingTeam(null); setTeamForm({ name: '', join_code: '', primary_color: '#3b82f6', secondary_color: '#1e293b', logo_url: '', website_url: '' }); setIsTeamModalOpen(true); }} className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl hover:bg-slate-800 transition-all"><Plus className="w-4 h-4" /> Nuovo Team</button>
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div className="relative group max-w-md w-full">
+                            <Trophy className="absolute left-4 top-3.5 w-5 h-5 text-slate-400" />
+                            <input 
+                                type="text" 
+                                placeholder="Cerca team per nome o codice..." 
+                                className="w-full pl-12 pr-4 py-3.5 bg-white border-2 border-slate-100 rounded-2xl focus:border-blue-500 outline-none text-sm font-medium shadow-sm transition-all"
+                                value={teamSearchTerm}
+                                onChange={(e) => setTeamSearchTerm(e.target.value)}
+                            />
+                        </div>
+                        <button onClick={() => { setEditingTeam(null); setTeamForm({ name: '', join_code: '', primary_color: '#3b82f6', secondary_color: '#1e293b', logo_url: '', website_url: '' }); setIsTeamModalOpen(true); }} className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl hover:bg-slate-800 transition-all shrink-0"><Plus className="w-4 h-4" /> Nuovo Team</button>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {teams.map((team) => (
+                        {filteredTeams.map((team) => (
                             <div key={team.id} className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 flex flex-col relative overflow-hidden group">
                                 <div className="absolute top-0 right-0 w-32 h-32 -mr-8 -mt-8 bg-slate-50 rounded-full opacity-50 group-hover:scale-110 transition-transform duration-500"></div>
                                 <div className="flex items-center gap-4 mb-6 relative z-10">
