@@ -61,7 +61,12 @@ const Header = memo(({ session, team, onOpenAdmin }: { session: any, team?: any,
                     <div className="w-px h-6 bg-slate-200 mx-2"></div>
                     
                     {session?.user?.email === ADMIN_EMAIL && (
-                        <button onClick={onOpenAdmin} className="flex items-center gap-2 px-4 py-2 bg-amber-50 border border-amber-200 text-amber-800 rounded-2xl text-sm font-bold hover:bg-amber-100 transition-all" aria-label="Apri pannello admin"><Shield className="w-4 h-4" /> Admin</button>
+                        <NavLink to="/admin" 
+                                 className="flex items-center gap-2 px-4 py-2 bg-amber-50 border border-amber-200 text-amber-800 rounded-2xl text-sm font-bold hover:bg-amber-100 transition-all" 
+                                 style={({ isActive }: { isActive: boolean }) => isActive ? { backgroundColor: '#fef3c7', borderColor: '#f59e0b' } : undefined}>
+                            <Shield className="w-4 h-4" /> 
+                            <span className="hidden sm:inline">Admin</span>
+                        </NavLink>
                     )}
                     
                     <a 

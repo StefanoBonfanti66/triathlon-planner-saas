@@ -9,6 +9,7 @@ import DashboardPage from './pages/DashboardPage';
 import TeamCalendarPage from './pages/TeamCalendarPage';
 import GuidePage from './pages/GuidePage';
 import RaceDetailPage from './pages/RaceDetailPage';
+import AdminPage from './pages/AdminPage';
 import Auth from './pages/Auth';
 
 const App: React.FC = () => {
@@ -20,6 +21,7 @@ const App: React.FC = () => {
         <Route path="calendario-team" element={<TeamCalendarPage />} />
         <Route path="guida" element={<GuidePage />} />
         <Route path="race/:id" element={<RaceDetailPage />} />
+        <Route path="admin" element={<AdminPage />} />
       </Route>
     </Routes>
   );
