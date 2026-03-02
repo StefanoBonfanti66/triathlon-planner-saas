@@ -496,20 +496,33 @@ const DashboardPage: React.FC = () => {
   };
 
   const addRaceFinal = useCallback(async (id: string) => {
-    setSelectedRaces((prev) => [...prev, id]);
-    setRacePriorities(prev => ({ ...prev, [id]: 'C' }));
-    setPendingConfirmId(null);
-    if (session?.user) {
-      await supabase.from('user_plans').insert([{ user_id: session.user.id, race_id: id, priority: 'C' }]);
+    if (!session?.user) return;
+    
+    const { error } = await supabase
+      .from('user_plans')
+      .insert([{ user_id: session.user.id, race_id: id, priority: 'C' }]);
+
+    if (error) {
+      console.error("Errore aggiunta gara:", error.message);
+      alert("Errore nell'aggiunta della gara: " + error.message);
+    } else {
+      setSelectedRaces((prev) => [...prev, id]);
+      setRacePriorities(prev => ({ ...prev, [id]: 'C' }));
+      setPendingConfirmId(null);
     }
   }, [session]);
 
   const toggleRace = useCallback(async (id: string) => {
     if (selectedRaces.includes(id)) {
-      setSelectedRaces((prev) => prev.filter((r) => r !== id));
-      setRacePriorities(prev => { const next = {...prev}; delete next[id]; return next; });
-      setRaceNotes(prev => { const next = {...prev}; delete next[id]; return next; });
-      if (session?.user) { await supabase.from('user_plans').delete().eq('user_id', session.user.id).eq('race_id', id); }
+      if (!session?.user) return;
+      const { error } = await supabase.from('user_plans').delete().eq('user_id', session.user.id).eq('race_id', id);
+      if (error) {
+        alert("Errore nella rimozione: " + error.message);
+      } else {
+        setSelectedRaces((prev) => prev.filter((r) => r !== id));
+        setRacePriorities(prev => { const next = {...prev}; delete next[id]; return next; });
+        setRaceNotes(prev => { const next = {...prev}; delete next[id]; return next; });
+      }
       return;
     }
     const newRace = races.find(r => r.id === id);
