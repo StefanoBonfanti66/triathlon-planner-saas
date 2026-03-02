@@ -131,7 +131,7 @@ const Auth: React.FC = () => {
                                 <input 
                                     id="auth-teamcode"
                                     type="text" 
-                                    placeholder="Codice Squadra (es: MTT2026)" 
+                                    placeholder="Codice Squadra" 
                                     className="w-full pl-12 pr-4 py-3.5 bg-blue-50 border-2 border-blue-100 rounded-2xl focus:border-blue-500 outline-none text-sm font-bold placeholder:text-blue-300 uppercase"
                                     value={teamCode}
                                     onChange={(e) => setTeamCode(e.target.value)}
