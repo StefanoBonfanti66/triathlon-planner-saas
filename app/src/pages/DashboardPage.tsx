@@ -1,7 +1,7 @@
 /**
- * MTT Season Planner 2026
+ * Race Planner 2026
  * Author: Stefano Bonfanti
- * Project: FITRI Race Calendar Management for MTT Milano Triathlon Team
+ * Project: FITRI Race Calendar Management SaaS
  */
 import React, { useState, useEffect, useMemo, useTransition, useCallback, useDeferredValue } from "react";
 import { 
@@ -37,7 +37,7 @@ interface Race {
 }
 
 const getEquipment = (type: string) => {
-    const base = ["Chip", "Body MTT", "Pettorale", "Gel", "Documento", "Tessera"];
+    const base = ["Chip", "Body Squadra", "Pettorale", "Gel", "Documento", "Tessera"];
     if (type === 'Triathlon') return [...base, "Muta", "Occhialini", "Scarpe Bici", "Casco", "Scarpe Corsa"];
     if (type === 'Duathlon') return [...base, "Scarpe Bici", "Casco", "Scarpe Corsa"];
     if (type.includes('Winter')) return [...base, "Termica", "Guanti", "Scarpe/Sci"];
@@ -529,11 +529,11 @@ const DashboardPage: React.FC = () => {
     myPlan.forEach(race => {
       const [d, m, y] = race.date.split("-");
       const note = raceNotes[race.id] ? `\\nNOTE: ${raceNotes[race.id]}` : "";
-      ics.push("BEGIN:VEVENT", `UID:${race.id}@mtt`, `DTSTART;VALUE=DATE:${y}${m}${d}`, `DTEND;VALUE=DATE:${y}${m}${d}`, `SUMMARY:${race.title}`, `LOCATION:${race.location}`, `DESCRIPTION:Priorità: ${racePriorities[race.id] || 'C'}${note}`, "END:VEVENT");
+      ics.push("BEGIN:VEVENT", `UID:${race.id}@raceplanner`, `DTSTART;VALUE=DATE:${y}${m}${d}`, `DTEND;VALUE=DATE:${y}${m}${d}`, `SUMMARY:${race.title}`, `LOCATION:${race.location}`, `DESCRIPTION:Priorità: ${racePriorities[race.id] || 'C'}${note}`, "END:VEVENT");
     });
     ics.push("END:VCALENDAR");
     const blob = new Blob([ics.join("\r\n")], { type: "text/calendar" });
-    const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.setAttribute("download", "gare_mtt_2026.ics"); link.click();
+    const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.setAttribute("download", "gare_2026.ics"); link.click();
   };
 
   const exportToCSV = () => {
@@ -542,7 +542,7 @@ const DashboardPage: React.FC = () => {
     const rows = myPlan.map(r => [r.date, r.event || "", r.title, r.location, r.region, r.type, r.distance, racePriorities[r.id] || 'C', raceCosts[r.id] || 0, r.distanceFromHome || "", `"${(raceNotes[r.id] || "").replace(/"/g, '""')}"`]);
     const csv = [headers, ...rows].map(e => e.join(",")).join("\n");
     const blob = new Blob(["\ufeff" + csv], { type: 'text/csv' });
-    const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.setAttribute("download", "piano_mtt_2026.csv"); link.click();
+    const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.setAttribute("download", "piano_2026.csv"); link.click();
   };
 
   const filteredRaces = useMemo(() => {

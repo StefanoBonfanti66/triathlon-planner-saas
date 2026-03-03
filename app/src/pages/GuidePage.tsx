@@ -1,5 +1,5 @@
 /**
- * MTT Season Planner 2026 - User Guide
+ * Race Planner 2026 - User Guide
  * Author: Stefano Bonfanti
  */
 import React from 'react';
@@ -141,7 +141,7 @@ const GuidePage: React.FC = () => {
               </div>
               <p className="text-xs font-black text-slate-700 uppercase tracking-tight">Problemi di accesso? Usa il reset password.</p>
             </div>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">MTT Milano Triathlon Team • 2026</p>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Race Planner • 2026</p>
           </div>
         </section>
       </div>

@@ -1,34 +1,24 @@
-# 📖 Guida Utente - MTT Season Planner 2026
+# 📖 Guida Utente - Race Planner 2026
 
-Questa guida aggiornata ti accompagna nell'utilizzo della nuova piattaforma multi-pagina del **MTT**.
+Questa guida ti accompagna nell'utilizzo della piattaforma per la pianificazione della tua stagione agonistica.
 
-## 1. Navigazione e Struttura
-L'app è ora divisa in sezioni chiare accessibili dall'header in alto:
+## 1. La Dashboard (Pianificazione Personale)
+- **Ricerca Gare**: Usa la barra di ricerca e i filtri (Mese, Sport, Distanza) per trovare le sfide che ti interessano.
+- **Aggiunta Gara**: Clicca sul pulsante "+ Aggiungi" per inserire una gara nel tuo piano stagionale.
+- **Dettagli Gara**: Clicca sul titolo di una gara per aprire la pagina di dettaglio con informazioni arricchite, percorsi e meteo.
+- **Priorità e Budget**: Per ogni gara scelta, puoi impostare una priorità (A, B, C) e monitorare il costo dell'iscrizione.
 
-- **Dashboard**: La tua area personale dove cerchi le gare, vedi la mappa, imposti i tuoi obiettivi e calcoli i costi.
-- **Team**: La nuova vista condivisa dove vedi i piani di tutti i compagni di squadra.
-- **Profilo Atleta**: In alto a sinistra vedi sempre il tuo nome, utile per confermare che sei loggato correttamente.
+## 2. Il Calendario del Team
+- In questa sezione trovi le gare raggruppate per mese.
+- Sotto ogni gara trovi i **Nomi e Cognomi** di tutti i compagni di squadra che hanno aggiunto quella sfida al loro piano.
+- È lo strumento ideale per organizzare trasferte e carpooling.
 
-## 2. Il Calendario del Team (Social MTT)
-Questa sezione è dedicata alla forza del gruppo:
-- Le gare sono raggruppate per **Mese**.
-- Sotto ogni gara trovi i **Nomi e Cognomi** di tutti gli atleti MTT che hanno aggiunto quella sfida al loro piano.
-- Usalo per trovare compagni di viaggio o per scegliere le gare dove il team sarà più numeroso!
+## 3. Generazione Social Card
+- Nella Dashboard, trovi l'icona della fotocamera per generare la tua **Season Card** (il riepilogo della tua stagione).
+- All'interno di ogni singola gara, puoi generare la **Challenge Card** per annunciare la tua partecipazione sui social.
+- Le card vengono generate automaticamente con il logo e i colori della tua squadra.
 
-## 3. Dashboard Personale
-- **Filtri**: Oltre a Sport e Provincia, ora puoi filtrare per **Mese** e **Distanza** (Sprint, Olimpico, Medio, ecc.).
-- **Ricerca Ultra-Veloce**: La barra di ricerca è istantanea, permettendoti di trovare la tua gara preferita senza rallentamenti.
-- **Mappa Stabile**: La visualizzazione su mappa è stata ottimizzata per essere fluida e leggibile anche da mobile.
-- **Note & Diario**: Ogni gara ha un'icona 📝 per segnare i tuoi obiettivi crono o strategie.
+## 4. Esportazione Dati
+- Puoi scaricare il tuo piano gare in formato **Excel (CSV)** o importarlo nel tuo calendario personale (Google, Apple, Outlook) tramite il formato **iCal (ICS)**.
 
-## 4. Aggiornamenti Automatici
-Non devi più preoccuparti se il calendario FITRI cambia:
-- Ogni **Lunedì mattina** l'app si aggiorna da sola.
-- Lo script di scraping controlla le novità e popola automaticamente il database cloud.
-
-## 5. Supporto e Accesso
-- **Recupero Password**: Se dimentichi le credenziali, riceverai un link via email per impostare una nuova password direttamente nell'app.
-- **Logout**: Ricordati di uscire cliccando sull'icona 📤 all'estrema destra se usi un PC condiviso.
-
----
-*Ready to Race! - MTT Milano Triathlon Team*
+*Ready to Race!*

@@ -1,5 +1,5 @@
 /**
- * MTT Season Planner 2026 - Team Calendar
+ * Race Planner 2026 - Team Calendar
  * Author: Stefano Bonfanti
  */
 import React, { useState, useEffect } from 'react';

@@ -79,8 +79,21 @@ def parse_gare_file(file_path):
 def save_clean(final_list, output_json):
     # Ordinamento per data
     final_list = sorted(final_list, key=lambda x: x['date'].split('-')[::-1])
-    # Assegnazione nuovi ID univoci
-    for i, r in enumerate(final_list): r['id'] = str(i + 1)
+    
+    # Assegnazione nuovi ID univoci basati su MyFITri ID
+    counts = {}
+    for r in final_list:
+        link = r.get('link', '')
+        # Estrai ID MyFITri (es: /3897)
+        match = re.search(r'/(\d+)$', link)
+        base_id = match.group(1) if match else "9999"
+        
+        # Incrementa il contatore per gestire gare multiple nello stesso evento
+        current_count = counts.get(base_id, 0) + 1
+        counts[base_id] = current_count
+        
+        # Formato ID: 3897-1, 3897-2, ...
+        r['id'] = f"{base_id}-{current_count}"
 
     with open(output_json, 'w', encoding='utf-8') as f:
         json.dump(final_list, f, ensure_ascii=False, indent=2)

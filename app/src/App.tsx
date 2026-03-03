@@ -1,5 +1,5 @@
 /**
- * MTT Season Planner 2026 - Main Router
+ * Race Planner 2026 - Main Router
  * Author: Stefano Bonfanti
  */
 import React from 'react';

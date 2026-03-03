@@ -1,5 +1,5 @@
 /**
- * MTT Season Planner 2026 - Race Details
+ * Race Planner 2026 - Race Details
  * Author: Stefano Bonfanti
  * Feature: MyFITri API Integration (V4.0)
  */

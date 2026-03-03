@@ -1,4 +1,4 @@
-# MTT Season Planner SaaS - Guida Gestione Team
+# Race Planner SaaS - Guida Gestione Team
 
 Questo documento spiega come gestire i team nel sistema SaaS senza modificare il codice.
 
