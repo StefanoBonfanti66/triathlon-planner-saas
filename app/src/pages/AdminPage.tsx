@@ -133,13 +133,23 @@ const AdminPage: React.FC = () => {
 
     const handleDeleteAthlete = async (userId: string, name: string) => {
         if (!window.confirm(`Eliminare ${name}?`)) return;
+        
+        // 1. Aggiornamento UI IMMEDIATO (priorità alta)
         setProfiles(prev => prev.filter(p => p.id !== userId));
+
+        // 2. Esecuzione in background (non blocca l'interfaccia)
         try {
-            await supabase.from('user_plans').delete().eq('user_id', userId);
-            await supabase.from('profiles').delete().eq('id', userId);
+            // Eseguiamo le cancellazioni senza 'await' bloccare il thread principale della UI
+            supabase.from('user_plans').delete().eq('user_id', userId).then(() => {
+                supabase.from('profiles').delete().eq('id', userId).then(({ error }) => {
+                    if (error) {
+                        alert("Errore durante l'eliminazione sul server: " + error.message);
+                        fetchAllData(isSuperAdmin, myProfile?.team_id); // Revert solo in caso di vero errore
+                    }
+                });
+            });
         } catch (error: any) {
-            alert("Errore: " + error.message);
-            fetchAllData(isSuperAdmin, myProfile?.team_id);
+            console.error("Errore silente:", error);
         }
     };
 
