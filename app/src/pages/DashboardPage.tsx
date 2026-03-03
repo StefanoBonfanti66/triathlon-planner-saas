@@ -88,20 +88,20 @@ const RaceCard = React.memo(({
             
             <div className="space-y-2 mb-6">
                 <div className="flex items-start gap-2.5" title="Località e Regione">
-                    <MapPin className="w-4 h-4 text-slate-500 mt-0.5 shrink-0" />
+                    <MapPin className="w-4 h-4 text-slate-600 mt-0.5 shrink-0" />
                     <div className="flex flex-col">
                         <div className="flex items-center gap-2">
-                            <p className="text-xs font-bold text-slate-700 leading-snug">{race.location}</p>
-                            <button onClick={openInMaps} className="p-1 hover:bg-slate-100 rounded transition-colors" style={{ color: team?.primary_color || '#2563eb' }} title="Apri navigatore Google Maps" aria-label="Apri posizione in Google Maps">
-                                <Navigation className="w-3 h-3 rotate-45" />
+                            <p className="text-xs font-bold text-slate-800 leading-snug">{race.location}</p>
+                            <button onClick={openInMaps} className="p-2 hover:bg-slate-100 rounded-lg transition-colors" style={{ color: team?.primary_color || '#2563eb' }} title="Apri navigatore Google Maps" aria-label="Apri posizione in Google Maps">
+                                <Navigation className="w-3.5 h-3.5 rotate-45" />
                             </button>
                         </div>
-                        <span className="text-[10px] font-bold uppercase tracking-tighter" style={{ color: team?.primary_color || '#2563eb' }}>{race.region}</span>
+                        <span className="text-[10px] font-bold uppercase tracking-tighter" style={{ color: team?.primary_color || '#1d4ed8' }}>{race.region}</span>
                     </div>
                 </div>
                 <div className="flex items-center gap-4">
-                    {race.distance && <div className="flex items-center gap-2" title="Distanza della gara"><Bike className="w-4 h-4 text-slate-500 shrink-0" /><span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">{race.distance}</span></div>}
-                    {race.distanceFromHome !== undefined && race.distanceFromHome !== null && (<div className="flex items-center gap-2 bg-blue-50/50 px-2 py-1 rounded-lg border border-blue-100/50" title="Distanza stimata dalla tua provincia"><Navigation className="w-3 h-3 text-blue-700" /><span className="text-[10px] font-black text-blue-800 uppercase">~{race.distanceFromHome} KM</span></div>)}
+                    {race.distance && <div className="flex items-center gap-2" title="Distanza della gara"><Bike className="w-4 h-4 text-slate-600 shrink-0" /><span className="text-[10px] font-black text-slate-700 uppercase tracking-widest">{race.distance}</span></div>}
+                    {race.distanceFromHome !== undefined && race.distanceFromHome !== null && (<div className="flex items-center gap-2 bg-blue-50/50 px-2 py-1 rounded-lg border border-blue-100/50" title="Distanza stimata dalla tua provincia"><Navigation className="w-3 h-3 text-blue-700" /><span className="text-[10px] font-black text-blue-900 uppercase">~{race.distanceFromHome} KM</span></div>)}
                     {(() => {
                         const weather = getWeatherData(race.region, race.date);
                         return (
@@ -122,12 +122,12 @@ const RaceCard = React.memo(({
 
             {participants.length > 0 && (
                 <div className="mb-4 flex flex-col gap-1.5 min-h-[40px]">
-                    <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                    <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest flex items-center gap-1.5">
                         <User className="w-3 h-3" style={{ color: team?.primary_color || '#ef4444' }} /> Compagni {team?.name || 'del team'} ({participants.length})
                     </span>
                     <div className="flex flex-wrap gap-1">
                         {participants.map((name, i) => (
-                            <span key={i} className="text-[9px] font-bold bg-slate-100 text-slate-700 px-2 py-0.5 rounded-md border border-slate-200">
+                            <span key={i} className="text-[9px] font-bold bg-slate-100 text-slate-800 px-2 py-0.5 rounded-md border border-slate-200">
                                 {name}
                             </span>
                         ))}
@@ -800,7 +800,7 @@ const DashboardPage: React.FC = () => {
             </div>
 
             <div className="flex items-center justify-between px-2">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">
+                <span className="text-xs font-bold text-slate-600 uppercase tracking-widest whitespace-nowrap">
                     <span className="tabular-nums">{filteredRaces.length}</span> gare trovate
                 </span>
                 <div className="flex bg-slate-100 p-1 rounded-xl shrink-0">
