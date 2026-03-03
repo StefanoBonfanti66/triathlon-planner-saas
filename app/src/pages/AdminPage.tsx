@@ -196,7 +196,16 @@ const AdminPage: React.FC = () => {
                                         <td className="px-8 py-5"><div className="flex flex-col"><span className="font-black text-slate-800">{atleta.full_name || 'N/A'}</span><span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">{atleta.id.substring(0,8)}...</span></div></td>
                                         <td className="px-8 py-5"><select value={atleta.team_id || ''} onChange={(e) => handleUpdateAthleteTeam(atleta.id, e.target.value || null)} className="bg-slate-100 border-none rounded-xl px-3 py-2 text-xs font-black uppercase text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer" disabled={!isSuperAdmin}><option value="">Nessun Team</option>{teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select></td>
                                         <td className="px-8 py-5 text-center"><span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-black">{plansCount[atleta.id] || 0}</span></td>
-                                        <td className="px-8 py-5 text-right"><button onClick={() => handleDeleteAthlete(atleta.id, atleta.full_name)} className="p-2 text-slate-500 hover:text-red-700 transition-colors"><Trash2 className="w-4 h-4" /></button></td>
+                                                                                    <td className="px-8 py-5 text-right">
+                                                                                        <button 
+                                                                                            onClick={() => handleDeleteAthlete(atleta.id, atleta.full_name)} 
+                                                                                            className="p-2 text-slate-500 hover:text-red-700 transition-colors"
+                                                                                            aria-label={`Elimina atleta ${atleta.full_name}`}
+                                                                                        >
+                                                                                            <Trash2 className="w-4 h-4" />
+                                                                                        </button>
+                                                                                    </td>
+                                        
                                     </tr>
                                 ))}
                             </tbody>
@@ -225,9 +234,29 @@ const AdminPage: React.FC = () => {
                                     <div className="flex items-center justify-between text-xs"><span className="font-bold text-slate-500 uppercase">Atleti</span><span className="font-black text-slate-800">{profiles.filter(p => p.team_id === team.id).length}</span></div>
                                 </div>
                                 <div className="flex items-center gap-2 mt-auto pt-6 border-t border-slate-50 relative z-10">
-                                    <button onClick={() => { setEditingTeam(team); setTeamForm({ name: team.name, join_code: team.join_code || '', primary_color: team.primary_color || '#3b82f6', secondary_color: team.secondary_color || '#1e293b', logo_url: team.logo_url || '', website_url: team.website_url || '' }); setIsTeamModalOpen(true); }} className="flex-1 flex items-center justify-center gap-2 py-3 bg-slate-50 text-slate-600 rounded-xl text-[10px] font-black uppercase hover:bg-blue-50 hover:text-blue-600 transition-all"><Edit2 className="w-3.5 h-3.5" /> Modifica</button>
-                                    <button onClick={() => handleDeleteTeam(team.id, team.name)} className="p-3 bg-slate-50 text-slate-400 rounded-xl hover:bg-red-50 hover:text-red-600 transition-all"><Trash2 className="w-4 h-4" /></button>
-                                    <a href={team.website_url} target="_blank" rel="noopener noreferrer" className="p-3 bg-slate-50 text-slate-400 rounded-xl hover:bg-slate-100 transition-all"><ExternalLink className="w-4 h-4" /></a>
+                                    <button 
+                                        onClick={() => { setEditingTeam(team); setTeamForm({ name: team.name, join_code: team.join_code || '', primary_color: team.primary_color || '#3b82f6', secondary_color: team.secondary_color || '#1e293b', logo_url: team.logo_url || '', website_url: team.website_url || '' }); setIsTeamModalOpen(true); }} 
+                                        className="flex-1 flex items-center justify-center gap-2 py-3 bg-slate-50 text-slate-600 rounded-xl text-[10px] font-black uppercase hover:bg-blue-50 hover:text-blue-600 transition-all"
+                                        aria-label={`Modifica team ${team.name}`}
+                                    >
+                                        <Edit2 className="w-3.5 h-3.5" /> Modifica
+                                    </button>
+                                    <button 
+                                        onClick={() => handleDeleteTeam(team.id, team.name)} 
+                                        className="p-3 bg-slate-50 text-slate-400 rounded-xl hover:bg-red-50 hover:text-red-600 transition-all"
+                                        aria-label={`Elimina team ${team.name}`}
+                                    >
+                                        <Trash2 className="w-4 h-4" />
+                                    </button>
+                                    <a 
+                                        href={team.website_url} 
+                                        target="_blank" 
+                                        rel="noopener noreferrer" 
+                                        className="p-3 bg-slate-50 text-slate-400 rounded-xl hover:bg-slate-100 transition-all"
+                                        aria-label={`Visita sito web di ${team.name}`}
+                                    >
+                                        <ExternalLink className="w-4 h-4" />
+                                    </a>
                                 </div>
                             </div>
                         ))}
