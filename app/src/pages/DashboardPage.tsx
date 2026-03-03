@@ -615,7 +615,7 @@ const DashboardPage: React.FC = () => {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 px-4">
         <div className="lg:col-span-4 space-y-6">
-          <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100 sticky top-28">
+          <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100 sticky top-28 max-h-[calc(100vh-120px)] overflow-y-auto custom-scrollbar">
             <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xs font-black text-slate-600 uppercase tracking-widest flex items-center gap-2"><Filter className="w-4 h-4" style={{ color: team?.primary_color || '#2563eb' }} /> Filtri</h2>
                 <button onClick={() => { setSearchTerm(""); setFilterType("Tutti"); setFilterMonth("Tutti"); setFilterDistance("Tutti"); setFilterRegion("Tutte"); setFilterSpecial([]); setFilterRadius(1000); }} className="text-[10px] font-bold hover:underline" style={{ color: team?.primary_color || '#1d4ed8' }} aria-label="Resetta tutti i filtri">Reset</button>
@@ -715,7 +715,7 @@ const DashboardPage: React.FC = () => {
                     <button onClick={exportToCSV} className="text-emerald-700 p-1" aria-label="Esporta in Excel (CSV)"><Download className="w-4 h-4" /></button>
                     <span title="Race Card stagionale" className="cursor-pointer"><Camera className="w-4 h-4 text-slate-500 hover:text-blue-700" onClick={generateRaceCard} aria-label="Genera Race Card stagionale" /></span>
                 </div></div>
-                <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                     {myPlan.map((race) => (
                     <div key={race.id} className={`p-4 rounded-2xl border transition-all ${racePriorities[race.id] === 'A' ? 'border-yellow-200 bg-yellow-50/30' : 'border-slate-100 bg-white shadow-sm'}`}>
                         <div className="flex justify-between items-start">
