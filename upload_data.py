@@ -31,6 +31,13 @@ def main():
     print("Connessione a Supabase in corso...")
     supabase: Client = create_client(url, key)
 
+    # 0. Backup preventivo dei piani utente
+    try:
+        from tools.database_manager import backup_user_plans
+        backup_user_plans()
+    except Exception as e:
+        print(f"⚠️ Avviso: Backup non riuscito ({e}), procedo con cautela...")
+
     # 1. Svuota la tabella 'races' per garantire dati sempre aggiornati
     print("Pulizia della tabella 'races'...")
     # Usiamo un filtro che corrisponde a tutte le righe per la cancellazione
