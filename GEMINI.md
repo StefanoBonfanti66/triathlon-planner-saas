@@ -1,23 +1,22 @@
 # Race Planner SaaS - State of the Art
 **Lead Architect**: Stefano Bonfanti
-**Version**: 4.0 - Production Ready
+**Version**: 4.5 - Enterprise Ready
 
 ## Core SaaS Features
 - **Hierarchical Admin**: Global control for Stefano, Local control for Team Leaders.
-- **Dynamic Branding**: Dual-color support (`primary` & `secondary`) with auto-generated CSS gradients.
-- **Auto-Onboarding**: Secure `join_code` system linked to a database Trigger (`handle_new_user`).
-- **High Performance**: Optimistic UI updates for zero-lag interactions and real-time search filtering.
-- **Integrated Storage**: Direct file upload for team logos via Supabase Storage.
+- **Dynamic Branding**: Dual-color support with auto-generated CSS gradients and logo upload.
+- **Auto-Onboarding**: Secure `join_code` system linked to a database Trigger.
+- **Data Stability**: Stable MyFITri ID mapping system to prevent plan corruption during updates.
+- **Accessibility**: WCAG 2 AA compliant contrast and optimized touch targets.
 
 ## Technical Stack
-- **Frontend**: React 19 + TypeScript + Vite.
+- **Frontend**: React 19 + TypeScript + Vite + Vercel Speed Insights.
 - **Backend**: Supabase (Auth, DB, Storage).
-- **Security**: Advanced RLS (Row Level Security) for team data isolation.
-- **Deployment**: Vercel (Auto-build on git push).
+- **Automation**: MyFITri API Scraper with stable ID generation.
 
 ## Quick Admin Guide
-- **Promote to Team Admin**: Set `is_team_admin = true` in `profiles` table.
-- **Add New Team**: Use the Command Center (`/admin`) to set colors, logo, and `join_code`.
-- **Delete Policy**: Admin can safely delete athletes (and their plans) or empty teams directly from UI.
+- **Promote to Team Admin**: Set `is_team_admin = true` in `profiles`.
+- **Add New Team**: Use the `/admin` dashboard to set colors, logo, and `join_code`.
+- **Performance**: Optimistic UI ensures zero-lag for critical actions (add/delete).
 
-**Progetto pronto per la divulgazione commerciale.** 🚀
+**Progetto pronto per la distribuzione commerciale.** 🚀🏆
