@@ -66,13 +66,14 @@ const RaceDetailPage: React.FC = () => {
 
           const { data: teamPlans } = await supabase
             .from('user_plans')
-            .select('user_id, profiles(full_name)')
-            .eq('race_id', id);
+            .select('user_id, profiles(full_name, deleted_at)')
+            .eq('race_id', id)
+            .is('deleted_at', null);
           
           if (teamPlans) {
-            // Filtriamo i partecipanti che appartengono allo stesso team (se non già filtrati via SQL)
+            // Filtriamo i partecipanti che appartengono allo stesso team e non sono cancellati
             const members = teamPlans
-              .filter((p: any) => p.profiles?.full_name)
+              .filter((p: any) => p.profiles?.full_name && !p.profiles.deleted_at)
               .map((p: any) => p.profiles.full_name);
             setParticipants(members);
           }

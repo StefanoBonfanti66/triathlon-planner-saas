@@ -278,7 +278,7 @@ const DashboardPage: React.FC = () => {
     if (!session?.user) return;
 
     // 1. Fetch personal plans
-    const { data: myData } = await supabase.from('user_plans').select('*').eq('user_id', session.user.id);
+    const { data: myData } = await supabase.from('user_plans').select('*').eq('user_id', session.user.id).is('deleted_at', null);
     if (myData) {
       const selected: string[] = [];
       const priorities: Record<string, string> = {};
@@ -297,18 +297,18 @@ const DashboardPage: React.FC = () => {
     }
 
     // 2. Get user profile for team context
-    const { data: profile } = await supabase.from('profiles').select('team_id').eq('id', session.user.id).single();
+    const { data: profile } = await supabase.from('profiles').select('team_id').eq('id', session.user.id).is('deleted_at', null).single();
     if (!profile?.team_id) return;
 
     // 3. Get team info and teammate plans
     const { data: teamData } = await supabase.from('teams').select('*, secondary_color').eq('id', profile.team_id).single();
     if (teamData) setTeam(teamData);
     
-    const { data: teamProfiles } = await supabase.from('profiles').select('id, full_name').eq('team_id', profile.team_id);
+    const { data: teamProfiles } = await supabase.from('profiles').select('id, full_name').eq('team_id', profile.team_id).is('deleted_at', null);
     if (teamProfiles) {
       setAllProfiles(teamProfiles);
       const teamUserIds = teamProfiles.map(p => p.id);
-      const { data: teamPlans } = await supabase.from('user_plans').select('user_id, race_id').in('user_id', teamUserIds);
+      const { data: teamPlans } = await supabase.from('user_plans').select('user_id, race_id').in('user_id', teamUserIds).is('deleted_at', null);
       if (teamPlans) setAllPlans(teamPlans);
     }
   }, [session?.user?.id]);
@@ -490,7 +490,7 @@ const DashboardPage: React.FC = () => {
 
     if (selectedRaces.includes(id)) {
       setSelectedRaces(prev => prev.filter(r => r !== id));
-      const { error } = await supabase.from('user_plans').delete().eq('user_id', session.user.id).eq('race_id', id);
+      const { error } = await supabase.from('user_plans').update({ deleted_at: new Date().toISOString() }).eq('user_id', session.user.id).eq('race_id', id);
       if (error) {
         setSelectedRaces(prev => [...prev, id]);
         alert("Errore nella rimozione: " + error.message);

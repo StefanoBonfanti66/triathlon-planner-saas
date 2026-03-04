@@ -42,16 +42,15 @@ const TeamCalendarPage: React.FC = () => {
       console.log("Fetching team plans for team:", teamId);
       
       // 1. Prendi tutti i profili del team
-      const { data: profiles } = await supabase.from('profiles').select('id, full_name').eq('team_id', teamId);
+      const { data: profiles } = await supabase.from('profiles').select('id, full_name').eq('team_id', teamId).is('deleted_at', null);
       if (!profiles) return;
-      
+
       const profileMap: Record<string, string> = {};
       profiles.forEach(p => { profileMap[p.id] = p.full_name; });
       const userIds = profiles.map(p => p.id);
 
       // 2. Prendi tutti i piani di questi utenti
-      const { data: plans } = await supabase.from('user_plans').select('race_id, user_id').in('user_id', userIds);
-      if (!plans) return;
+      const { data: plans } = await supabase.from('user_plans').select('race_id, user_id').in('user_id', userIds).is('deleted_at', null);      if (!plans) return;
 
       // 3. Raggruppa per gara e aggiungi info gara dal JSON locale (più veloce)
       const raceGroups: Record<string, TeamRace> = {};

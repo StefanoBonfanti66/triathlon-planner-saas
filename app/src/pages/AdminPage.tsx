@@ -6,7 +6,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { 
   Shield, Users, Trophy, Plus, Edit2, Trash2, 
-  Save, X, ExternalLink, Mail, Upload
+  Save, X, ExternalLink, Mail, Upload, Download
 } from 'lucide-react';
 import { Navigate, NavLink } from 'react-router-dom';
 
@@ -59,7 +59,7 @@ const AdminPage: React.FC = () => {
 
     const fetchAllData = async (superAdmin: boolean, teamId?: string) => {
         setLoading(true);
-        let profQuery = supabase.from('profiles').select('*').order('full_name');
+        let profQuery = supabase.from('profiles').select('*').is('deleted_at', null).order('full_name');
         let teamsQuery = supabase.from('teams').select('*').order('name');
         
         if (!superAdmin && teamId) {
@@ -70,7 +70,7 @@ const AdminPage: React.FC = () => {
         const [profRes, teamsRes, plansRes] = await Promise.all([
             profQuery,
             teamsQuery,
-            supabase.from('user_plans').select('user_id')
+            supabase.from('user_plans').select('user_id').is('deleted_at', null)
         ]);
 
         if (profRes.data) setProfiles(profRes.data);
@@ -139,9 +139,10 @@ const AdminPage: React.FC = () => {
 
         // 2. Esecuzione in background (non blocca l'interfaccia)
         try {
-            // Eseguiamo le cancellazioni senza 'await' bloccare il thread principale della UI
-            supabase.from('user_plans').delete().eq('user_id', userId).then(() => {
-                supabase.from('profiles').delete().eq('id', userId).then(({ error }) => {
+            const timestamp = new Date().toISOString();
+            // Eseguiamo le cancellazioni (Soft Delete)
+            supabase.from('user_plans').update({ deleted_at: timestamp }).eq('user_id', userId).then(() => {
+                supabase.from('profiles').update({ deleted_at: timestamp }).eq('id', userId).then(({ error }) => {
                     if (error) {
                         alert("Errore durante l'eliminazione sul server: " + error.message);
                         fetchAllData(isSuperAdmin, myProfile?.team_id); // Revert solo in caso di vero errore
@@ -162,6 +163,44 @@ const AdminPage: React.FC = () => {
         const { error } = await supabase.from('teams').delete().eq('id', teamId);
         if (error) alert("Errore: " + error.message);
         else fetchAllData(isSuperAdmin, myProfile?.team_id);
+    };
+
+    const handleExportTeamBackup = async () => {
+        if (!profiles.length) return;
+        const teamId = myProfile?.team_id || (editingTeam?.id);
+        const teamName = teams.find(t => t.id === (isSuperAdmin ? teams[0]?.id : teamId))?.name || 'team';
+        
+        setLoading(true);
+        try {
+            const userIds = profiles.map(p => p.id);
+            const { data: allTeamPlans, error } = await supabase
+                .from('user_plans')
+                .select('*')
+                .in('user_id', userIds)
+                .is('deleted_at', null);
+
+            if (error) throw error;
+
+            const backupData = {
+                team: teams.find(t => t.id === (isSuperAdmin ? teams[0]?.id : teamId)),
+                athletes: profiles,
+                plans: allTeamPlans,
+                exported_at: new Date().toISOString(),
+                version: "4.5"
+            };
+
+            const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `backup-${teamName.toLowerCase().replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.json`;
+            link.click();
+            URL.revokeObjectURL(url);
+        } catch (err: any) {
+            alert("Errore durante l'export: " + err.message);
+        } finally {
+            setLoading(false);
+        }
     };
 
     const filteredProfiles = profiles.filter(p => (p.full_name || '').toLowerCase().includes(searchTerm.toLowerCase()));
@@ -185,7 +224,15 @@ const AdminPage: React.FC = () => {
 
             {activeTab === 'atleti' && (
                 <div className="space-y-4">
-                    <div className="relative group max-w-md"><Mail className="absolute left-4 top-3.5 w-5 h-5 text-slate-500" /><input type="text" placeholder="Cerca atleta..." className="w-full pl-12 pr-4 py-3.5 bg-white border-2 border-slate-200 rounded-2xl focus:border-blue-500 outline-none text-sm font-medium shadow-sm transition-all placeholder:text-slate-400" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} /></div>
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div className="relative group max-w-md w-full"><Mail className="absolute left-4 top-3.5 w-5 h-5 text-slate-500" /><input type="text" placeholder="Cerca atleta..." className="w-full pl-12 pr-4 py-3.5 bg-white border-2 border-slate-200 rounded-2xl focus:border-blue-500 outline-none text-sm font-medium shadow-sm transition-all placeholder:text-slate-400" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} /></div>
+                        <button 
+                            onClick={handleExportTeamBackup}
+                            className="flex items-center gap-2 px-6 py-3 bg-white border-2 border-slate-200 text-slate-600 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 transition-all shrink-0 shadow-sm"
+                        >
+                            <Download className="w-4 h-4" /> Scarica Backup Team
+                        </button>
+                    </div>
                     <div className="bg-white rounded-[3rem] shadow-sm border border-slate-100 overflow-hidden">
                         <div className="overflow-x-auto">
                             <table className="w-full text-left border-collapse">

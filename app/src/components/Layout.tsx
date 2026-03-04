@@ -78,8 +78,8 @@ const Layout: React.FC = () => {
 
   const fetchAdminData = async () => {
     if (session?.user?.email !== ADMIN_EMAIL) return;
-    const { data: profiles } = await supabase.from('profiles').select('*');
-    const { data: plans } = await supabase.from('user_plans').select('user_id');
+    const { data: profiles } = await supabase.from('profiles').select('*').is('deleted_at', null);
+    const { data: plans } = await supabase.from('user_plans').select('user_id').is('deleted_at', null);
     const { data: teams } = await supabase.from('teams').select('id, name');
 
     if (profiles && plans && teams) {
