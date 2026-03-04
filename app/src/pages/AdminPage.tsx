@@ -6,9 +6,10 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { 
   Shield, Users, Trophy, Plus, Edit2, Trash2, 
-  Save, X, ExternalLink, Mail, Upload, Download
+  Save, X, ExternalLink, Mail, Upload, Download, FileText
 } from 'lucide-react';
 import { Navigate, NavLink } from 'react-router-dom';
+import racesData from "../races_full.json";
 
 const ADMIN_EMAIL = "bonfantistefano4@gmail.com";
 
@@ -165,6 +166,63 @@ const AdminPage: React.FC = () => {
         else fetchAllData(isSuperAdmin, myProfile?.team_id);
     };
 
+    const handleExportExcel = async () => {
+        if (!profiles.length) return;
+        const teamId = myProfile?.team_id || (editingTeam?.id);
+        const teamName = teams.find(t => t.id === (isSuperAdmin ? teams[0]?.id : teamId))?.name || 'team';
+        
+        setLoading(true);
+        try {
+            const userIds = profiles.map(p => p.id);
+            const { data: allTeamPlans, error } = await supabase
+                .from('user_plans')
+                .select('user_id, race_id')
+                .in('user_id', userIds)
+                .is('deleted_at', null);
+
+            if (error) throw error;
+
+            // Raggruppa per gara
+            const raceGroups: Record<string, string[]> = {};
+            allTeamPlans?.forEach(p => {
+                if (!raceGroups[p.race_id]) raceGroups[p.race_id] = [];
+                const athleteName = profiles.find(prof => prof.id === p.user_id)?.full_name || 'N/A';
+                raceGroups[p.race_id].push(athleteName);
+            });
+
+            // Costruisci il CSV (compatibile Excel con separatore punto e virgola)
+            let csvContent = "Gara;Data;Località;Atleti\n";
+            
+            // Ordiniamo le gare per data (usando i dati locali per velocità)
+            const sortedRaces = [...(racesData as any[])].sort((a,b) => a.date.split("-").reverse().join("-").localeCompare(b.date.split("-").reverse().join("-")));
+
+            sortedRaces.forEach(race => {
+                const participants = raceGroups[race.id];
+                if (participants && participants.length > 0) {
+                    const row = [
+                        `"${race.title.replace(/"/g, '""')}"`,
+                        `"${race.date}"`,
+                        `"${race.location.replace(/"/g, '""')}"`,
+                        `"${participants.join(', ')}"`
+                    ].join(';');
+                    csvContent += row + "\n";
+                }
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `elenco-gare-${teamName.toLowerCase().replace(/\s+/g, '-')}.csv`;
+            link.click();
+            URL.revokeObjectURL(url);
+        } catch (err: any) {
+            alert("Errore export excel: " + err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const handleExportTeamBackup = async () => {
         if (!profiles.length) return;
         const teamId = myProfile?.team_id || (editingTeam?.id);
@@ -226,12 +284,20 @@ const AdminPage: React.FC = () => {
                 <div className="space-y-4">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div className="relative group max-w-md w-full"><Mail className="absolute left-4 top-3.5 w-5 h-5 text-slate-500" /><input type="text" placeholder="Cerca atleta..." className="w-full pl-12 pr-4 py-3.5 bg-white border-2 border-slate-200 rounded-2xl focus:border-blue-500 outline-none text-sm font-medium shadow-sm transition-all placeholder:text-slate-400" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} /></div>
-                        <button 
-                            onClick={handleExportTeamBackup}
-                            className="flex items-center gap-2 px-6 py-3 bg-white border-2 border-slate-200 text-slate-600 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 transition-all shrink-0 shadow-sm"
-                        >
-                            <Download className="w-4 h-4" /> Scarica Backup Team
-                        </button>
+                        <div className="flex flex-wrap gap-2">
+                            <button 
+                                onClick={handleExportExcel}
+                                className="flex items-center gap-2 px-6 py-3 bg-emerald-50 border-2 border-emerald-100 text-emerald-700 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-100 transition-all shrink-0 shadow-sm"
+                            >
+                                <FileText className="w-4 h-4" /> Esporta Elenco Gare (Excel)
+                            </button>
+                            <button 
+                                onClick={handleExportTeamBackup}
+                                className="flex items-center gap-2 px-6 py-3 bg-white border-2 border-slate-200 text-slate-600 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 transition-all shrink-0 shadow-sm"
+                            >
+                                <Download className="w-4 h-4" /> Scarica Backup Team
+                            </button>
+                        </div>
                     </div>
                     <div className="bg-white rounded-[3rem] shadow-sm border border-slate-100 overflow-hidden">
                         <div className="overflow-x-auto">
