@@ -7,6 +7,7 @@
 - **Dynamic Branding**: Dual-color support with auto-generated CSS gradients and logo upload.
 - **Auto-Onboarding**: Secure `join_code` system linked to a database Trigger.
 - **Data Stability**: Stable MyFITri ID mapping system to prevent plan corruption during updates.
+- **Disaster Recovery**: 3-level protection (GitHub Backups, Soft Delete, Team Export).
 - **Accessibility**: WCAG 2 AA compliant contrast and optimized touch targets.
 
 ## Technical Stack
