@@ -126,13 +126,13 @@ const AdminPage: React.FC = () => {
         }
     };
 
-    const handleUpdateAthleteTeam = async (userId: string, teamId: string | null) => {
+    const handleUpdateAthleteTeam = React.useCallback(async (userId: string, teamId: string | null) => {
         const { error } = await supabase.from('profiles').update({ team_id: teamId }).eq('id', userId);
         if (error) alert("Errore aggiornamento atleta: " + error.message);
         else fetchAllData(isSuperAdmin, myProfile?.team_id);
-    };
+    }, [isSuperAdmin, myProfile?.team_id]);
 
-    const handleDeleteAthlete = async (userId: string, name: string) => {
+    const handleDeleteAthlete = React.useCallback(async (userId: string, name: string) => {
         if (!window.confirm(`Eliminare ${name}?`)) return;
         
         // 1. Aggiornamento UI IMMEDIATO (priorità alta)
@@ -141,21 +141,22 @@ const AdminPage: React.FC = () => {
         // 2. Esecuzione in background (non blocca l'interfaccia)
         try {
             const timestamp = new Date().toISOString();
-            // Eseguiamo le cancellazioni (Soft Delete)
-            supabase.from('user_plans').update({ deleted_at: timestamp }).eq('user_id', userId).then(() => {
-                supabase.from('profiles').update({ deleted_at: timestamp }).eq('id', userId).then(({ error }) => {
-                    if (error) {
-                        alert("Errore durante l'eliminazione sul server: " + error.message);
-                        fetchAllData(isSuperAdmin, myProfile?.team_id); // Revert solo in caso di vero errore
-                    }
-                });
+            // Eseguiamo le cancellazioni in PARALLELO (Soft Delete)
+            Promise.all([
+                supabase.from('user_plans').update({ deleted_at: timestamp }).eq('user_id', userId),
+                supabase.from('profiles').update({ deleted_at: timestamp }).eq('id', userId)
+            ]).then(([resPlans, resProf]) => {
+                if (resProf.error || resPlans.error) {
+                    alert("Errore durante l'eliminazione: " + (resProf.error?.message || resPlans.error?.message));
+                    fetchAllData(isSuperAdmin, myProfile?.team_id); // Revert
+                }
             });
         } catch (error: any) {
             console.error("Errore silente:", error);
         }
-    };
+    }, [isSuperAdmin, myProfile?.team_id]);
 
-    const handleDeleteTeam = async (teamId: string, name: string) => {
+    const handleDeleteTeam = React.useCallback(async (teamId: string, name: string) => {
         if (profiles.filter(p => p.team_id === teamId).length > 0) {
             alert(`Sposta prima gli atleti di ${name}.`);
             return;
@@ -164,7 +165,7 @@ const AdminPage: React.FC = () => {
         const { error } = await supabase.from('teams').delete().eq('id', teamId);
         if (error) alert("Errore: " + error.message);
         else fetchAllData(isSuperAdmin, myProfile?.team_id);
-    };
+    }, [profiles, isSuperAdmin, myProfile?.team_id]);
 
     const handleExportExcel = async () => {
         if (!profiles.length) return;
@@ -261,8 +262,13 @@ const AdminPage: React.FC = () => {
         }
     };
 
-    const filteredProfiles = profiles.filter(p => (p.full_name || '').toLowerCase().includes(searchTerm.toLowerCase()));
-    const filteredTeams = teams.filter(t => (t.name || '').toLowerCase().includes(teamSearchTerm.toLowerCase()) || (t.join_code || '').toLowerCase().includes(teamSearchTerm.toLowerCase()));
+    const filteredProfiles = React.useMemo(() => 
+        profiles.filter(p => (p.full_name || '').toLowerCase().includes(searchTerm.toLowerCase())),
+    [profiles, searchTerm]);
+
+    const filteredTeams = React.useMemo(() => 
+        teams.filter(t => (t.name || '').toLowerCase().includes(teamSearchTerm.toLowerCase()) || (t.join_code || '').toLowerCase().includes(teamSearchTerm.toLowerCase())),
+    [teams, teamSearchTerm]);
 
     if (!loading && !isSuperAdmin && !myProfile?.is_team_admin) return <Navigate to="/" replace />;
     if (loading) return <div className="p-20 text-center font-black uppercase text-slate-400">Caricamento...</div>;
