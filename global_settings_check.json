@@ -1,0 +1,26 @@
+{
+  "security": {
+    "auth": {
+      "selectedType": "oauth-personal"
+    }
+  },
+  "general": {
+    "checkpointing": {
+      "enabled": true
+    },
+    "sessionRetention": {
+      "warningAcknowledged": true,
+      "enabled": true,
+      "maxAge": "120d"
+    }
+  },
+  "mcpServers": {
+    "supabase": {
+      "command": "C:\\Users\\localadm\\AppData\\Roaming\\npm\\mcp-server-supabase.cmd",
+      "args": [],
+      "env": {
+        "SUPABASE_ACCESS_TOKEN": "YOUR_SUPABASE_TOKEN"
+      }
+    }
+  }
+}

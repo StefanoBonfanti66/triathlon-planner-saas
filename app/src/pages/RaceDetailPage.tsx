@@ -35,6 +35,7 @@ const RaceDetailPage: React.FC = () => {
   const [apiData, setApiData] = useState<any>(null);
   const [participants, setParticipants] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isRegistered, setIsRegistered] = useState(false);
   const [team, setTeam] = useState<any>(null);
 
   useEffect(() => {
@@ -71,11 +72,14 @@ const RaceDetailPage: React.FC = () => {
             .is('deleted_at', null);
           
           if (teamPlans) {
-            // Filtriamo i partecipanti che appartengono allo stesso team e non sono cancellati
             const members = teamPlans
               .filter((p: any) => p.profiles?.full_name && !p.profiles.deleted_at)
               .map((p: any) => p.profiles.full_name);
             setParticipants(members);
+            
+            // Verifica se l'utente corrente è già registrato
+            const alreadyIn = teamPlans.some((p: any) => p.user_id === session.user.id);
+            setIsRegistered(alreadyIn);
           }
         }
       }
@@ -84,6 +88,60 @@ const RaceDetailPage: React.FC = () => {
 
     fetchData();
   }, [id]);
+
+  const handleAddToSeason = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) {
+      alert("Devi effettuare l'accesso per aggiungere gare.");
+      navigate('/login');
+      return;
+    }
+
+    if (isRegistered) {
+      alert("Sei già iscritto a questa gara!");
+      return;
+    }
+
+    try {
+      const { error } = await supabase.from('user_plans').insert({
+        user_id: session.user.id,
+        race_id: id,
+        team_id: team?.id || 'mtt',
+        priority: 'C'
+      });
+
+      if (error) throw error;
+      
+      setIsRegistered(true);
+      // Aggiorniamo la lista partecipanti locale per feedback immediato
+      const { data: profile } = await supabase.from('profiles').select('full_name').eq('id', session.user.id).single();
+      if (profile?.full_name) {
+        setParticipants(prev => [...prev, profile.full_name]);
+      }
+      alert("Gara aggiunta alla tua stagione! 🚀");
+    } catch (err: any) {
+      alert("Errore durante l'aggiunta: " + err.message);
+    }
+  };
+
+  const handleShare = async () => {
+    const shareData = {
+      title: `Race Planner 2026: ${race?.title}`,
+      text: `Guarda i dettagli per ${race?.title} (${race?.date}) su Race Planner!`,
+      url: window.location.href,
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        await navigator.clipboard.writeText(window.location.href);
+        alert("Link copiato negli appunti! 📋");
+      }
+    } catch (err) {
+      console.error("Errore condivisione:", err);
+    }
+  };
 
   const weather = useMemo(() => {
     if (!race) return null;
@@ -234,8 +292,13 @@ const RaceDetailPage: React.FC = () => {
                <p className="text-xs font-bold text-slate-400 italic">Nessun compagno di team ancora iscritto.</p>
              )}
              
-             <button className="w-full mt-8 py-4 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg hover:brightness-110 transition-all" style={{ backgroundColor: team?.primary_color || '#2563eb' }}>
-                Aggiungi alla mia stagione
+             <button 
+                onClick={handleAddToSeason}
+                disabled={isRegistered}
+                className={`w-full mt-8 py-4 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg transition-all ${isRegistered ? 'opacity-50 cursor-not-allowed bg-emerald-500' : 'hover:brightness-110'}`} 
+                style={{ backgroundColor: !isRegistered ? (team?.primary_color || '#2563eb') : undefined }}
+             >
+                {isRegistered ? 'Gara in calendario' : 'Aggiungi alla mia stagione'}
              </button>
            </div>
 
@@ -244,7 +307,10 @@ const RaceDetailPage: React.FC = () => {
              <a href={race.link} target="_blank" className="flex items-center justify-center gap-2 w-full py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl hover:bg-slate-800 transition-all">
                 <ExternalLink className="w-4 h-4" /> Scheda Ufficiale MyFITri
              </a>
-             <button className="flex items-center justify-center gap-2 w-full py-4 bg-white border-2 border-slate-200 text-slate-600 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 transition-all">
+             <button 
+                onClick={handleShare}
+                className="flex items-center justify-center gap-2 w-full py-4 bg-white border-2 border-slate-200 text-slate-600 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 transition-all"
+             >
                 <Share2 className="w-4 h-4" /> Condividi Gara
              </button>
            </div>

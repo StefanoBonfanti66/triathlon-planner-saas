@@ -1,0 +1,30 @@
+-- SQL Script for Telegram Notifications (Clean Version)
+
+CREATE EXTENSION IF NOT EXISTS pg_net;
+
+CREATE OR REPLACE FUNCTION public.notify_telegram_new_user()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  PERFORM net.http_post(
+    url := 'https://api.telegram.org/bot' || 'IL_TUO_API_TOKEN' || '/sendMessage',
+    body := jsonb_build_object(
+      'chat_id', 'IL_TUO_CHAT_ID',
+      'text', '🚀 *Nuovo Atleta Registrato!*' || char(10) ||
+             '👤 Nome: ' || COALESCE(NEW.full_name, 'Sconosciuto') || char(10) ||
+             '📅 Data: ' || TO_CHAR(NOW(), 'DD/MM/YYYY HH24:MI'),
+      'parse_mode', 'Markdown'
+    ),
+    headers := '{"Content-Type": "application/json"}'::jsonb
+  );
+  
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS on_profile_created_telegram ON public.profiles;
+CREATE TRIGGER on_profile_created_telegram
+  AFTER INSERT ON public.profiles
+  FOR EACH ROW EXECUTE FUNCTION public.notify_telegram_new_user();
