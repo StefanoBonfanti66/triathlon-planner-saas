@@ -18,14 +18,19 @@ const AdminPage: React.FC = () => {
     const [myProfile, setMyProfile] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [uploading, setUploading] = useState(false);
-    const [activeTab, setActiveTab] = useState<'atleti' | 'team'>('atleti');
+    const [activeTab, setActiveTab] = useState<'atleti' | 'team' | 'social'>('atleti');
     const [searchTerm, setSearchTerm] = useState('');
     const [teamSearchTerm, setTeamSearchTerm] = useState('');
     
     const [profiles, setProfiles] = useState<any[]>([]);
     const [teams, setTeams] = useState<any[]>([]);
+    const [allPlans, setAllPlans] = useState<any[]>([]);
     const [plansCount, setPlansCount] = useState<Record<string, number>>({});
     
+    // Social Stats State
+    const [socialMonth, setSocialMonth] = useState<string>((new Date().getMonth() + 1).toString().padStart(2, '0'));
+    const socialCardRef = React.useRef<HTMLDivElement>(null);
+
     const [isTeamModalOpen, setIsTeamModalOpen] = useState(false);
     const [editingTeam, setEditingTeam] = useState<any>(null);
     const [teamForm, setTeamForm] = useState({
@@ -71,13 +76,14 @@ const AdminPage: React.FC = () => {
         const [profRes, teamsRes, plansRes] = await Promise.all([
             profQuery,
             teamsQuery,
-            supabase.from('user_plans').select('user_id').is('deleted_at', null)
+            supabase.from('user_plans').select('user_id, race_id').is('deleted_at', null)
         ]);
 
         if (profRes.data) setProfiles(profRes.data);
         if (teamsRes.data) setTeams(teamsRes.data);
         
         if (plansRes.data) {
+            setAllPlans(plansRes.data);
             const counts: Record<string, number> = {};
             plansRes.data.forEach(p => {
                 counts[p.user_id] = (counts[p.user_id] || 0) + 1;
@@ -329,6 +335,161 @@ const AdminPage: React.FC = () => {
                                 ))}
                             </tbody>
                             </table>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {activeTab === 'social' && (
+                <div className="space-y-6">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div className="bg-white p-2 rounded-2xl border border-slate-100 flex items-center gap-2">
+                            <label className="text-[10px] font-black uppercase text-slate-500 pl-3">Mese:</label>
+                            <select 
+                                value={socialMonth} 
+                                onChange={(e) => setSocialMonth(e.target.value)}
+                                className="bg-transparent text-sm font-bold text-slate-800 outline-none p-2 cursor-pointer"
+                            >
+                                {['01','02','03','04','05','06','07','08','09','10','11','12'].map(m => (
+                                    <option key={m} value={m}>{new Date(2026, parseInt(m)-1, 1).toLocaleString('it-IT', { month: 'long' })}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="flex gap-2">
+                            <button 
+                                onClick={async () => {
+                                    if (socialCardRef.current) {
+                                        const { toPng } = await import('html-to-image');
+                                        const dataUrl = await toPng(socialCardRef.current, { backgroundColor: '#0f172a', width: 1080, height: 1350 });
+                                        const link = document.createElement('a');
+                                        link.download = `social-stats-${socialMonth}-2026.png`;
+                                        link.href = dataUrl;
+                                        link.click();
+                                    }
+                                }}
+                                className="flex items-center gap-2 px-6 py-3 bg-purple-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl hover:bg-purple-700 transition-all"
+                            >
+                                <Download className="w-4 h-4" /> Scarica Immagine
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        {/* LISTA DATI */}
+                        <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
+                            <h3 className="text-xl font-black text-slate-800 uppercase mb-6 flex items-center gap-3">
+                                <Trophy className="w-6 h-6 text-yellow-500" /> 
+                                Top Athletes - {new Date(2026, parseInt(socialMonth)-1, 1).toLocaleString('it-IT', { month: 'long' })}
+                            </h3>
+                            <div className="space-y-4">
+                                {(() => {
+                                    // 1. Filtra piani per mese
+                                    const relevantPlans = allPlans.filter(p => {
+                                        const race = (racesData as any[]).find(r => r.id === p.race_id);
+                                        if (!race) return false;
+                                        const [d, m, y] = race.date.split("-");
+                                        return m === socialMonth;
+                                    });
+
+                                    // 2. Conta per user
+                                    const counts: Record<string, number> = {};
+                                    relevantPlans.forEach(p => { counts[p.user_id] = (counts[p.user_id] || 0) + 1; });
+
+                                    // 3. Ordina e prendi top 10
+                                    const sortedUsers = Object.entries(counts)
+                                        .sort(([,a], [,b]) => b - a)
+                                        .slice(0, 10);
+
+                                    if (sortedUsers.length === 0) return <div className="text-center py-10 text-slate-400 font-bold">Nessuna gara in questo mese.</div>;
+
+                                    return sortedUsers.map(([userId, count], index) => {
+                                        const profile = profiles.find(p => p.id === userId);
+                                        return (
+                                            <div key={userId} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                                                <div className="flex items-center gap-4">
+                                                    <div className={`w-8 h-8 flex items-center justify-center rounded-lg font-black text-xs ${index === 0 ? 'bg-yellow-100 text-yellow-700' : index === 1 ? 'bg-slate-200 text-slate-700' : index === 2 ? 'bg-orange-100 text-orange-800' : 'bg-white border text-slate-500'}`}>
+                                                        {index + 1}
+                                                    </div>
+                                                    <div>
+                                                        <div className="font-bold text-slate-800">{profile?.full_name || 'Sconosciuto'}</div>
+                                                        <div className="text-[10px] font-bold text-slate-400 uppercase">{profile?.team_id || 'No Team'}</div>
+                                                    </div>
+                                                </div>
+                                                <div className="text-xl font-black text-slate-800">{count} <span className="text-[10px] font-bold text-slate-400 uppercase">Gare</span></div>
+                                            </div>
+                                        );
+                                    });
+                                })()}
+                            </div>
+                        </div>
+
+                        {/* ANTEPRIMA CARD (Visualizzata ma ridotta, o nascosta) */}
+                        <div className="relative overflow-hidden rounded-[2.5rem] border-4 border-slate-100 bg-slate-100 flex items-center justify-center min-h-[500px]">
+                            <p className="absolute text-xs font-bold text-slate-400 uppercase tracking-widest top-4">Anteprima Generata</p>
+                            
+                            {/* CARD REALE (Hidden offscreen usually, but scaled down here for preview) */}
+                            <div 
+                                ref={socialCardRef}
+                                className="w-[1080px] h-[1350px] bg-slate-900 text-white relative flex flex-col items-center p-20 overflow-hidden"
+                                style={{ transform: 'scale(0.35)', transformOrigin: 'center' }}
+                            >
+                                {/* Background Elements */}
+                                <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-gradient-to-bl from-purple-500/20 to-transparent rounded-full blur-3xl -mr-40 -mt-40"></div>
+                                <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-gradient-to-tr from-blue-500/20 to-transparent rounded-full blur-3xl -ml-20 -mb-20"></div>
+                                <img src={teams[0]?.logo_url || "/Logo.png"} className="absolute top-20 right-20 w-40 opacity-20 grayscale brightness-200" alt="" />
+
+                                {/* Header */}
+                                <div className="w-full text-center mb-20 relative z-10">
+                                    <div className="inline-block px-10 py-4 bg-purple-600 rounded-full mb-6 shadow-2xl shadow-purple-900/50">
+                                        <span className="text-3xl font-black uppercase tracking-[0.3em]">Athlete of the Month</span>
+                                    </div>
+                                    <h1 className="text-9xl font-black uppercase tracking-tighter mb-4">
+                                        {new Date(2026, parseInt(socialMonth)-1, 1).toLocaleString('en-US', { month: 'long' })}
+                                    </h1>
+                                    <p className="text-4xl font-bold uppercase tracking-[0.5em] text-slate-400">Ranking 2026</p>
+                                </div>
+
+                                {/* List */}
+                                <div className="w-full max-w-4xl space-y-8 relative z-10">
+                                    {(() => {
+                                        const relevantPlans = allPlans.filter(p => {
+                                            const race = (racesData as any[]).find(r => r.id === p.race_id);
+                                            return race && race.date.split("-")[1] === socialMonth;
+                                        });
+                                        const counts: Record<string, number> = {};
+                                        relevantPlans.forEach(p => { counts[p.user_id] = (counts[p.user_id] || 0) + 1; });
+                                        return Object.entries(counts)
+                                            .sort(([,a], [,b]) => b - a)
+                                            .slice(0, 5)
+                                            .map(([userId, count], index) => {
+                                                const profile = profiles.find(p => p.id === userId);
+                                                return (
+                                                    <div key={userId} className="flex items-center justify-between p-8 bg-white/5 rounded-[3rem] border border-white/10 backdrop-blur-sm">
+                                                        <div className="flex items-center gap-10">
+                                                            <div className={`w-24 h-24 flex items-center justify-center rounded-[2rem] text-5xl font-black ${index === 0 ? 'bg-yellow-400 text-yellow-900' : index === 1 ? 'bg-slate-300 text-slate-800' : index === 2 ? 'bg-orange-400 text-orange-900' : 'bg-white/10 text-white'}`}>
+                                                                {index + 1}
+                                                            </div>
+                                                            <div className="text-5xl font-black">{profile?.full_name}</div>
+                                                        </div>
+                                                        <div className="flex flex-col items-center bg-white/10 px-8 py-4 rounded-[2rem]">
+                                                            <span className="text-5xl font-black text-purple-400">{count}</span>
+                                                            <span className="text-xs font-bold uppercase tracking-widest opacity-60">Races</span>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            });
+                                    })()}
+                                </div>
+
+                                {/* Footer */}
+                                <div className="mt-auto flex items-center gap-6 opacity-60">
+                                    <img src={teams[0]?.logo_url || "/Logo.png"} className="w-16 h-16 object-contain grayscale brightness-200" alt="" />
+                                    <div className="text-left">
+                                        <div className="text-2xl font-black uppercase tracking-widest">{teams[0]?.name || 'Race Planner'}</div>
+                                        <div className="text-xl font-bold">{teams[0]?.website_url || ''}</div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
