@@ -44,18 +44,24 @@ jobs:
         run: |
           git config --global user.name "Backup Bot"
           git config --global user.email "backup-bot@mtt.it"
-
+          
+          # 1. Sincronizza con il remoto (pulisce eventuali stati locali inconsistenti)
+          git fetch origin main
+          git checkout main
+          git reset --hard origin/main
+          
+          # 2. Riapplica i file di backup generati in questo run
+          # (I file in backups/latest sono stati generati nello step precedente e non sono stati toccati dal reset)
           mkdir -p backups_history
           TIMESTAMP=$(date +%Y-%m-%d)
           mkdir -p "backups_history/$TIMESTAMP"
           cp -r backups/latest/* "backups_history/$TIMESTAMP/"
-
+          
+          # 3. Commit e Push
           git add backups_history/
           if git diff --staged --quiet; then
             echo "Nessuna modifica rilevata, salto il push."
           else
             git commit -m "📦 Daily Backup: $TIMESTAMP"
-            git fetch origin main
-            git rebase origin/main
             git push origin main
           fi
