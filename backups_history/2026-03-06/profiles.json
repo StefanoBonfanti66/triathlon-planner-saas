@@ -1,0 +1,138 @@
+[
+  {
+    "id": "4f3e45bc-fe1d-432e-b646-e35fa8b45e10",
+    "full_name": "Stefano Bonfanti",
+    "updated_at": "2026-02-26T13:27:00.27205+00:00",
+    "team_id": "mtt",
+    "is_team_admin": false,
+    "deleted_at": null
+  },
+  {
+    "id": "a805573f-deb9-427b-9d10-2fdc5502dc03",
+    "full_name": "Luca Bacci",
+    "updated_at": "2026-02-26T13:42:14.642297+00:00",
+    "team_id": "mtt",
+    "is_team_admin": false,
+    "deleted_at": null
+  },
+  {
+    "id": "d6ca5f08-ebe4-4efe-8d26-3dcd310ec364",
+    "full_name": "Silvio Dughera ",
+    "updated_at": "2026-02-26T13:48:37.659713+00:00",
+    "team_id": "mtt",
+    "is_team_admin": false,
+    "deleted_at": null
+  },
+  {
+    "id": "eef45d9c-ca49-4568-8a65-020f2dedbb3b",
+    "full_name": "Achille Albini",
+    "updated_at": "2026-02-28T14:14:43.983663+00:00",
+    "team_id": "mtt",
+    "is_team_admin": false,
+    "deleted_at": null
+  },
+  {
+    "id": "1f33c4bf-2d10-4b36-9067-08642d3739db",
+    "full_name": "Fabrizio Panella",
+    "updated_at": "2026-03-02T10:13:57.296273+00:00",
+    "team_id": "mtt",
+    "is_team_admin": false,
+    "deleted_at": null
+  },
+  {
+    "id": "d5aa242b-1299-431b-918a-df40bd5dd611",
+    "full_name": "Stefano Baldo",
+    "updated_at": "2026-03-02T10:18:36.676642+00:00",
+    "team_id": "mtt",
+    "is_team_admin": false,
+    "deleted_at": null
+  },
+  {
+    "id": "33020040-7186-4114-b7e6-d405f55db13a",
+    "full_name": "livio santalucia",
+    "updated_at": "2026-03-02T10:42:42.519841+00:00",
+    "team_id": "mtt",
+    "is_team_admin": false,
+    "deleted_at": null
+  },
+  {
+    "id": "3e4c1e18-d743-4bf9-bb4f-08645a91d329",
+    "full_name": "Marco Ostinelli ",
+    "updated_at": "2026-03-02T10:36:04.299381+00:00",
+    "team_id": "mtt",
+    "is_team_admin": false,
+    "deleted_at": null
+  },
+  {
+    "id": "ec404437-e0a8-468e-a4d0-dcd3cba3a35c",
+    "full_name": "Fabrizio  Castiglioni ",
+    "updated_at": "2026-03-02T10:40:53.961935+00:00",
+    "team_id": "mtt",
+    "is_team_admin": false,
+    "deleted_at": null
+  },
+  {
+    "id": "cd13c329-3787-44b7-8fe7-a898d621a7a7",
+    "full_name": "vladimir ceccanti",
+    "updated_at": "2026-03-02T13:31:08.637248+00:00",
+    "team_id": "mtt",
+    "is_team_admin": false,
+    "deleted_at": null
+  },
+  {
+    "id": "c756da6a-0712-4734-b00b-48c47cd61608",
+    "full_name": "Paolo Pellegrino ",
+    "updated_at": "2026-03-02T14:06:53.039014+00:00",
+    "team_id": "mtt",
+    "is_team_admin": false,
+    "deleted_at": null
+  },
+  {
+    "id": "9ca62565-947d-4551-a134-dbda2fc0527f",
+    "full_name": "Andrea Paolo Lemma",
+    "updated_at": "2026-03-02T20:45:10.117196+00:00",
+    "team_id": "mtt",
+    "is_team_admin": false,
+    "deleted_at": null
+  },
+  {
+    "id": "32f89966-a010-4424-b034-cf2f1679ac55",
+    "full_name": "Dorothee Monsigny",
+    "updated_at": "2026-03-02T19:21:18.966558+00:00",
+    "team_id": "mtt",
+    "is_team_admin": false,
+    "deleted_at": null
+  },
+  {
+    "id": "6159d872-0c26-44d6-8979-7a1353feb7d6",
+    "full_name": "Mattia Rigiroli",
+    "updated_at": "2026-03-03T08:43:28.929467+00:00",
+    "team_id": "mtt",
+    "is_team_admin": false,
+    "deleted_at": null
+  },
+  {
+    "id": "33f591a8-9f64-45ad-ae2f-ffe65c134740",
+    "full_name": "Marco Francesco Quaglia",
+    "updated_at": "2026-03-04T08:59:23.926038+00:00",
+    "team_id": "mtt",
+    "is_team_admin": false,
+    "deleted_at": null
+  },
+  {
+    "id": "6b149131-f174-4f1d-83d7-4adb5c398bbd",
+    "full_name": "silvia visaggi ",
+    "updated_at": "2026-03-04T13:40:58.23531+00:00",
+    "team_id": "8a942666-090e-4167-a43e-a1783e3b79db",
+    "is_team_admin": true,
+    "deleted_at": null
+  },
+  {
+    "id": "249f9ee5-5ad3-4b95-8a5e-c442f0685104",
+    "full_name": "Stefano vtt prova",
+    "updated_at": "2026-03-05T17:06:00.550296+00:00",
+    "team_id": "c98aeaf8-86c9-4635-86f7-eadf1f1b5ce5",
+    "is_team_admin": false,
+    "deleted_at": null
+  }
+]

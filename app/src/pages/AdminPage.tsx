@@ -338,7 +338,7 @@ const AdminPage: React.FC = () => {
                                                 <div className="flex flex-col">
                                                     <span className="font-black text-slate-800 flex items-center gap-2">
                                                         {atleta.full_name || 'N/A'}
-                                                        {atleta.is_team_admin && <Shield className="w-3 h-3 text-amber-500 fill-current" title="Team Admin" />}
+                                                        {atleta.is_team_admin && <span title="Team Admin"><Shield className="w-3 h-3 text-amber-500 fill-current" /></span>}
                                                     </span>
                                                     <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">{atleta.id.substring(0,8)}...</span>
                                                 </div>

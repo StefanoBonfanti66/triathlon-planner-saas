@@ -1,72 +1,87 @@
 import os
 import json
+import requests
 from supabase import create_client, Client
+
+def send_telegram_notification(message):
+    token = os.environ.get("TELEGRAM_BOT_TOKEN")
+    chat_id = os.environ.get("TELEGRAM_CHAT_ID")
+    if not token or not chat_id:
+        print("⚠️ Avviso: Telegram non configurato (TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID mancanti).")
+        return
+    
+    url = f"https://api.telegram.org/bot{token}/sendMessage"
+    payload = {
+        "chat_id": chat_id,
+        "text": message,
+        "parse_mode": "Markdown"
+    }
+    try:
+        requests.post(url, json=payload, timeout=10)
+    except Exception as e:
+        print(f"❌ Errore invio Telegram: {e}")
 
 def main():
     """
     Legge i dati delle gare dal file JSON e li carica su Supabase.
     """
-    # Percorso del file JSON generato dallo scraper
     json_file_path = 'app/src/races_full.json'
 
-    # Carica i dati delle gare dal file JSON
     try:
         with open(json_file_path, 'r', encoding='utf-8') as f:
-            races_data = json.load(f)
-    except FileNotFoundError:
-        print(f"Errore: Il file {json_file_path} non è stato trovato.")
-        return
-    except json.JSONDecodeError:
-        print(f"Errore: Il file {json_file_path} non è un JSON valido.")
+            new_races_data = json.load(f)
+    except Exception as e:
+        print(f"Errore caricamento JSON: {e}")
         return
 
-    # Inizializza le variabili d'ambiente di Supabase
     url: str = os.environ.get("SUPABASE_URL")
     key: str = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
 
     if not url or not key:
-        print("Errore: Le variabili d'ambiente di Supabase non sono configurate. L'upload è stato saltato.")
+        print("Errore: Supabase non configurata.")
         return
 
-    print("Connessione a Supabase in corso...")
     supabase: Client = create_client(url, key)
 
-    # 0. Backup preventivo dei piani utente
+    # 1. Recupera gare esistenti per il confronto
+    print("Confronto gare con il database...")
     try:
-        from tools.database_manager import backup_user_plans
-        backup_user_plans()
+        existing_res = supabase.from_("races").select("id, title, date, location").execute()
+        existing_races = existing_res.data if hasattr(existing_res, 'data') else []
     except Exception as e:
-        print(f"⚠️ Avviso: Backup non riuscito ({e}), procedo con cautela...")
+        print(f"Errore recupero gare esistenti: {e}")
+        existing_races = []
 
-    # 1. Svuota la tabella 'races' per garantire dati sempre aggiornati
-    print("Pulizia della tabella 'races'...")
-    # Usiamo un filtro che corrisponde a tutte le righe per la cancellazione
+    existing_ids = {r['id'] for r in existing_races}
+    new_ids = {r['id'] for r in new_races_data}
+
+    # Trova nuove gare
+    added = [r for r in new_races_data if r['id'] not in existing_ids]
+    # Trova gare rimosse
+    removed = [r for r in existing_races if r['id'] not in new_ids]
+
+    # 2. Notifiche Telegram per i cambiamenti FITRI
+    if added:
+        for r in added[:5]: # Massimo 5 notifiche per non spammare in caso di update massivo
+            msg = f"🆕 *Nuova Gara FITRI Rilevata!*\n\n🏆 {r['title']}\n📅 {r['date']}\n📍 {r['location']}\n\n_Aggiunta al calendario 2026_ 🏊‍♂️🚴‍♂️🏃‍♂️"
+            send_telegram_notification(msg)
+        if len(added) > 5:
+            send_telegram_notification(f"🚀 ...e altre {len(added)-5} nuove gare aggiunte!")
+
+    if removed:
+        for r in removed[:3]:
+            msg = f"⚠️ *Gara FITRI Rimossa!*\n\n❌ {r['title']}\n📅 {r['date']}\n📍 {r['location']}\n\n_Il calendario FITRI è stato aggiornato._"
+            send_telegram_notification(msg)
+
+    # 3. Procedi con l'aggiornamento
+    print("Pulizia e inserimento nuovi dati...")
     try:
-        data, delete_error = supabase.from_("races").delete().neq("id", "una_stringa_impossibile").execute()
+        supabase.from_("races").delete().neq("id", "none").execute()
+        supabase.from_("races").insert(new_races_data).execute()
+        print(f"✅ Sync completato. {len(new_races_data)} gare totali.")
     except Exception as e:
-        print(f"Errore imprevisto durante la cancellazione: {e}")
-        return
-
-    # La libreria può sollevare un'eccezione o ritornare un errore nell'oggetto
-    if delete_error and delete_error[1]:
-        # A volte l'errore è nella seconda parte della tupla
-        error_info = delete_error[1]
-        if hasattr(error_info, 'code') and error_info.code != 'PGRST204': # Ignora "No rows found"
-            print(f"Errore durante la pulizia della tabella: {error_info}")
-            return
-    
-    # 2. Inserisce i nuovi dati
-    print(f"Inserimento di {len(races_data)} nuove gare...")
-    try:
-        insert_data, insert_error = supabase.from_("races").insert(races_data).execute()
-    except Exception as e:
-        print(f"Errore imprevisto durante l'inserimento: {e}")
-        return
-
-    if insert_error and insert_error[1]:
-        print(f"Errore durante l'inserimento dei dati: {insert_error[1]}")
-    else:
-        print("Upload su Supabase completato con successo!")
+        print(f"Errore durante l'aggiornamento: {e}")
 
 if __name__ == "__main__":
     main()
+
