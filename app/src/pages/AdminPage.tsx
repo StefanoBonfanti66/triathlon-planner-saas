@@ -6,7 +6,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { 
   Shield, Users, Trophy, Plus, Edit2, Trash2, 
-  Save, X, ExternalLink, Mail, Upload, Download, FileText
+  Save, X, ExternalLink, Mail, Upload, Download, FileText, Copy, Camera
 } from 'lucide-react';
 import { Navigate, NavLink } from 'react-router-dom';
 import racesData from "../races_full.json";
@@ -67,16 +67,18 @@ const AdminPage: React.FC = () => {
         setLoading(true);
         let profQuery = supabase.from('profiles').select('*').is('deleted_at', null).order('full_name');
         let teamsQuery = supabase.from('teams').select('*').order('name');
+        let plansQuery = supabase.from('user_plans').select('user_id, race_id').is('deleted_at', null);
         
         if (!superAdmin && teamId) {
             profQuery = profQuery.eq('team_id', teamId);
             teamsQuery = teamsQuery.eq('id', teamId);
+            plansQuery = plansQuery.eq('team_id', teamId);
         }
 
         const [profRes, teamsRes, plansRes] = await Promise.all([
             profQuery,
             teamsQuery,
-            supabase.from('user_plans').select('user_id, race_id').is('deleted_at', null)
+            plansQuery
         ]);
 
         if (profRes.data) setProfiles(profRes.data);
@@ -91,6 +93,18 @@ const AdminPage: React.FC = () => {
             setPlansCount(counts);
         }
         setLoading(false);
+    };
+
+    const handleToggleAdmin = async (userId: string, currentStatus: boolean) => {
+        if (!isSuperAdmin) return;
+        const { error } = await supabase.from('profiles').update({ is_team_admin: !currentStatus }).eq('id', userId);
+        if (error) alert("Errore: " + error.message);
+        else fetchAllData(true, myProfile?.team_id);
+    };
+
+    const handleCopyCode = (code: string) => {
+        navigator.clipboard.writeText(code);
+        alert(`Codice ${code} copiato!`);
     };
 
     const handleUploadLogo = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -289,6 +303,7 @@ const AdminPage: React.FC = () => {
                 <div className="flex bg-slate-100 p-1.5 rounded-[1.5rem]">
                     <button onClick={() => setActiveTab('atleti')} className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'atleti' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}><div className="flex items-center gap-2"><Users className="w-4 h-4" /> Atleti</div></button>
                     {isSuperAdmin && <button onClick={() => setActiveTab('team')} className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'team' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}><div className="flex items-center gap-2"><Trophy className="w-4 h-4" /> Team</div></button>}
+                    <button onClick={() => setActiveTab('social')} className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'social' ? 'bg-white text-purple-600 shadow-sm' : 'text-slate-500'}`}><div className="flex items-center gap-2"><Camera className="w-4 h-4" /> Social</div></button>
                 </div>
             </div>
 
@@ -318,18 +333,39 @@ const AdminPage: React.FC = () => {
                             <tbody className="divide-y divide-slate-100">
                                 {filteredProfiles.map((atleta) => (
                                     <tr key={atleta.id} className="hover:bg-slate-50 transition-colors">
-                                        <td className="px-8 py-5"><div className="flex flex-col"><span className="font-black text-slate-800">{atleta.full_name || 'N/A'}</span><span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">{atleta.id.substring(0,8)}...</span></div></td>
+                                        <td className="px-8 py-5">
+                                            <div className="flex items-center gap-3">
+                                                <div className="flex flex-col">
+                                                    <span className="font-black text-slate-800 flex items-center gap-2">
+                                                        {atleta.full_name || 'N/A'}
+                                                        {atleta.is_team_admin && <Shield className="w-3 h-3 text-amber-500 fill-current" title="Team Admin" />}
+                                                    </span>
+                                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">{atleta.id.substring(0,8)}...</span>
+                                                </div>
+                                            </div>
+                                        </td>
                                         <td className="px-8 py-5"><select value={atleta.team_id || ''} onChange={(e) => handleUpdateAthleteTeam(atleta.id, e.target.value || null)} className="bg-slate-100 border-none rounded-xl px-3 py-2 text-xs font-black uppercase text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer" disabled={!isSuperAdmin}><option value="">Nessun Team</option>{teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select></td>
                                         <td className="px-8 py-5 text-center"><span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-black">{plansCount[atleta.id] || 0}</span></td>
-                                                                                    <td className="px-8 py-5 text-right">
-                                                                                        <button 
-                                                                                            onClick={() => handleDeleteAthlete(atleta.id, atleta.full_name)} 
-                                                                                            className="p-2 text-slate-500 hover:text-red-700 transition-colors"
-                                                                                            aria-label={`Elimina atleta ${atleta.full_name}`}
-                                                                                        >
-                                                                                            <Trash2 className="w-4 h-4" />
-                                                                                        </button>
-                                                                                    </td>
+                                        <td className="px-8 py-5 text-right">
+                                            <div className="flex items-center justify-end gap-2">
+                                                {isSuperAdmin && (
+                                                    <button 
+                                                        onClick={() => handleToggleAdmin(atleta.id, atleta.is_team_admin)} 
+                                                        className={`p-2 rounded-lg transition-colors ${atleta.is_team_admin ? 'text-amber-600 bg-amber-50' : 'text-slate-400 hover:text-amber-600 hover:bg-amber-50'}`}
+                                                        title={atleta.is_team_admin ? "Rimuovi privilegi Admin" : "Nomina Team Admin"}
+                                                    >
+                                                        <Shield className="w-4 h-4" />
+                                                    </button>
+                                                )}
+                                                <button 
+                                                    onClick={() => handleDeleteAthlete(atleta.id, atleta.full_name)} 
+                                                    className="p-2 text-slate-400 hover:text-red-700 transition-colors"
+                                                    aria-label={`Elimina atleta ${atleta.full_name}`}
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        </td>
                                         
                                     </tr>
                                 ))}
@@ -507,7 +543,19 @@ const AdminPage: React.FC = () => {
                                 <div className="absolute top-0 right-0 w-32 h-32 -mr-8 -mt-8 bg-slate-50 rounded-full opacity-50 group-hover:scale-110 transition-transform duration-500"></div>
                                 <div className="flex items-center gap-4 mb-6 relative z-10">
                                     <div className="w-16 h-16 bg-slate-50 rounded-2xl p-2 flex items-center justify-center border border-slate-100"><img src={team.logo_url || "/Logo.png"} alt="" className="max-w-full max-h-full object-contain" /></div>
-                                    <div><h3 className="font-black text-slate-800 uppercase leading-none mb-1">{team.name}</h3><span className="text-[10px] font-black px-2 py-0.5 rounded bg-slate-800 text-white uppercase tracking-tighter">{team.join_code}</span></div>
+                                    <div className="flex-1">
+                                        <h3 className="font-black text-slate-800 uppercase leading-none mb-1">{team.name}</h3>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-[10px] font-black px-2 py-0.5 rounded bg-slate-800 text-white uppercase tracking-tighter">{team.join_code}</span>
+                                            <button 
+                                                onClick={() => handleCopyCode(team.join_code)}
+                                                className="p-1 text-slate-400 hover:text-blue-600 transition-colors"
+                                                title="Copia codice invito"
+                                            >
+                                                <Copy className="w-3 h-3" />
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div className="space-y-3 mb-8 relative z-10">
                                     <div className="flex items-center justify-between text-xs"><span className="font-bold text-slate-500 uppercase">Colors</span><div className="flex gap-1"><div className="w-6 h-6 rounded-lg border border-slate-200" style={{ backgroundColor: team.primary_color }}></div><div className="w-6 h-6 rounded-lg border border-slate-200" style={{ backgroundColor: team.secondary_color }}></div></div></div>
