@@ -1,19 +1,34 @@
-# Race Planner SaaS - Guida Gestione Team
+# Race Planner SaaS 2026
+**Architect**: Stefano Bonfanti
+**Version**: 6.1
 
-Questo documento spiega come gestire i team nel sistema SaaS senza modificare il codice.
+Piattaforma SaaS professionale per la gestione del calendario gare FITRI 2026, progettata per team di Triathlon e atleti singoli.
 
-## Come aggiungere un nuovo Team
-- Caricare il logo del team in Supabase Storage nel bucket pubblico `team-logos`.
-- Recuperare l'URL pubblico del logo.
-- Inserire una nuova riga nella tabella `public.teams` definendo nome, colore primario (HEX), URL del logo e sito web.
-- Copiare l'ID (UUID) generato automaticamente per il nuovo team.
+## 🚀 Caratteristiche Principali
+- **Multi-tenancy**: Un'unica piattaforma che ospita più squadre, ognuna con il proprio branding.
+- **PWA Dinamica**: L'icona dell'app installata sul cellulare cambia automaticamente in base al logo del team dell'atleta.
+- **Pagine Gara**: Ogni gara ha un URL dedicato con mappe, orari e regolamenti ufficiali MyFITri.
+- **Dashboard Admin**: Pannello completo per gestire atleti, esportare dati per iscrizioni di massa e nominare responsabili di squadra.
+- **Social Ranking**: Classifica mensile automatica con generatore di immagini PNG per Instagram (Athlete of the Month).
+- **Notifiche Real-time**: Integrazione profonda con Telegram per alert su nuove iscrizioni e variazioni del calendario FITRI.
 
-## Come assegnare un Atleta a un Team
-- Individuare l'utente nella tabella `public.profiles`.
-- Incollare l'ID lungo del team nella colonna `team_id`.
-- L'app si aggiornerà istantaneamente con il nuovo branding al prossimo login dell'utente.
+## 🛠️ Stack Tecnologico
+- **React 19 + TypeScript**: Frontend moderno e ultra-veloce.
+- **Supabase**: Database Postgres, Autenticazione e Storage.
+- **TailwindCSS**: UI pulita, moderna e responsive.
+- **GitHub Actions**: Automazione completa di backup e sincronizzazione dati.
 
-## Note Tecniche
-- La colonna team_id deve essere sempre in formato UUID (codice lungo alfanumerico).
-- Il colore primario deve essere in formato esadecimale (es: #FF0000).
-- Le immagini caricate su Storage devono essere in un bucket impostato come "Public".
+## 📋 Guida Rapida Gestione Team
+Per aggiungere una nuova squadra senza toccare il codice:
+1. Accedi come **Super Admin** alla rotta `/admin`.
+2. Vai nel tab **Team** e clicca su "Nuovo Team".
+3. Imposta nome, logo, colori sociali e il `join_code` per l'auto-onboarding.
+4. Gli atleti che useranno quel codice saranno associati automaticamente alla squadra.
+
+## 🔒 Sicurezza e Backup
+- **Daily JSON Backup**: Ogni notte il database viene esportato in formato JSON su GitHub.
+- **Soft Delete**: Nessun dato viene mai eliminato definitivamente per errore (ripristino istantaneo).
+- **Branch Protection**: Sviluppo sicuro sul ramo `develop` e rilascio su `main` solo dopo approvazione.
+
+---
+*Progettato da Stefano Bonfanti per il futuro del Triathlon.* 🏊‍♂️🚴‍♂️🏃‍♂️

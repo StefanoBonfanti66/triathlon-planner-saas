@@ -1,55 +1,44 @@
 # Race Planner SaaS - Disaster Recovery Guide
 **Lead Architect**: Stefano Bonfanti
-**Version**: 1.0 (Enterprise)
+**Version**: 6.1 (Enterprise)
 
-Questo documento descrive le procedure di emergenza per il ripristino dei dati in caso di errore umano, corruzione del database o disastro totale.
+Procedure di emergenza per il ripristino dei dati.
 
 ---
 
-## Scenario 1: Errore Umano (Soft Restore)
-*Caso: Un atleta ha cancellato per errore una gara o un admin ha cancellato un atleta.*
+## 🛡️ Livelli di Protezione
+1. **GitHub Automated Backup**: Backup JSON ogni notte (02:00) salvato in `backups_history/`.
+2. **Soft Delete**: Tutti i record eliminati vengono marcati con `deleted_at`, ma rimangono nel DB.
+3. **Team Admin Export**: Ogni presidente può scaricare un backup JSON locale della propria squadra dalla Dashboard Admin.
 
-Grazie al sistema **Soft Delete**, i dati non sono spariti. Per ripristinarli:
-1. Apri il **SQL Editor** di Supabase.
-2. Esegui il comando di ripristino (sostituisci l'ID o il nome):
+---
 
+## 🛠️ Procedure di Ripristino
+
+### 1. Ripristino Rapido (Soft Restore)
+Se un atleta o un piano è stato cancellato per errore:
 ```sql
--- Per ripristinare un atleta
-UPDATE profiles SET deleted_at = NULL WHERE full_name = 'Nome Atleta';
+-- Ripristina Atleta
+UPDATE profiles SET deleted_at = NULL WHERE id = 'UUID-ATLETA';
 
--- Per ripristinare tutti i piani di un atleta
+-- Ripristina Piani
 UPDATE user_plans SET deleted_at = NULL WHERE user_id = 'UUID-ATLETA';
 ```
 
----
-
-## Scenario 2: Corruzione Dati / Rollback (Backup JSON)
-*Caso: Un aggiornamento massivo è andato storto o vuoi tornare alla situazione di ieri.*
-
-Usa lo script di restore fornito:
-1. Assicurati di avere le variabili d'ambiente `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY`.
-2. Esegui il restore puntando alla cartella dell'ultimo backup scaricato:
-
+### 2. Rollback a una data specifica
+Usa lo script Python per caricare un backup dalla cartella di GitHub:
 ```powershell
-python tools/supabase_restore.py backups/latest
+python tools/supabase_restore.py backups_history/YYYY-MM-DD
 ```
 
----
-
-## Scenario 3: Disastro Totale (GitHub Archive)
-*Caso: Supabase non è accessibile o il database è stato compromesso.*
-
-Il sistema effettua backup notturni automatici su GitHub.
-1. Vai nel tuo repository privato su GitHub.
-2. Entra nella cartella `backups_history`.
-3. Scarica i file JSON della data desiderata.
-4. Usa lo scenario 2 per ricaricarli su una nuova istanza di Supabase se necessario.
+### 3. Ripristino Manuale da Team Export
+Se un Team Leader ha scaricato il backup e vuoi ripristinare solo quel team:
+1. Apri il file JSON scaricato dall'Admin.
+2. Usa le chiavi contenute per fare degli insert manuali o tramite script `upload_data.py` modificato.
 
 ---
 
-## Livelli di Protezione Attivi
-1. **GitHub Actions**: Backup JSON automatico ogni notte (ore 02:00).
-2. **Soft Delete**: Colonna `deleted_at` su tutte le tabelle critiche.
-3. **Team Export**: Ogni Team Leader può scaricare il proprio backup JSON dall'area Admin.
+## 🚨 Contatti di Emergenza
+In caso di fallimento critico delle GitHub Actions, controllare i log su GitHub sotto il tab **Actions > SUPABASE DAILY BACKUP**. Assicurarsi che i Secrets `SUPABASE_SERVICE_ROLE_KEY` siano aggiornati.
 
-**I dati sono il cuore del SaaS. Proteggili sempre.** 🛡️🏆
+**Integrità dei dati garantita al 100%.** 🛡️🏆
