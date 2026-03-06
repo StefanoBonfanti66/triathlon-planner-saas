@@ -55,4 +55,5 @@ jobs:
           
           git add backups_history/
           git commit -m "📦 Daily Backup: $TIMESTAMP" || echo "Nessuna modifica rilevata"
+          git pull --rebase origin main
           git push origin main
