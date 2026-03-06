@@ -96,6 +96,59 @@ const Layout: React.FC = () => {
     if (isAdminView) fetchAdminData();
   }, [isAdminView]);
 
+  // --- DYNAMIC PWA BRANDING ---
+  useEffect(() => {
+    if (!team) return;
+
+    // 1. Update Document Title & Favicons
+    const brandName = team.name && team.name !== 'Super Admin' ? `${team.name} Planner` : 'Race Planner 2026';
+    document.title = brandName;
+
+    const logo = team.logo_url || '/icon.svg';
+    
+    // Update Favicon
+    const favicon = document.querySelector('link[rel="icon"]') as HTMLLinkElement;
+    if (favicon) favicon.href = logo;
+
+    // Update Apple Touch Icon
+    const appleIcon = document.querySelector('link[rel="apple-touch-icon"]') as HTMLLinkElement;
+    if (appleIcon) appleIcon.href = logo;
+
+    // 2. Update Theme Color
+    const themeColor = team.primary_color || '#e11d48';
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    if (metaTheme) metaTheme.setAttribute('content', themeColor);
+
+    // 3. Dynamic Manifest
+    const manifest = {
+      short_name: team.name?.substring(0, 12) || "Planner",
+      name: brandName,
+      icons: [
+        {
+          src: logo,
+          sizes: "any",
+          type: logo.endsWith('.svg') ? "image/svg+xml" : "image/png",
+          purpose: "any maskable"
+        }
+      ],
+      start_url: ".",
+      display: "standalone",
+      theme_color: themeColor,
+      background_color: "#ffffff"
+    };
+
+    const stringManifest = JSON.stringify(manifest);
+    const blob = new Blob([stringManifest], {type: 'application/json'});
+    const manifestURL = URL.createObjectURL(blob);
+    
+    const manifestTag = document.querySelector('link[rel="manifest"]') as HTMLLinkElement;
+    if (manifestTag) {
+      manifestTag.href = manifestURL;
+    }
+
+    return () => URL.revokeObjectURL(manifestURL);
+  }, [team]);
+
   if (loading) return <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center font-black uppercase tracking-widest text-slate-600">Caricamento...</div>;
   if (!session) return <Navigate to="/login" replace />;
 
