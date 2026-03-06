@@ -5,6 +5,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { User, Calendar, Users, Plus, Check, ExternalLink } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import racesData from "../races_full.json";
 
 interface TeamRace {
@@ -179,7 +180,9 @@ const TeamCalendarPage: React.FC = () => {
                 <div key={race.race_id} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:border-blue-100 transition-colors">
                   <div className="flex justify-between items-start mb-4">
                     <div>
-                      <h3 className="font-black text-slate-800 text-lg leading-tight mb-1">{race.race_title}</h3>
+                      <Link to={`/race/${race.race_id}`} className="hover:text-blue-600 transition-colors">
+                        <h3 className="font-black text-slate-800 text-lg leading-tight mb-1">{race.race_title}</h3>
+                      </Link>
                       <div className="flex items-center gap-2">
                         <span className="text-[11px] font-black text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">
                           {race.race_date}

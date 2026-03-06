@@ -4,15 +4,20 @@
  * Feature: MyFITri API Integration (V4.0)
  */
 import React, { useState, useEffect, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import racesData from "../races_full.json";
 import { 
   Calendar, MapPin, Bike, Trophy, Info, ExternalLink, 
   ChevronLeft, Users, Clock, FileText, Share2, Star,
-  Wind, Thermometer, CloudRain
+  Wind, Thermometer, CloudRain, Navigation
 } from 'lucide-react';
 import { getWeatherData } from "../weatherData";
+import { provinceCoordinates } from "../coords";
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import '../map.css';
 
 interface Race {
   id: string;
@@ -38,6 +43,28 @@ const RaceDetailPage: React.FC = () => {
   const [isRegistered, setIsRegistered] = useState(false);
   const [team, setTeam] = useState<any>(null);
 
+  const mapCoords = useMemo(() => {
+    if (!race) return null;
+    const cityName = race.location.split('(')[0].trim();
+    let coords = provinceCoordinates[cityName];
+    if (!coords) {
+      const p = race.location.match(/\((.*?)\)/);
+      coords = provinceCoordinates[p ? p[1] : race.location];
+    }
+    return coords as [number, number] | null;
+  }, [race]);
+
+  const raceIcon = useMemo(() => {
+    if (!race) return null;
+    const color = race.type === 'Triathlon' ? '#3b82f6' : race.type === 'Duathlon' ? '#f97316' : '#10b981';
+    return L.divIcon({ 
+      className: 'custom-div-icon', 
+      html: `<div style="background-color: ${color}; width: 24px; height: 24px; border-radius: 50%; border: 3px solid white; box-shadow: 0 4px 6px rgba(0,0,0,0.3);"></div>`, 
+      iconSize: [24, 24], 
+      iconAnchor: [12, 12]
+    });
+  }, [race]);
+
   useEffect(() => {
     const fetchData = async () => {
       if (!id) return;
@@ -48,9 +75,12 @@ const RaceDetailPage: React.FC = () => {
 
       try {
         // 2. Dati arricchiti dall'API MyFITri
-        const response = await fetch(`https://cms.myfitri.it/api/eventi/${id}`);
+        // Estraiamo l'ID base (es: 3897 da 3897-1)
+        const baseId = id.split('-')[0];
+        const response = await fetch(`https://cms.myfitri.it/api/eventi/${baseId}?populate=*`);
         if (response.ok) {
-          const data = await response.json();
+          const resJson = await response.json();
+          const data = resJson.data?.attributes || resJson.data || resJson;
           setApiData(data);
         }
       } catch (err) {
@@ -76,8 +106,6 @@ const RaceDetailPage: React.FC = () => {
               .filter((p: any) => p.profiles?.full_name && !p.profiles.deleted_at)
               .map((p: any) => p.profiles.full_name);
             setParticipants(members);
-            
-            // Verifica se l'utente corrente è già registrato
             const alreadyIn = teamPlans.some((p: any) => p.user_id === session.user.id);
             setIsRegistered(alreadyIn);
           }
@@ -113,7 +141,6 @@ const RaceDetailPage: React.FC = () => {
       if (error) throw error;
       
       setIsRegistered(true);
-      // Aggiorniamo la lista partecipanti locale per feedback immediato
       const { data: profile } = await supabase.from('profiles').select('full_name').eq('id', session.user.id).single();
       if (profile?.full_name) {
         setParticipants(prev => [...prev, profile.full_name]);
@@ -206,6 +233,20 @@ const RaceDetailPage: React.FC = () => {
               </div>
             </div>
           </div>
+
+          {/* MAPPA DELLA GARA */}
+          {mapCoords && (
+            <div className="h-[400px] w-full rounded-[3rem] overflow-hidden border-4 border-white shadow-xl relative isolate bg-slate-100">
+              <MapContainer center={mapCoords} zoom={13} className="h-full w-full outline-none" scrollWheelZoom={false}>
+                <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                <Marker position={mapCoords} icon={raceIcon!}>
+                  <Popup>
+                    <div className="p-2 font-bold">{race.title}</div>
+                  </Popup>
+                </Marker>
+              </MapContainer>
+            </div>
+          )}
 
           {/* DATI API MYFITRI (Se presenti) */}
           {apiData && (

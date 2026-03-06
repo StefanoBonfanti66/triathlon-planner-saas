@@ -8,7 +8,7 @@ import {
   Shield, Users, Trophy, Plus, Edit2, Trash2, 
   Save, X, ExternalLink, Mail, Upload, Download, FileText, Copy, Camera
 } from 'lucide-react';
-import { Navigate, NavLink } from 'react-router-dom';
+import { Navigate, NavLink, Link } from 'react-router-dom';
 import racesData from "../races_full.json";
 
 const ADMIN_EMAIL = "bonfantistefano4@gmail.com";
