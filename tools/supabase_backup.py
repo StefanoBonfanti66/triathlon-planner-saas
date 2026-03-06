@@ -61,8 +61,7 @@ def full_backup():
             with open(source, "r", encoding="utf-8") as s, open(target, "w", encoding="utf-8") as t:
                 t.write(s.read())
 
-    print(f"
-✨ Backup completato con successo in {backup_dir}")
+    print(f"✨ Backup completato con successo in {backup_dir}")
     return backup_dir
 
 if __name__ == "__main__":
