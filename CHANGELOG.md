@@ -2,6 +2,11 @@
 
 Tutti i cambiamenti significativi a questo progetto saranno documentati in questo file.
 
+## [6.1.1] - 2026-03-06
+### Aggiunto
+- **Materiale Onboarding**: Creata proposta formale personalizzata per CUS Propatria Milano in formato MD e PDF.
+- **Fix Documentazione**: Corretti i riferimenti di contatto dello sviluppatore nei template di comunicazione.
+
 ## [6.1.0] - 2026-03-06
 ### Aggiunto
 - **PWA Dinamica**: L'icona dell'app e il manifest cambiano automaticamente in base al team dell'atleta loggato.
