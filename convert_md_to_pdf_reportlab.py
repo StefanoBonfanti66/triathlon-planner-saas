@@ -3,46 +3,53 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 import markdown2
 import pathlib
+import sys
 
-md_file = pathlib.Path(r"c:\progetti_stefano\automations\calendario_fitri_saas\COMUNICAZIONE.md")
-txt = md_file.read_text()
-html = markdown2.markdown(txt, extras=["fenced-code-blocks", "tables"])
+def convert_md_to_pdf(input_md):
+    md_path = pathlib.Path(input_md)
+    if not md_path.exists():
+        print(f"File {input_md} non trovato.")
+        return
 
-pdf_file = pathlib.Path(r"c:\progetti_stefano\automations\calendario_fitri_saas\COMUNICAZIONE.pdf")
-doc = SimpleDocTemplate(str(pdf_file), pagesize=letter,
-                        rightMargin=72,leftMargin=72,
-                        topMargin=72,bottomMargin=18)
+    txt = md_path.read_text(encoding='utf-8')
+    # Pulizia minima per ReportLab Paragraph
+    html = markdown2.markdown(txt)
+    
+    output_pdf = md_path.with_suffix('.pdf')
+    doc = SimpleDocTemplate(str(output_pdf), pagesize=letter,
+                            rightMargin=72, leftMargin=72,
+                            topMargin=72, bottomMargin=72)
 
-# register a TrueType font supporting accents (use Arial from Windows fonts)
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.ttfonts import TTFont
 
-font_path = r"C:\Windows\Fonts\arial.ttf"
-# specify UTF-8 encoding so ReportLab uses Identity-H and embeds proper unicode mapping
-pdfmetrics.registerFont(TTFont('ArialUnicode', font_path, encoding='UTF-8'))
+    font_path = r"C:\Windows\Fonts\arial.ttf"
+    # Fix: TTFont non accetta encoding='UTF-8' nelle versioni recenti, lo gestisce internamente
+    pdfmetrics.registerFont(TTFont('ArialUnicode', font_path))
 
-styles = getSampleStyleSheet()
-# ensure styles exist before adding, specify the unicode font
-if 'Heading1' not in styles:
-    styles.add(ParagraphStyle(name='Heading1', fontName='ArialUnicode', fontSize=18, leading=22, spaceAfter=12))
-if 'Heading2' not in styles:
-    styles.add(ParagraphStyle(name='Heading2', fontName='ArialUnicode', fontSize=14, leading=18, spaceAfter=10))
-if 'Normal' in styles:
+    styles = getSampleStyleSheet()
     styles['Normal'].fontName = 'ArialUnicode'
-else:
-    styles.add(ParagraphStyle(name='Normal', fontName='ArialUnicode', fontSize=12, leading=14))
+    styles['Heading1'].fontName = 'ArialUnicode'
+    
+    story = []
+    
+    # Semplice parsing righe per ReportLab
+    lines = html.splitlines()
+    for line in lines:
+        line = line.strip()
+        if not line:
+            story.append(Spacer(1, 12))
+            continue
+        # Rimuoviamo tag HTML semplici che markdown2 inserisce ma Paragraph non gestisce bene se non puliti
+        clean_line = line.replace('<p>', '').replace('</p>', '').replace('<h1>', '<b>').replace('</h1>', '</b>').replace('<h3>', '<b>').replace('</h3>', '</b>')
+        try:
+            story.append(Paragraph(clean_line, styles['Normal']))
+        except:
+            continue
 
+    doc.build(story)
+    print(f'✅ PDF creato con successo: {output_pdf}')
 
-story = []
-
-# naive split by lines and convert to paragraphs
-for line in html.splitlines():
-    line = line.strip()
-    if not line:
-        story.append(Spacer(1,12))
-        continue
-    story.append(Paragraph(line, styles['Normal']))
-
-
-doc.build(story)
-print('PDF created at', pdf_file)
+if __name__ == "__main__":
+    file_to_convert = sys.argv[1] if len(sys.argv) > 1 else "PROPOSTA_CUS_PROPATRIA.md"
+    convert_md_to_pdf(file_to_convert)
