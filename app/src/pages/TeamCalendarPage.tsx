@@ -169,67 +169,77 @@ const TeamCalendarPage: React.FC = () => {
       </div>
 
       <div className="space-y-12">
-        {teamCalendar.map((month) => (
-          <div key={month.month_key}>
-            <h2 className="text-xl font-black text-red-600 uppercase tracking-widest mb-6 pb-3 border-b-2 border-red-100 flex items-center gap-3">
-              <Calendar className="w-5 h-5" />
-              {getMonthName(month.month_key)}
-            </h2>
-            <div className="space-y-6">
-              {month.races.map((race) => (
-                <div key={race.race_id} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:border-blue-100 transition-colors">
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <Link to={`/race/${race.race_id}`} className="hover:text-blue-600 transition-colors">
-                        <h3 className="font-black text-slate-800 text-lg leading-tight mb-1">{race.race_title}</h3>
-                      </Link>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[11px] font-black text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">
-                          {race.race_date}
-                        </span>
+        {teamCalendar.length === 0 ? (
+          <div className="bg-white p-12 rounded-[2.5rem] border-2 border-dashed border-slate-200 text-center shadow-sm">
+            <Calendar className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+            <h3 className="text-xl font-black text-slate-400 uppercase tracking-tight mb-2">Ancora nessuna gara pianificata</h3>
+            <p className="text-slate-500 font-bold text-sm max-w-xs mx-auto">
+              Sii il primo del tuo team a pianificare una gara per farla apparire nel calendario di squadra!
+            </p>
+          </div>
+        ) : (
+          teamCalendar.map((month) => (
+            <div key={month.month_key}>
+              <h2 className="text-xl font-black text-red-600 uppercase tracking-widest mb-6 pb-3 border-b-2 border-red-100 flex items-center gap-3">
+                <Calendar className="w-5 h-5" />
+                {getMonthName(month.month_key)}
+              </h2>
+              <div className="space-y-6">
+                {month.races.map((race) => (
+                  <div key={race.race_id} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:border-blue-100 transition-colors">
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <Link to={`/race/${race.race_id}`} className="hover:text-blue-600 transition-colors">
+                          <h3 className="font-black text-slate-800 text-lg leading-tight mb-1">{race.race_title}</h3>
+                        </Link>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[11px] font-black text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">
+                            {race.race_date}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        {race.race_link && (
+                          <a 
+                            href={race.race_link} 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className="flex items-center gap-1.5 text-[10px] font-black text-slate-600 bg-slate-100 px-3 py-2 rounded-xl border border-slate-200 hover:bg-slate-200 transition-all uppercase tracking-widest"
+                            title="Vedi dettagli ufficiali su MyFITri"
+                          >
+                            <ExternalLink className="w-3 h-3" /> <span className="hidden xs:inline">Scheda</span>
+                          </a>
+                        )}
+                        {userRaces.includes(race.race_id) ? (
+                          <span className="flex items-center gap-1 text-[10px] font-black text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-100 uppercase tracking-widest">
+                            <Check className="w-3 h-3" /> Iscritto
+                          </span>
+                        ) : (
+                          <button 
+                            onClick={() => handleJoinRace(race.race_id)}
+                            className="flex items-center gap-1.5 text-[10px] font-black text-white bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-xl shadow-md hover:shadow-blue-200 transition-all uppercase tracking-widest"
+                          >
+                            <Plus className="w-3 h-3" /> Partecipa
+                          </button>
+                        )}
                       </div>
                     </div>
-                    <div className="flex gap-2">
-                      {race.race_link && (
-                        <a 
-                          href={race.race_link} 
-                          target="_blank" 
-                          rel="noopener noreferrer" 
-                          className="flex items-center gap-1.5 text-[10px] font-black text-slate-600 bg-slate-100 px-3 py-2 rounded-xl border border-slate-200 hover:bg-slate-200 transition-all uppercase tracking-widest"
-                          title="Vedi dettagli ufficiali su MyFITri"
-                        >
-                          <ExternalLink className="w-3 h-3" /> <span className="hidden xs:inline">Scheda</span>
-                        </a>
-                      )}
-                      {userRaces.includes(race.race_id) ? (
-                        <span className="flex items-center gap-1 text-[10px] font-black text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-100 uppercase tracking-widest">
-                          <Check className="w-3 h-3" /> Iscritto
-                        </span>
-                      ) : (
-                        <button 
-                          onClick={() => handleJoinRace(race.race_id)}
-                          className="flex items-center gap-1.5 text-[10px] font-black text-white bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-xl shadow-md hover:shadow-blue-200 transition-all uppercase tracking-widest"
-                        >
-                          <Plus className="w-3 h-3" /> Partecipa
-                        </button>
-                      )}
+                    <div className="flex items-center gap-2 pt-3 border-t border-slate-50">
+                      <User className="w-4 h-4 text-slate-500" />
+                      <div className="flex flex-wrap gap-2">
+                        {race.participants.map((name, i) => (
+                          <span key={i} className="text-xs font-bold bg-slate-100 text-slate-700 px-2 py-1 rounded-md border border-slate-200">
+                            {name}
+                          </span>
+                        ))}
+                      </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 pt-3 border-t border-slate-50">
-                    <User className="w-4 h-4 text-slate-500" />
-                    <div className="flex flex-wrap gap-2">
-                      {race.participants.map((name, i) => (
-                        <span key={i} className="text-xs font-bold bg-slate-100 text-slate-700 px-2 py-1 rounded-md border border-slate-200">
-                          {name}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
     </div>
   );

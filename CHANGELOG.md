@@ -2,6 +2,12 @@
 
 Tutti i cambiamenti significativi a questo progetto saranno documentati in questo file.
 
+## [6.2.0] - 2026-03-06
+### Aggiunto
+- **Telegram Multi-Team**: Implementato sistema di notifiche granulari per squadra. Ogni team può ora avere il proprio ID Gruppo Telegram dedicato.
+- **Gestione Admin Telegram**: Aggiunto campo "ID Gruppo Telegram" nella Dashboard Admin per la configurazione semplificata da parte dei presidenti.
+- **Trigger SQL Avanzati**: Aggiornate le funzioni di database per supportare l'invio contemporaneo al Super Admin (globale) e al gruppo specifico del team.
+
 ## [6.1.1] - 2026-03-06
 ### Aggiunto
 - **Materiale Onboarding**: Creata proposta formale personalizzata per CUS Propatria Milano in formato MD e PDF.
