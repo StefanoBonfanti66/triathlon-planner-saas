@@ -15,12 +15,13 @@ const Layout: React.FC = () => {
   
   useEffect(() => {
     const initSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setSession(session);
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      setSession(currentSession);
       
-      if (session?.user?.id) {
-        // Carica i dati del team prima di togliere il caricamento
-        await fetchTeamData(session.user.id);
+      // Se abbiamo già una sessione, carichiamo i dati. 
+      // Altrimenti ci penserà onAuthStateChange al primo evento.
+      if (currentSession?.user?.id) {
+        await fetchTeamData(currentSession.user.id);
       }
       
       setLoading(false);
@@ -28,25 +29,29 @@ const Layout: React.FC = () => {
 
     initSession();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      if (session?.user?.id) fetchTeamData(session.user.id);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, newSession) => {
+      // Evitiamo di ricaricare tutto se la sessione non è cambiata (es. solo token refresh)
+      if (newSession?.user?.id !== session?.user?.id) {
+        setSession(newSession);
+        if (newSession?.user?.id) fetchTeamData(newSession.user.id);
+      }
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [session?.user?.id]);
 
   const fetchTeamData = async (userId: string) => {
     try {
       const { data: profile } = await supabase
         .from('profiles')
-        .select('team_id, is_team_admin')
+        .select('full_name, team_id, is_team_admin')
         .eq('id', userId)
         .single();
 
       if (profile) {
         const isSuperAdmin = session?.user?.email === ADMIN_EMAIL;
-        console.log("Profile loaded:", { name: session?.user?.email, is_team_admin: profile.is_team_admin, is_super_admin: isSuperAdmin });
+        // Log ridotto: appare solo una volta per caricamento reale
+        console.log("✅ Profile Sync:", { name: profile.full_name || session?.user?.email, admin: profile.is_team_admin });
         
         if (profile.team_id) {
           const { data: teamData } = await supabase
@@ -57,11 +62,8 @@ const Layout: React.FC = () => {
           
           if (teamData) {
             setTeam({ ...teamData, is_team_admin: profile.is_team_admin, is_super_admin: isSuperAdmin });
-          } else {
-            setTeam({ name: 'Team non trovato', is_team_admin: profile.is_team_admin, is_super_admin: isSuperAdmin });
           }
         } else {
-          // Gestione utenti senza team (o SuperAdmin)
           setTeam({ 
             name: isSuperAdmin ? 'Super Admin' : 'Nessun Team', 
             is_super_admin: isSuperAdmin, 
@@ -74,67 +76,42 @@ const Layout: React.FC = () => {
     }
   };
 
-  // Rimosso l'useEffect separato per evitare ricaricamenti multipli
-
-  const fetchAdminData = async () => {
-    if (session?.user?.email !== ADMIN_EMAIL) return;
-    const { data: profiles } = await supabase.from('profiles').select('*').is('deleted_at', null);
-    const { data: plans } = await supabase.from('user_plans').select('user_id').is('deleted_at', null);
-    const { data: teams } = await supabase.from('teams').select('id, name');
-
-    if (profiles && plans && teams) {
-      const stats = profiles.map(p => ({ 
-        ...p, 
-        raceCount: plans.filter(pl => pl.user_id === p.id).length,
-        teamName: teams.find(t => t.id === p.team_id)?.name || 'Nessun Team'
-      }));
-      setAdminData(stats);
-    }
-  };
-
-  useEffect(() => {
-    if (isAdminView) fetchAdminData();
-  }, [isAdminView]);
-
   // --- DYNAMIC PWA BRANDING ---
   useEffect(() => {
     if (!team) return;
 
-    // 1. Update Document Title & Favicons
     const brandName = team.name && team.name !== 'Super Admin' ? `${team.name} Planner` : 'Race Planner 2026';
     document.title = brandName;
 
     const logo = team.logo_url || '/icon.svg';
+    const fullLogoUrl = logo.startsWith('http') ? logo : window.location.origin + logo;
     
-    // Update Favicon
     const favicon = document.querySelector('link[rel="icon"]') as HTMLLinkElement;
-    if (favicon) favicon.href = logo;
+    if (favicon) favicon.href = fullLogoUrl;
 
-    // Update Apple Touch Icon
     const appleIcon = document.querySelector('link[rel="apple-touch-icon"]') as HTMLLinkElement;
-    if (appleIcon) appleIcon.href = logo;
+    if (appleIcon) appleIcon.href = fullLogoUrl;
 
-    // 2. Update Theme Color
     const themeColor = team.primary_color || '#e11d48';
     const metaTheme = document.querySelector('meta[name="theme-color"]');
     if (metaTheme) metaTheme.setAttribute('content', themeColor);
 
-    // 3. Dynamic Manifest
+    // Dynamic Manifest con URL ASSOLUTI per evitare warning start_url
     const manifest = {
       short_name: team.name?.substring(0, 12) || "Planner",
       name: brandName,
       icons: [
         {
-          src: logo,
-          sizes: "any",
+          src: fullLogoUrl,
+          sizes: "512x512",
           type: logo.endsWith('.svg') ? "image/svg+xml" : "image/png",
           purpose: "any maskable"
         }
       ],
-      start_url: ".",
+      start_url: window.location.origin + "/",
       display: "standalone",
       theme_color: themeColor,
-      background_color: "#ffffff"
+      background_color: "#f8fafc"
     };
 
     const stringManifest = JSON.stringify(manifest);

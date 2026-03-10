@@ -2,14 +2,15 @@
  * Race Planner SaaS - Super Admin Dashboard
  * Author: Stefano Bonfanti
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../supabaseClient';
 import { 
   Shield, Users, Trophy, Plus, Edit2, Trash2, 
-  Save, X, ExternalLink, Mail, Upload, Download, FileText, Copy, Camera
+  Save, X, ExternalLink, Mail, Upload, Download, FileText, Copy, Camera, FileSpreadsheet, AlertCircle, CheckCircle2, RotateCw
 } from 'lucide-react';
 import { Navigate, NavLink, Link } from 'react-router-dom';
 import racesData from "../races_full.json";
+import * as XLSX from 'xlsx';
 
 const ADMIN_EMAIL = "bonfantistefano4@gmail.com";
 
@@ -18,7 +19,8 @@ const AdminPage: React.FC = () => {
     const [myProfile, setMyProfile] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [uploading, setUploading] = useState(false);
-    const [activeTab, setActiveTab] = useState<'atleti' | 'team' | 'social'>('atleti');
+    const [importing, setImporting] = useState(false);
+    const [activeTab, setActiveTab] = useState<'atleti' | 'team' | 'social' | 'logs'>('atleti');
     const [searchTerm, setSearchTerm] = useState('');
     const [teamSearchTerm, setTeamSearchTerm] = useState('');
     
@@ -26,7 +28,15 @@ const AdminPage: React.FC = () => {
     const [teams, setTeams] = useState<any[]>([]);
     const [allPlans, setAllPlans] = useState<any[]>([]);
     const [plansCount, setPlansCount] = useState<Record<string, number>>({});
+    const [auditLogs, setAuditLogs] = useState<any[]>([]);
     
+    // Import State
+    const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+    const [importData, setImportData] = useState<any[]>([]);
+    const [selectedImportTeam, setSelectedImportTeam] = useState<string>('');
+    const [importResults, setImportResults] = useState<{success: number, errors: string[]}>({ success: 0, errors: [] });
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
     // Social Stats State
     const [socialMonth, setSocialMonth] = useState<string>((new Date().getMonth() + 1).toString().padStart(2, '0'));
     const socialCardRef = React.useRef<HTMLDivElement>(null);
@@ -53,6 +63,7 @@ const AdminPage: React.FC = () => {
             if (session?.user) {
                 const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
                 setMyProfile(profile);
+                if (profile?.team_id) setSelectedImportTeam(profile.team_id);
                 
                 if (session.user.email === ADMIN_EMAIL || profile?.is_team_admin) {
                     fetchAllData(session.user.email === ADMIN_EMAIL, profile?.team_id);
@@ -69,21 +80,28 @@ const AdminPage: React.FC = () => {
         let profQuery = supabase.from('profiles').select('*').is('deleted_at', null).order('full_name');
         let teamsQuery = supabase.from('teams').select('*').order('name');
         let plansQuery = supabase.from('user_plans').select('user_id, race_id').is('deleted_at', null);
+        let logsQuery = supabase.from('audit_logs').select('*, profiles(full_name)').order('created_at', { ascending: false }).limit(50);
         
         if (!superAdmin && teamId) {
             profQuery = profQuery.eq('team_id', teamId);
             teamsQuery = teamsQuery.eq('id', teamId);
             plansQuery = plansQuery.eq('team_id', teamId);
+            logsQuery = logsQuery.eq('team_id', teamId);
         }
 
-        const [profRes, teamsRes, plansRes] = await Promise.all([
+        const [profRes, teamsRes, plansRes, logsRes] = await Promise.all([
             profQuery,
             teamsQuery,
-            plansQuery
+            plansQuery,
+            logsQuery
         ]);
 
         if (profRes.data) setProfiles(profRes.data);
-        if (teamsRes.data) setTeams(teamsRes.data);
+        if (teamsRes.data) {
+            setTeams(teamsRes.data);
+            if (!selectedImportTeam && teamsRes.data.length > 0) setSelectedImportTeam(teamsRes.data[0].id);
+        }
+        if (logsRes.data) setAuditLogs(logsRes.data);
         
         if (plansRes.data) {
             setAllPlans(plansRes.data);
@@ -96,11 +114,103 @@ const AdminPage: React.FC = () => {
         setLoading(false);
     };
 
+    const logAdminAction = async (action: string, details: any = {}) => {
+        try {
+            await supabase.from('audit_logs').insert({
+                admin_id: session?.user?.id,
+                team_id: myProfile?.team_id || (isSuperAdmin ? 'system' : null),
+                action,
+                details
+            });
+        } catch (err) {
+            console.error("Errore log:", err);
+        }
+    };
+
+    const handleFileImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const data = new Uint8Array(event.target?.result as ArrayBuffer);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const sheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[sheetName];
+            const json = XLSX.utils.sheet_to_json(worksheet);
+            
+            // Mappatura flessibile dei campi
+            const mappedData = json.map((row: any) => ({
+                full_name: row['Nome Completo'] || row['Nome'] || row['Athlete'] || row['atleta'],
+                email: row['Email'] || row['email'] || row['Posta Elettronica'],
+                note: row['Note'] || row['note'] || ''
+            })).filter(item => item.full_name && item.email);
+
+            setImportData(mappedData);
+            setIsImportModalOpen(true);
+            if (fileInputRef.current) fileInputRef.current.value = '';
+        };
+        reader.readAsArrayBuffer(file);
+    };
+
+    const confirmBulkImport = async () => {
+        setImporting(true);
+        const teamId = isSuperAdmin ? selectedImportTeam : myProfile?.team_id;
+        
+        if (!teamId) {
+            alert("Errore: Seleziona un team per l'importazione.");
+            setImporting(false);
+            return;
+        }
+
+        let successCount = 0;
+        const errors: string[] = [];
+
+        // Raggruppa i dati per l'inserimento
+        const athletesToInsert = importData.map(athlete => ({
+            full_name: athlete.full_name,
+            team_id: teamId,
+            is_team_admin: false,
+        }));
+
+        try {
+            // Inserimento massivo dei profili
+            const { data, error } = await supabase
+                .from('profiles')
+                .insert(athletesToInsert)
+                .select();
+
+            if (error) {
+                console.error("Supabase Insert Error:", error);
+                throw error;
+            }
+            
+            successCount = data?.length || 0;
+            
+            // LOGGING
+            await logAdminAction('BULK_IMPORT_ATHLETES', { 
+                count: successCount, 
+                team: teams.find(t => t.id === teamId)?.name || teamId,
+                athletes: importData.map(a => a.full_name)
+            });
+            
+        } catch (err: any) {
+            errors.push(`Errore durante l'inserimento: ${err.message || 'Errore sconosciuto'}`);
+        }
+
+        setImportResults({ success: successCount, errors });
+        fetchAllData(isSuperAdmin, isSuperAdmin ? undefined : myProfile?.team_id);
+        setImporting(false);
+    };
+
     const handleToggleAdmin = async (userId: string, currentStatus: boolean) => {
         if (!isSuperAdmin) return;
         const { error } = await supabase.from('profiles').update({ is_team_admin: !currentStatus }).eq('id', userId);
         if (error) alert("Errore: " + error.message);
-        else fetchAllData(true, myProfile?.team_id);
+        else {
+            logAdminAction('TOGGLE_TEAM_ADMIN', { userId, newStatus: !currentStatus });
+            fetchAllData(true, myProfile?.team_id);
+        }
     };
 
     const handleCopyCode = (code: string) => {
@@ -133,6 +243,8 @@ const AdminPage: React.FC = () => {
             join_code: teamForm.join_code.toUpperCase().trim() 
         };
         let error;
+        let action = editingTeam ? 'UPDATE_TEAM' : 'CREATE_TEAM';
+        
         if (editingTeam) {
             const res = await supabase.from('teams').update(payload).eq('id', editingTeam.id);
             error = res.error;
@@ -140,9 +252,11 @@ const AdminPage: React.FC = () => {
             const res = await supabase.from('teams').insert([payload]);
             error = res.error;
         }
+        
         if (error) {
             alert("Errore nel salvataggio del team: " + error.message);
         } else {
+            logAdminAction(action, { teamName: teamForm.name, join_code: payload.join_code });
             setIsTeamModalOpen(false);
             setEditingTeam(null);
             setTeamForm({ name: '', join_code: '', primary_color: '#3b82f6', secondary_color: '#1e293b', logo_url: '', website_url: '', telegram_chat_id: '' });
@@ -153,8 +267,11 @@ const AdminPage: React.FC = () => {
     const handleUpdateAthleteTeam = React.useCallback(async (userId: string, teamId: string | null) => {
         const { error } = await supabase.from('profiles').update({ team_id: teamId }).eq('id', userId);
         if (error) alert("Errore aggiornamento atleta: " + error.message);
-        else fetchAllData(isSuperAdmin, myProfile?.team_id);
-    }, [isSuperAdmin, myProfile?.team_id]);
+        else {
+            logAdminAction('UPDATE_ATHLETE_TEAM', { userId, teamId });
+            fetchAllData(isSuperAdmin, myProfile?.team_id);
+        }
+    }, [isSuperAdmin, myProfile?.team_id, session]);
 
     const handleDeleteAthlete = React.useCallback(async (userId: string, name: string) => {
         if (!window.confirm(`Eliminare ${name}?`)) return;
@@ -168,7 +285,8 @@ const AdminPage: React.FC = () => {
             // Eseguiamo le cancellazioni in PARALLELO (Soft Delete)
             Promise.all([
                 supabase.from('user_plans').update({ deleted_at: timestamp }).eq('user_id', userId),
-                supabase.from('profiles').update({ deleted_at: timestamp }).eq('id', userId)
+                supabase.from('profiles').update({ deleted_at: timestamp }).eq('id', userId),
+                logAdminAction('DELETE_ATHLETE', { userId, name })
             ]).then(([resPlans, resProf]) => {
                 if (resProf.error || resPlans.error) {
                     alert("Errore durante l'eliminazione: " + (resProf.error?.message || resPlans.error?.message));
@@ -178,7 +296,7 @@ const AdminPage: React.FC = () => {
         } catch (error: any) {
             console.error("Errore silente:", error);
         }
-    }, [isSuperAdmin, myProfile?.team_id]);
+    }, [isSuperAdmin, myProfile?.team_id, session, myProfile]);
 
     const handleDeleteTeam = React.useCallback(async (teamId: string, name: string) => {
         if (profiles.filter(p => p.team_id === teamId).length > 0) {
@@ -308,14 +426,93 @@ const AdminPage: React.FC = () => {
                     <button onClick={() => setActiveTab('atleti')} className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'atleti' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}><div className="flex items-center gap-2"><Users className="w-4 h-4" /> Atleti</div></button>
                     {isSuperAdmin && <button onClick={() => setActiveTab('team')} className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'team' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}><div className="flex items-center gap-2"><Trophy className="w-4 h-4" /> Team</div></button>}
                     <button onClick={() => setActiveTab('social')} className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'social' ? 'bg-white text-purple-600 shadow-sm' : 'text-slate-500'}`}><div className="flex items-center gap-2"><Camera className="w-4 h-4" /> Social</div></button>
+                    <button onClick={() => setActiveTab('logs')} className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'logs' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}><div className="flex items-center gap-2"><FileText className="w-4 h-4" /> Log Attività</div></button>
                 </div>
             </div>
+
+            {activeTab === 'logs' && (
+                <div className="space-y-6">
+                    <div className="bg-white rounded-[3rem] shadow-sm border border-slate-100 overflow-hidden">
+                        <div className="p-8 border-b border-slate-50 flex justify-between items-center">
+                            <h3 className="text-xl font-black text-slate-800 uppercase flex items-center gap-3">
+                                <FileText className="w-6 h-6 text-slate-400" /> Cronologia Operazioni Admin
+                            </h3>
+                            <button onClick={() => fetchAllData(isSuperAdmin, myProfile?.team_id)} className="p-2 hover:bg-slate-50 rounded-xl transition-colors"><RotateCw className="w-5 h-5 text-slate-400" /></button>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left border-collapse">
+                                <thead className="bg-slate-50">
+                                    <tr>
+                                        <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Data / Ora</th>
+                                        <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Amministratore</th>
+                                        <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Azione</th>
+                                        <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Dettagli</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-50">
+                                    {auditLogs.map((log) => (
+                                        <tr key={log.id} className="hover:bg-slate-50/50 transition-colors">
+                                            <td className="px-8 py-4">
+                                                <div className="text-[11px] font-bold text-slate-800">{new Date(log.created_at).toLocaleDateString('it-IT')}</div>
+                                                <div className="text-[10px] font-medium text-slate-400">{new Date(log.created_at).toLocaleTimeString('it-IT')}</div>
+                                            </td>
+                                            <td className="px-8 py-4">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-6 h-6 bg-slate-100 rounded-full flex items-center justify-center text-[10px] font-black text-slate-500">
+                                                        {(log.profiles?.full_name || 'Sys')[0]}
+                                                    </div>
+                                                    <span className="text-[11px] font-black text-slate-700">{log.profiles?.full_name || 'Sistema'}</span>
+                                                </div>
+                                            </td>
+                                            <td className="px-8 py-4">
+                                                <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-tighter ${
+                                                    log.action.includes('DELETE') ? 'bg-red-50 text-red-600' :
+                                                    log.action.includes('IMPORT') ? 'bg-blue-50 text-blue-600' :
+                                                    log.action.includes('CREATE') ? 'bg-emerald-50 text-emerald-600' :
+                                                    'bg-slate-100 text-slate-600'
+                                                }`}>
+                                                    {log.action.replace(/_/g, ' ')}
+                                                </span>
+                                            </td>
+                                            <td className="px-8 py-4 max-w-xs">
+                                                <div className="text-[10px] font-bold text-slate-500 truncate">
+                                                    {JSON.stringify(log.details).substring(0, 100)}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {auditLogs.length === 0 && (
+                                        <tr>
+                                            <td colSpan={4} className="px-8 py-20 text-center text-slate-400 font-bold uppercase text-xs tracking-widest">
+                                                Nessuna attività registrata negli ultimi 50 eventi.
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {activeTab === 'atleti' && (
                 <div className="space-y-4">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div className="relative group max-w-md w-full"><Mail className="absolute left-4 top-3.5 w-5 h-5 text-slate-500" /><input type="text" placeholder="Cerca atleta..." className="w-full pl-12 pr-4 py-3.5 bg-white border-2 border-slate-200 rounded-2xl focus:border-blue-500 outline-none text-sm font-medium shadow-sm transition-all placeholder:text-slate-400" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} /></div>
                         <div className="flex flex-wrap gap-2">
+                            <input 
+                                type="file" 
+                                accept=".xlsx, .xls, .csv" 
+                                className="hidden" 
+                                ref={fileInputRef} 
+                                onChange={handleFileImport} 
+                            />
+                            <button 
+                                onClick={() => fileInputRef.current?.click()}
+                                className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all shrink-0 shadow-lg shadow-blue-200"
+                            >
+                                <FileSpreadsheet className="w-4 h-4" /> Importa Atleti (Excel)
+                            </button>
                             <button 
                                 onClick={handleExportExcel}
                                 className="flex items-center gap-2 px-6 py-3 bg-emerald-50 border-2 border-emerald-100 text-emerald-700 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-100 transition-all shrink-0 shadow-sm"
@@ -330,6 +527,102 @@ const AdminPage: React.FC = () => {
                             </button>
                         </div>
                     </div>
+                    
+                    {/* MODALE IMPORTAZIONE */}
+                    {isImportModalOpen && (
+                        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+                            <div className="bg-white rounded-[3rem] p-10 max-w-2xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+                                <div className="flex justify-between items-start mb-6">
+                                    <div className="bg-blue-50 p-4 rounded-3xl text-blue-600 shadow-sm"><FileSpreadsheet className="w-8 h-8" /></div>
+                                    <button onClick={() => { setIsImportModalOpen(false); setImportResults({ success: 0, errors: [] }); }} className="p-2 hover:bg-slate-100 rounded-xl"><X className="w-6 h-6 text-slate-400" /></button>
+                                </div>
+
+                                {importResults.success > 0 || importResults.errors.length > 0 ? (
+                                    <div className="space-y-6 overflow-y-auto">
+                                        <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tight">Risultato Importazione</h3>
+                                        <div className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100">
+                                            <div className="flex items-center gap-3 text-emerald-600 font-black uppercase text-sm mb-4">
+                                                <CheckCircle2 className="w-5 h-5" /> {importResults.success} Atleti Pronti per l'invito
+                                            </div>
+                                            {importResults.errors.length > 0 && (
+                                                <div className="space-y-2">
+                                                    <div className="flex items-center gap-3 text-amber-600 font-black uppercase text-[10px] mb-2">
+                                                        <AlertCircle className="w-4 h-4" /> Notifiche/Errori:
+                                                    </div>
+                                                    <div className="max-h-40 overflow-y-auto text-[10px] font-bold text-slate-500 bg-white p-4 rounded-xl border border-slate-100">
+                                                        {importResults.errors.map((err, i) => <div key={i} className="mb-1">• {err}</div>)}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                        <p className="text-xs text-slate-500 font-medium leading-relaxed italic">
+                                            Gli atleti sono stati caricati come profili. Ora possono registrarsi con la loro email e il join code del team per attivare l'account.
+                                        </p>
+                                        <button 
+                                            onClick={() => setIsImportModalOpen(false)}
+                                            className="w-full py-4 bg-slate-900 text-white rounded-[1.5rem] text-xs font-black uppercase tracking-widest hover:bg-slate-800 transition-all"
+                                        >
+                                            Chiudi
+                                        </button>
+                                    </div>
+                                ) : (
+                                <>
+                                    <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tight mb-2">Conferma Importazione</h3>
+                                    <p className="text-slate-500 font-bold text-sm mb-6">Abbiamo trovato {importData.length} atleti nel file. Confermi il caricamento?</p>
+                                    
+                                    {isSuperAdmin && (
+                                        <div className="mb-6 p-6 bg-blue-50 rounded-[2rem] border border-blue-100">
+                                            <label className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-2 block">Seleziona Team di Destinazione</label>
+                                            <select 
+                                                value={selectedImportTeam} 
+                                                onChange={(e) => setSelectedImportTeam(e.target.value)}
+                                                className="w-full px-5 py-3.5 bg-white border-2 border-blue-200 rounded-2xl outline-none text-sm font-black uppercase text-slate-700 focus:border-blue-500 shadow-sm"
+                                            >
+                                                {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                                            </select>
+                                        </div>
+                                    )}
+
+                                    <div className="flex-1 overflow-y-auto mb-8 border border-slate-100 rounded-[2rem]">
+                                        <table className="w-full text-left text-xs">
+                                                <thead className="sticky top-0 bg-slate-50 border-b border-slate-100">
+                                                    <tr>
+                                                        <th className="px-6 py-3 font-black text-slate-400 uppercase">Nome</th>
+                                                        <th className="px-6 py-3 font-black text-slate-400 uppercase">Email</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-slate-50">
+                                                    {importData.map((row, i) => (
+                                                        <tr key={i} className="hover:bg-slate-50">
+                                                            <td className="px-6 py-3 font-bold text-slate-700">{row.full_name}</td>
+                                                            <td className="px-6 py-3 text-slate-500">{row.email}</td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+
+                                        <div className="flex gap-4">
+                                            <button 
+                                                onClick={() => setIsImportModalOpen(false)}
+                                                className="flex-1 py-4 bg-slate-100 text-slate-600 rounded-[1.5rem] text-xs font-black uppercase tracking-widest hover:bg-slate-200 transition-all"
+                                            >
+                                                Annulla
+                                            </button>
+                                            <button 
+                                                onClick={confirmBulkImport}
+                                                disabled={importing}
+                                                className="flex-[2] py-4 bg-blue-600 text-white rounded-[1.5rem] text-xs font-black uppercase tracking-widest shadow-xl shadow-blue-200 hover:bg-blue-700 transition-all disabled:opacity-50"
+                                            >
+                                                {importing ? 'Importazione in corso...' : 'Conferma e Importa'}
+                                            </button>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
                     <div className="bg-white rounded-[3rem] shadow-sm border border-slate-100 overflow-hidden">
                         <div className="overflow-x-auto">
                             <table className="w-full text-left border-collapse">

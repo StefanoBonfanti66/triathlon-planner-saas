@@ -471,19 +471,43 @@ const DashboardPage: React.FC = () => {
     }
   };
 
-  const addRaceFinal = useCallback(async (id: string) => {
+  const logAdminAction = async (userId: string, teamId: string, action: string, details: any = {}) => {
+    await supabase.from('audit_logs').insert({
+        admin_id: userId,
+        team_id: teamId,
+        action,
+        details
+    });
+  };
+
+  const addRaceFinal = useCallback(async (raceId: string) => {
     if (!session?.user) return;
     
-    setSelectedRaces(prev => [...prev, id]);
-    setRacePriorities(prev => ({ ...prev, [id]: 'C' }));
+    setSelectedRaces(prev => [...prev, raceId]);
+    setRacePriorities(prev => ({ ...prev, [raceId]: 'C' }));
     setPendingConfirmId(null);
 
-    const { error } = await supabase.from('user_plans').insert([{ user_id: session.user.id, race_id: id, priority: 'C' }]);
+    const { error } = await supabase.from('user_plans').insert([{ user_id: session.user.id, race_id: raceId, priority: 'C', team_id: team?.id || 'mtt' }]);
+    
     if (error) {
-      setSelectedRaces(prev => prev.filter(r => r !== id));
+      setSelectedRaces(prev => prev.filter(r => r !== raceId));
       alert("Errore nell'aggiunta: " + error.message);
+    } else {
+      // LOGGING SE ADMIN
+      const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
+      const isSuperAdmin = session.user.email === ADMIN_EMAIL;
+      
+      if (isSuperAdmin || profile?.is_team_admin) {
+          const raceObj = races.find(r => r.id === raceId);
+          await logAdminAction(
+              session.user.id, 
+              profile?.team_id || team?.id || 'mtt', 
+              'ADMIN_ADD_RACE', 
+              { race_title: raceObj?.title, admin_name: profile?.full_name }
+          );
+      }
     }
-  }, [session]);
+  }, [session, team, races]);
 
   const toggleRace = useCallback(async (id: string) => {
     if (!session?.user) return;
