@@ -6,7 +6,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../supabaseClient';
 import { 
   Shield, Users, Trophy, Plus, Edit2, Trash2, 
-  Save, X, ExternalLink, Mail, Upload, Download, FileText, Copy, Camera, FileSpreadsheet, AlertCircle, CheckCircle2, RotateCw
+  Save, X, ExternalLink, Mail, Upload, Download, FileText, Copy, Camera, FileSpreadsheet, AlertCircle, CheckCircle2, RotateCw, Calendar
 } from 'lucide-react';
 import { Navigate, NavLink, Link } from 'react-router-dom';
 import racesData from "../races_full.json";
@@ -272,6 +272,15 @@ const AdminPage: React.FC = () => {
             fetchAllData(isSuperAdmin, myProfile?.team_id);
         }
     }, [isSuperAdmin, myProfile?.team_id, session]);
+
+    const handleUpdateCertificate = async (userId: string, expiryDate: string) => {
+        const { error } = await supabase.from('profiles').update({ medical_certificate_expiry: expiryDate }).eq('id', userId);
+        if (error) alert("Errore aggiornamento certificato: " + error.message);
+        else {
+            logAdminAction('UPDATE_CERTIFICATE', { userId, expiryDate });
+            setProfiles(prev => prev.map(p => p.id === userId ? { ...p, medical_certificate_expiry: expiryDate } : p));
+        }
+    };
 
     const handleDeleteAthlete = React.useCallback(async (userId: string, name: string) => {
         if (!window.confirm(`Eliminare ${name}?`)) return;
@@ -626,9 +635,11 @@ const AdminPage: React.FC = () => {
                     <div className="bg-white rounded-[3rem] shadow-sm border border-slate-100 overflow-hidden">
                         <div className="overflow-x-auto">
                             <table className="w-full text-left border-collapse">
-                            <thead><tr className="bg-slate-100"><th className="px-8 py-5 text-[11px] font-black text-slate-600 uppercase tracking-widest">Atleta</th><th className="px-8 py-5 text-[11px] font-black text-slate-600 uppercase tracking-widest">Team</th><th className="px-8 py-5 text-[11px] font-black text-slate-600 uppercase tracking-widest text-center">Gare</th><th className="px-8 py-5 text-[11px] font-black text-slate-600 uppercase tracking-widest text-right">Azioni</th></tr></thead>
+                            <thead><tr className="bg-slate-100"><th className="px-8 py-5 text-[11px] font-black text-slate-600 uppercase tracking-widest">Atleta</th><th className="px-8 py-5 text-[11px] font-black text-slate-600 uppercase tracking-widest">Team</th><th className="px-8 py-5 text-[11px] font-black text-slate-600 uppercase tracking-widest">Certificato</th><th className="px-8 py-5 text-[11px] font-black text-slate-600 uppercase tracking-widest text-center">Gare</th><th className="px-8 py-5 text-[11px] font-black text-slate-600 uppercase tracking-widest text-right">Azioni</th></tr></thead>
                             <tbody className="divide-y divide-slate-100">
-                                {filteredProfiles.map((atleta) => (
+                                {filteredProfiles.map((atleta) => {
+                                    const isExpired = atleta.medical_certificate_expiry && new Date(atleta.medical_certificate_expiry) < new Date();
+                                    return (
                                     <tr key={atleta.id} className="hover:bg-slate-50 transition-colors">
                                         <td className="px-8 py-5">
                                             <div className="flex items-center gap-3">
@@ -637,11 +648,22 @@ const AdminPage: React.FC = () => {
                                                         {atleta.full_name || 'N/A'}
                                                         {atleta.is_team_admin && <span title="Team Admin"><Shield className="w-3 h-3 text-amber-500 fill-current" /></span>}
                                                     </span>
-                                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">{atleta.id.substring(0,8)}...</span>
+                                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">{atleta.license_number || atleta.id.substring(0,8) + '...'}</span>
                                                 </div>
                                             </div>
                                         </td>
                                         <td className="px-8 py-5"><select value={atleta.team_id || ''} onChange={(e) => handleUpdateAthleteTeam(atleta.id, e.target.value || null)} className="bg-slate-100 border-none rounded-xl px-3 py-2 text-xs font-black uppercase text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer" disabled={!isSuperAdmin}><option value="">Nessun Team</option>{teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select></td>
+                                        <td className="px-8 py-5">
+                                            <div className="flex items-center gap-2">
+                                                <input 
+                                                    type="date" 
+                                                    value={atleta.medical_certificate_expiry || ''} 
+                                                    onChange={(e) => handleUpdateCertificate(atleta.id, e.target.value)}
+                                                    className={`bg-transparent border-none text-xs font-bold outline-none cursor-pointer p-1 rounded-md transition-colors ${isExpired ? 'text-red-600 bg-red-50' : 'text-slate-600 hover:bg-slate-100'}`}
+                                                />
+                                                {isExpired && <span title="Certificato Scaduto"><AlertCircle className="w-3 h-3 text-red-500" /></span>}
+                                            </div>
+                                        </td>
                                         <td className="px-8 py-5 text-center"><span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-black">{plansCount[atleta.id] || 0}</span></td>
                                         <td className="px-8 py-5 text-right">
                                             <div className="flex items-center justify-end gap-2">
@@ -665,7 +687,8 @@ const AdminPage: React.FC = () => {
                                         </td>
                                         
                                     </tr>
-                                ))}
+                                );
+                                })}
                             </tbody>
                             </table>
                         </div>
