@@ -6,7 +6,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../supabaseClient';
 import { 
   Shield, Users, Trophy, Plus, Edit2, Trash2, 
-  Save, X, ExternalLink, Mail, Upload, Download, FileText, Copy, Camera, FileSpreadsheet, AlertCircle, CheckCircle2, RotateCw
+  Save, X, ExternalLink, Mail, Upload, Download, FileText, Copy, Camera, FileSpreadsheet, AlertCircle, CheckCircle2, RotateCw, Calendar
 } from 'lucide-react';
 import { Navigate, NavLink, Link } from 'react-router-dom';
 import racesData from "../races_full.json";
@@ -50,7 +50,8 @@ const AdminPage: React.FC = () => {
         secondary_color: '#1e293b',
         logo_url: '',
         website_url: '',
-        telegram_chat_id: ''
+        telegram_chat_id: '',
+        admin_telegram_chat_id: ''
     });
 
     const isSuperAdmin = session?.user?.email === ADMIN_EMAIL;
@@ -259,7 +260,7 @@ const AdminPage: React.FC = () => {
             logAdminAction(action, { teamName: teamForm.name, join_code: payload.join_code });
             setIsTeamModalOpen(false);
             setEditingTeam(null);
-            setTeamForm({ name: '', join_code: '', primary_color: '#3b82f6', secondary_color: '#1e293b', logo_url: '', website_url: '', telegram_chat_id: '' });
+            setTeamForm({ name: '', join_code: '', primary_color: '#3b82f6', secondary_color: '#1e293b', logo_url: '', website_url: '', telegram_chat_id: '', admin_telegram_chat_id: '' });
             fetchAllData(isSuperAdmin, myProfile?.team_id);
         }
     };
@@ -272,6 +273,15 @@ const AdminPage: React.FC = () => {
             fetchAllData(isSuperAdmin, myProfile?.team_id);
         }
     }, [isSuperAdmin, myProfile?.team_id, session]);
+
+    const handleUpdateCertificate = async (userId: string, expiryDate: string) => {
+        const { error } = await supabase.from('profiles').update({ medical_certificate_expiry: expiryDate }).eq('id', userId);
+        if (error) alert("Errore aggiornamento certificato: " + error.message);
+        else {
+            logAdminAction('UPDATE_CERTIFICATE', { userId, expiryDate });
+            setProfiles(prev => prev.map(p => p.id === userId ? { ...p, medical_certificate_expiry: expiryDate } : p));
+        }
+    };
 
     const handleDeleteAthlete = React.useCallback(async (userId: string, name: string) => {
         if (!window.confirm(`Eliminare ${name}?`)) return;
@@ -626,9 +636,11 @@ const AdminPage: React.FC = () => {
                     <div className="bg-white rounded-[3rem] shadow-sm border border-slate-100 overflow-hidden">
                         <div className="overflow-x-auto">
                             <table className="w-full text-left border-collapse">
-                            <thead><tr className="bg-slate-100"><th className="px-8 py-5 text-[11px] font-black text-slate-600 uppercase tracking-widest">Atleta</th><th className="px-8 py-5 text-[11px] font-black text-slate-600 uppercase tracking-widest">Team</th><th className="px-8 py-5 text-[11px] font-black text-slate-600 uppercase tracking-widest text-center">Gare</th><th className="px-8 py-5 text-[11px] font-black text-slate-600 uppercase tracking-widest text-right">Azioni</th></tr></thead>
+                            <thead><tr className="bg-slate-100"><th className="px-8 py-5 text-[11px] font-black text-slate-600 uppercase tracking-widest">Atleta</th><th className="px-8 py-5 text-[11px] font-black text-slate-600 uppercase tracking-widest">Team</th><th className="px-8 py-5 text-[11px] font-black text-slate-600 uppercase tracking-widest">Certificato</th><th className="px-8 py-5 text-[11px] font-black text-slate-600 uppercase tracking-widest text-center">Gare</th><th className="px-8 py-5 text-[11px] font-black text-slate-600 uppercase tracking-widest text-right">Azioni</th></tr></thead>
                             <tbody className="divide-y divide-slate-100">
-                                {filteredProfiles.map((atleta) => (
+                                {filteredProfiles.map((atleta) => {
+                                    const isExpired = atleta.medical_certificate_expiry && new Date(atleta.medical_certificate_expiry) < new Date();
+                                    return (
                                     <tr key={atleta.id} className="hover:bg-slate-50 transition-colors">
                                         <td className="px-8 py-5">
                                             <div className="flex items-center gap-3">
@@ -637,11 +649,22 @@ const AdminPage: React.FC = () => {
                                                         {atleta.full_name || 'N/A'}
                                                         {atleta.is_team_admin && <span title="Team Admin"><Shield className="w-3 h-3 text-amber-500 fill-current" /></span>}
                                                     </span>
-                                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">{atleta.id.substring(0,8)}...</span>
+                                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">{atleta.license_number || atleta.id.substring(0,8) + '...'}</span>
                                                 </div>
                                             </div>
                                         </td>
                                         <td className="px-8 py-5"><select value={atleta.team_id || ''} onChange={(e) => handleUpdateAthleteTeam(atleta.id, e.target.value || null)} className="bg-slate-100 border-none rounded-xl px-3 py-2 text-xs font-black uppercase text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer" disabled={!isSuperAdmin}><option value="">Nessun Team</option>{teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select></td>
+                                        <td className="px-8 py-5">
+                                            <div className="flex items-center gap-2">
+                                                <input 
+                                                    type="date" 
+                                                    value={atleta.medical_certificate_expiry || ''} 
+                                                    onChange={(e) => handleUpdateCertificate(atleta.id, e.target.value)}
+                                                    className={`bg-transparent border-none text-xs font-bold outline-none cursor-pointer p-1 rounded-md transition-colors ${isExpired ? 'text-red-600 bg-red-50' : 'text-slate-600 hover:bg-slate-100'}`}
+                                                />
+                                                {isExpired && <span title="Certificato Scaduto"><AlertCircle className="w-3 h-3 text-red-500" /></span>}
+                                            </div>
+                                        </td>
                                         <td className="px-8 py-5 text-center"><span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-black">{plansCount[atleta.id] || 0}</span></td>
                                         <td className="px-8 py-5 text-right">
                                             <div className="flex items-center justify-end gap-2">
@@ -665,7 +688,8 @@ const AdminPage: React.FC = () => {
                                         </td>
                                         
                                     </tr>
-                                ))}
+                                );
+                                })}
                             </tbody>
                             </table>
                         </div>
@@ -893,7 +917,7 @@ const AdminPage: React.FC = () => {
                                 </div>
                                 <div className="flex items-center gap-2 mt-auto pt-6 border-t border-slate-50 relative z-10">
                                     <button 
-                                        onClick={() => { setEditingTeam(team); setTeamForm({ name: team.name, join_code: team.join_code || '', primary_color: team.primary_color || '#3b82f6', secondary_color: team.secondary_color || '#1e293b', logo_url: team.logo_url || '', website_url: team.website_url || '', telegram_chat_id: team.telegram_chat_id || '' }); setIsTeamModalOpen(true); }} 
+                                        onClick={() => { setEditingTeam(team); setTeamForm({ name: team.name, join_code: team.join_code || '', primary_color: team.primary_color || '#3b82f6', secondary_color: team.secondary_color || '#1e293b', logo_url: team.logo_url || '', website_url: team.website_url || '', telegram_chat_id: team.telegram_chat_id || '', admin_telegram_chat_id: team.admin_telegram_chat_id || '' }); setIsTeamModalOpen(true); }} 
                                         className="flex-1 flex items-center justify-center gap-2 py-3 bg-slate-50 text-slate-600 rounded-xl text-[10px] font-black uppercase hover:bg-blue-50 hover:text-blue-600 transition-all"
                                         aria-label={`Modifica team ${team.name}`}
                                     >
@@ -936,7 +960,7 @@ const AdminPage: React.FC = () => {
                             <div><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Logo</label><div className="flex items-center gap-4"><div className="w-16 h-16 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 flex items-center justify-center overflow-hidden shrink-0">{teamForm.logo_url ? <img src={teamForm.logo_url} alt="Preview" className="max-w-full max-h-full object-contain" /> : <Upload className="w-6 h-6 text-slate-300" />}</div><div className="flex-1"><input type="file" accept="image/*" id="logo-upload" className="hidden" onChange={handleUploadLogo} disabled={uploading} /><label htmlFor="logo-upload" className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest cursor-pointer transition-all ${uploading ? 'bg-slate-100 text-slate-400' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'}`}>{uploading ? 'Caricamento...' : 'Carica'}</label></div></div><input type="text" className="w-full mt-3 px-5 py-3 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-[10px] font-medium" value={teamForm.logo_url} onChange={e => setTeamForm({...teamForm, logo_url: e.target.value})} placeholder="URL..." /></div>
                             <div><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Sito</label><input type="text" className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-medium" value={teamForm.website_url} onChange={e => setTeamForm({...teamForm, website_url: e.target.value})} /></div>
                             <div>
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">ID Gruppo Telegram (Multi-Team)</label>
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">ID Gruppo Telegram (Team Group)</label>
                                 <input 
                                     type="text" 
                                     className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-medium" 
@@ -944,7 +968,18 @@ const AdminPage: React.FC = () => {
                                     onChange={e => setTeamForm({...teamForm, telegram_chat_id: e.target.value})} 
                                     placeholder="Es: -100123456789"
                                 />
-                                <p className="text-[9px] text-slate-400 mt-1 font-bold italic">Le notifiche del team verranno inviate a questo ID gruppo.</p>
+                                <p className="text-[9px] text-slate-400 mt-1 font-bold italic">Notifiche generali (iscrizioni gare) per tutto il team.</p>
+                            </div>
+                            <div>
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">ID Telegram STAFF/ADMIN (Privato)</label>
+                                <input 
+                                    type="text" 
+                                    className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-medium" 
+                                    value={teamForm.admin_telegram_chat_id} 
+                                    onChange={e => setTeamForm({...teamForm, admin_telegram_chat_id: e.target.value})} 
+                                    placeholder="Es: -100987654321"
+                                />
+                                <p className="text-[9px] text-slate-400 mt-1 font-bold italic">Solo per avvisi tecnici (es. scadenze certificati).</p>
                             </div>
                             <button type="submit" className="w-full mt-6 py-4 bg-slate-900 text-white rounded-[1.5rem] text-xs font-black uppercase tracking-widest shadow-xl hover:bg-slate-800 transition-all flex items-center justify-center gap-2"><Save className="w-4 h-4" /> Salva</button>
                         </form>
