@@ -49,6 +49,14 @@ Vuoi premiare l'atleta più attivo del mese?
 
 ---
 
+## 7. Notifiche Real-Time (Telegram Multi-Team)
+Per ricevere avvisi immediati su nuovi atleti e nuove iscrizioni della squadra:
+1.  Vai su **Admin > Impostazioni Team**.
+2.  Inserisci l'**ID Gruppo Telegram** dedicato al tuo club.
+3.  Il sistema inizierà a inviare notifiche automatiche direttamente al tuo gruppo, mantenendo separate le comunicazioni tra i diversi team della piattaforma.
+
+---
+
 **Contatti Tecnici:**
 *   *Architect*: Stefano Bonfanti
 *   *Support*: bonfantistefano4@gmail.com

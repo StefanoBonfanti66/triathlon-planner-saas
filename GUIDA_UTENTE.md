@@ -1,6 +1,6 @@
-# 📖 Guida Utente - Race Planner 2026 (v6.1)
+# 📖 Guida Utente - Race Planner 2026 (v6.2)
 
-Benvenuto nel **Race Planner SaaS**! Questa guida ti aiuterà a navigare tra le potenti funzionalità della versione 6.1, progettata per coordinare team di triathlon su scala nazionale.
+Benvenuto nel **Race Planner SaaS**! Questa guida ti aiuterà a navigare tra le potenti funzionalità della versione 6.2, progettata per coordinare team di triathlon su scala nazionale.
 
 ## 1. Accesso e Auto-Onboarding
 - **Join Code**: Ogni team ha un codice unico. Inserendolo in fase di registrazione, verrai automaticamente collegato alla tua squadra senza attese.
@@ -26,6 +26,7 @@ Il sistema prevede una gerarchia di controllo avanzata:
     - **Gestione Atleti**: Monitora le iscrizioni del proprio team.
     - **Esportazione Excel**: Download istantaneo dei partecipanti per le iscrizioni di massa FITRI.
     - **Social Stats**: Genera automaticamente la "Athlete of the Month Card" (PNG) per Instagram.
+    - **Telegram Setup**: Configurazione dell'ID Gruppo per le notifiche real-time.
     - **Team Backup**: Esportazione sicura dei dati della squadra.
 - **Super Admin (Stefano Bonfanti)**:
     - Controllo globale su tutti i team del sistema e promozione degli utenti a Team Leader.
@@ -33,5 +34,8 @@ Il sistema prevede una gerarchia di controllo avanzata:
 ## 5. Automazioni e Sicurezza
 - **Sync Settimanale**: Il calendario si aggiorna automaticamente ogni Lunedì con le nuove gare caricate da FITRI.
 - **Disaster Recovery**: Protezione a 3 livelli (GitHub Backups, Soft Delete e Team Export) per garantire l'integrità dei tuoi piani di gara.
+
+## 6. Community & Notifiche
+- **Telegram Connect**: Se il tuo Team Admin ha configurato il gruppo Telegram, riceverai notifiche istantanee quando un nuovo compagno si unisce alla squadra o pianifica una gara, rendendo il coordinamento ancora più fluido.
 
 *Progettato da Stefano Bonfanti per rendere la tua stagione epica!* 🏁🚀
