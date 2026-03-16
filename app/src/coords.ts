@@ -128,5 +128,13 @@ export const provinceCoordinates: Record<string, [number, number]> = {
   "Mazara del Vallo": [37.6522, 12.5883],
   "Molveno": [46.1425, 10.9644],
   "Vernasca": [44.8061, 9.8300],
-  "Lovere": [45.8139, 10.0711]
+  "Lovere": [45.8139, 10.0711],
+  "San Giorgio Piacentino": [44.9125, 9.7371],
+  "Salò": [45.6074, 10.5224],
+  "Valmadrera": [45.8458, 9.3592],
+  "Iseo": [45.6586, 10.0528],
+  "Idro": [45.7389, 10.4789],
+  "Recco": [44.3622, 9.1431],
+  "Sestri Levante": [44.2706, 9.3969],
+  "Portovenere": [44.0504, 9.8322]
 };

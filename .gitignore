@@ -5,3 +5,7 @@ dist
 *.local
 .vercel
 .gemini/
+
+backups/
+*.csv
+*.xlsx

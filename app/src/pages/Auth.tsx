@@ -33,14 +33,11 @@ const Auth: React.FC = () => {
 
         try {
             if (isSignUp) {
-                // 1. Verifica se il codice team è valido prima di procedere
-                const { data: teamData, error: teamError } = await supabase
-                    .from('teams')
-                    .select('id')
-                    .eq('join_code', teamCode.trim().toUpperCase())
-                    .single();
+                // 1. Verifica se il codice team è valido via RPC (Secure)
+                const { data: teamId, error: teamError } = await supabase
+                    .rpc('check_team_code', { provided_code: teamCode.trim() });
 
-                if (teamError || !teamData) {
+                if (teamError || !teamId || teamId.length === 0) {
                     alert("Codice Squadra non valido. Contatta il tuo responsabile di team.");
                     setAuthLoading(false);
                     return;

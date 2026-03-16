@@ -1,9 +1,10 @@
 # Race Planner SaaS - State of the Art
 **Lead Architect**: Stefano Bonfanti
-**Version**: 6.2.0 - SaaS Enterprise Ready
+**Version**: 6.3.0 - SaaS Enterprise Ready
 
 ## Core SaaS Features
 - **Hierarchical Admin**: Global control for Stefano (Super Admin), Local control for Team Leaders.
+- **Membership & Licensing**: Dedicated flags for "Tesserato FITRI" and "Socio Associazione" with split-view management.
 - **Telegram Multi-Team**: Dedicated Telegram Group IDs for each team with granular real-time notifications.
 - **Dynamic PWA Branding**: Auto-generated PWA icons, manifest, and favicons based on the user's team.
 - **Dynamic Routing**: Dedicated detail pages for each race (`/race/:id`) with unique URLs.
@@ -13,6 +14,7 @@
 - **Data Stability**: Stable MyFITri ID mapping system to prevent plan corruption during updates.
 - **Social Stats Hub**: Automatic ranking and PNG Social Card generator for Instagram (Athlete of the Month).
 - **Disaster Recovery**: 3-level protection (GitHub Backups, Soft Delete, Team Export).
+- **Advanced Export**: One-click Excel export for full athlete registry (licensing, membership, medical expiry).
 
 ## Technical Stack
 - **Frontend**: React 19 + TypeScript + Vite + TailwindCSS.

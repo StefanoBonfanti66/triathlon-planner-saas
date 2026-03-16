@@ -2,6 +2,16 @@
 
 Tutti i cambiamenti significativi a questo progetto saranno documentati in questo file.
 
+## [6.3.0] - 2026-03-16
+### Aggiunto
+- **Security Hardening**: Implementazione Row Level Security (RLS) su tutte le tabelle critiche.
+- **Protezione Segreti**: Spostamento delle API Key (Telegram) in uno schema `internal` non esposto alle API REST.
+- **Dashboard Statistiche**: Nuova tab "Stats" nell'Admin Panel con grafici e metriche su atleti, categorie FITRI e attività mensile.
+- **Advanced Export**: Esportazione Excel completa dell'anagrafica atleti con dati di tesseramento e scadenze mediche.
+- **Geocoding Dinamico**: Integrazione con OpenStreetMap Nominatim per recuperare coordinate in tempo reale se non presenti nel database.
+- **Arricchimento Dati MyFITri**: Visualizzazione estesa di programmi di gara, note organizzatore e chiusura iscrizioni.
+- **Secure Join Code**: Verifica dei codici squadra tramite RPC Postgres per prevenire l'esposizione della tabella `teams`.
+
 ## [6.2.0] - 2026-03-06
 ### Aggiunto
 - **Telegram Multi-Team**: Implementato sistema di notifiche granulari per squadra. Ogni team può ora avere il proprio ID Gruppo Telegram dedicato.

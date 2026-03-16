@@ -6,9 +6,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../supabaseClient';
 import { 
   Shield, Users, Trophy, Plus, Edit2, Trash2, 
-  Save, X, ExternalLink, Mail, Upload, Download, FileText, Copy, Camera, FileSpreadsheet, AlertCircle, CheckCircle2, RotateCw, Calendar
+  Save, X, ExternalLink, Mail, Upload, Download, FileText, Copy, Camera, FileSpreadsheet, AlertCircle, CheckCircle2, RotateCw, Calendar, Heart
 } from 'lucide-react';
-import { Navigate, NavLink, Link } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 import racesData from "../races_full.json";
 import * as XLSX from 'xlsx';
 
@@ -20,7 +20,7 @@ const AdminPage: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [uploading, setUploading] = useState(false);
     const [importing, setImporting] = useState(false);
-    const [activeTab, setActiveTab] = useState<'atleti' | 'team' | 'social' | 'logs'>('atleti');
+    const [activeTab, setActiveTab] = useState<'atleti' | 'team' | 'social' | 'logs' | 'stats'>('atleti');
     const [searchTerm, setSearchTerm] = useState('');
     const [teamSearchTerm, setTeamSearchTerm] = useState('');
     
@@ -29,6 +29,15 @@ const AdminPage: React.FC = () => {
     const [allPlans, setAllPlans] = useState<any[]>([]);
     const [plansCount, setPlansCount] = useState<Record<string, number>>({});
     const [auditLogs, setAuditLogs] = useState<any[]>([]);
+
+    // Statistiche State
+    const [stats, setStats] = useState({
+        topRaces: [] as any[],
+        categoryDist: {} as Record<string, number>,
+        monthlyActivity: {} as Record<string, number>,
+        totalAthletes: 0,
+        activeAthletes: 0
+    });
     
     // Import State
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -39,42 +48,99 @@ const AdminPage: React.FC = () => {
 
     // Social Stats State
     const [socialMonth, setSocialMonth] = useState<string>((new Date().getMonth() + 1).toString().padStart(2, '0'));
+    const [selectedSocialTeam, setSelectedSocialTeam] = useState<string>('');
     const socialCardRef = React.useRef<HTMLDivElement>(null);
 
+    // Team Modal State
     const [isTeamModalOpen, setIsTeamModalOpen] = useState(false);
     const [editingTeam, setEditingTeam] = useState<any>(null);
     const [teamForm, setTeamForm] = useState({
-        name: '',
-        join_code: '',
-        primary_color: '#3b82f6',
-        secondary_color: '#1e293b',
-        logo_url: '',
-        website_url: '',
-        telegram_chat_id: '',
-        admin_telegram_chat_id: ''
+        name: '', join_code: '', primary_color: '#3b82f6', secondary_color: '#1e293b', 
+        logo_url: '', website_url: '', telegram_chat_id: '', admin_telegram_chat_id: ''
     });
 
     const isSuperAdmin = session?.user?.email === ADMIN_EMAIL;
+
+    // Social Stats Logic Memoizzata
+    const socialData = React.useMemo(() => {
+        const monthPlans = allPlans.filter(p => {
+            const race = (racesData as any[]).find(r => r.id === p.race_id);
+            if (!race) return false;
+            const [, m] = race.date.split("-");
+            const monthMatch = m === socialMonth;
+            
+            if (isSuperAdmin && selectedSocialTeam) {
+                const athlete = profiles.find(prof => prof.id === p.user_id);
+                return monthMatch && athlete?.team_id === selectedSocialTeam;
+            }
+            return monthMatch;
+        });
+
+        const counts: Record<string, number> = {};
+        monthPlans.forEach(p => { counts[p.user_id] = (counts[p.user_id] || 0) + 1; });
+
+        const sorted = Object.entries(counts)
+            .sort(([,a], [,b]) => b - a)
+            .map(([userId, count]) => ({
+                userId, count,
+                profile: profiles.find(p => p.id === userId)
+            }))
+            .slice(0, 10);
+
+        let displayTeam = teams[0];
+        if (isSuperAdmin && selectedSocialTeam) {
+            displayTeam = teams.find(t => t.id === selectedSocialTeam) || teams[0];
+        } else if (!isSuperAdmin) {
+            displayTeam = teams.find(t => t.id === myProfile?.team_id) || teams[0];
+        } else if (sorted.length > 0) {
+            const topAthleteTeamId = sorted[0].profile?.team_id;
+            displayTeam = teams.find(t => t.id === topAthleteTeamId) || teams[0];
+        }
+
+        return { topAtleti: sorted, displayTeam };
+    }, [socialMonth, selectedSocialTeam, allPlans, profiles, teams, isSuperAdmin, myProfile]);
 
     useEffect(() => {
         const init = async () => {
             const { data: { session } } = await supabase.auth.getSession();
             setSession(session);
-            
             if (session?.user) {
                 const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
                 setMyProfile(profile);
                 if (profile?.team_id) setSelectedImportTeam(profile.team_id);
-                
                 if (session.user.email === ADMIN_EMAIL || profile?.is_team_admin) {
                     fetchAllData(session.user.email === ADMIN_EMAIL, profile?.team_id);
-                } else {
-                    setLoading(false);
-                }
+                } else { setLoading(false); }
             }
         };
         init();
     }, []);
+
+    const getFitriCategory = (birthYear: any) => {
+        const year = parseInt(birthYear);
+        if (!year || isNaN(year)) return "N/D";
+        const age = 2026 - year;
+        if (age < 6) return "N/A";
+        if (age <= 7) return "MC";
+        if (age <= 9) return "CU";
+        if (age <= 11) return "ES";
+        if (age <= 13) return "RA";
+        if (age <= 15) return "YA";
+        if (age <= 17) return "YB";
+        if (age <= 19) return "JU";
+        if (age <= 24) return "S1";
+        if (age <= 29) return "S2";
+        if (age <= 34) return "S3";
+        if (age <= 39) return "S4";
+        if (age <= 44) return "M1";
+        if (age <= 49) return "M2";
+        if (age <= 54) return "M3";
+        if (age <= 59) return "M4";
+        if (age <= 64) return "M5";
+        if (age <= 69) return "M6";
+        if (age <= 74) return "M7";
+        return "M8";
+    };
 
     const fetchAllData = async (superAdmin: boolean, teamId?: string) => {
         setLoading(true);
@@ -90,26 +156,41 @@ const AdminPage: React.FC = () => {
             logsQuery = logsQuery.eq('team_id', teamId);
         }
 
-        const [profRes, teamsRes, plansRes, logsRes] = await Promise.all([
-            profQuery,
-            teamsQuery,
-            plansQuery,
-            logsQuery
-        ]);
+        const [profRes, teamsRes, plansRes, logsRes] = await Promise.all([profQuery, teamsQuery, plansQuery, logsQuery]);
 
-        if (profRes.data) setProfiles(profRes.data);
-        if (teamsRes.data) {
-            setTeams(teamsRes.data);
-            if (!selectedImportTeam && teamsRes.data.length > 0) setSelectedImportTeam(teamsRes.data[0].id);
+        if (profRes.data) {
+            setProfiles(profRes.data);
+            if (plansRes.data) {
+                const raceMap: Record<string, number> = {};
+                const catMap: Record<string, number> = {};
+                const monthMap: Record<string, number> = {};
+                const activeUsers = new Set();
+                plansRes.data.forEach((p: any) => {
+                    raceMap[p.race_id] = (raceMap[p.race_id] || 0) + 1;
+                    activeUsers.add(p.user_id);
+                    const raceInfo = (racesData as any[]).find(r => r.id === p.race_id);
+                    if (raceInfo) {
+                        const month = raceInfo.date.split('-')[1];
+                        const monthLabel = new Date(2026, parseInt(month) - 1).toLocaleString('it-IT', { month: 'long' });
+                        monthMap[monthLabel] = (monthMap[monthLabel] || 0) + 1;
+                    }
+                });
+                profRes.data.forEach(prof => {
+                    const category = getFitriCategory(prof.birth_year);
+                    if (category && category !== "N/D") catMap[category] = (catMap[category] || 0) + 1;
+                });
+                setStats({
+                    topRaces: Object.entries(raceMap).map(([id, count]) => ({ id, count, title: (racesData as any[]).find(r => r.id === id)?.title || "Gara sconosciuta" })).sort((a, b) => b.count - a.count).slice(0, 5),
+                    categoryDist: catMap, monthlyActivity: monthMap, totalAthletes: profRes.data.length, activeAthletes: activeUsers.size
+                });
+            }
         }
+        if (teamsRes.data) setTeams(teamsRes.data);
         if (logsRes.data) setAuditLogs(logsRes.data);
-        
         if (plansRes.data) {
             setAllPlans(plansRes.data);
             const counts: Record<string, number> = {};
-            plansRes.data.forEach(p => {
-                counts[p.user_id] = (counts[p.user_id] || 0) + 1;
-            });
+            plansRes.data.forEach(p => { counts[p.user_id] = (counts[p.user_id] || 0) + 1; });
             setPlansCount(counts);
         }
         setLoading(false);
@@ -120,88 +201,55 @@ const AdminPage: React.FC = () => {
             await supabase.from('audit_logs').insert({
                 admin_id: session?.user?.id,
                 team_id: myProfile?.team_id || (isSuperAdmin ? 'system' : null),
-                action,
-                details
+                action, details
             });
-        } catch (err) {
-            console.error("Errore log:", err);
+        } catch (err) { console.error("Errore log:", err); }
+    };
+
+    // Handlers Atleti
+    const handleUpdateBirthYear = async (userId: string, birthYear: string) => {
+        const { error } = await supabase.from('profiles').update({ birth_year: birthYear }).eq('id', userId);
+        if (error) alert("Errore: " + error.message);
+        else {
+            logAdminAction('UPDATE_BIRTH_YEAR', { userId, birthYear });
+            setProfiles(prev => prev.map(p => p.id === userId ? { ...p, birth_year: birthYear } : p));
         }
     };
 
-    const handleFileImport = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            const data = new Uint8Array(event.target?.result as ArrayBuffer);
-            const workbook = XLSX.read(data, { type: 'array' });
-            const sheetName = workbook.SheetNames[0];
-            const worksheet = workbook.Sheets[sheetName];
-            const json = XLSX.utils.sheet_to_json(worksheet);
-            
-            // Mappatura flessibile dei campi
-            const mappedData = json.map((row: any) => ({
-                full_name: row['Nome Completo'] || row['Nome'] || row['Athlete'] || row['atleta'],
-                email: row['Email'] || row['email'] || row['Posta Elettronica'],
-                note: row['Note'] || row['note'] || ''
-            })).filter(item => item.full_name && item.email);
-
-            setImportData(mappedData);
-            setIsImportModalOpen(true);
-            if (fileInputRef.current) fileInputRef.current.value = '';
-        };
-        reader.readAsArrayBuffer(file);
+    const handleToggleLicensed = async (userId: string, currentStatus: boolean) => {
+        const { error } = await supabase.from('profiles').update({ is_licensed: !currentStatus }).eq('id', userId);
+        if (error) alert("Errore: " + error.message);
+        else {
+            logAdminAction('TOGGLE_LICENSED', { userId, newStatus: !currentStatus });
+            setProfiles(prev => prev.map(p => p.id === userId ? { ...p, is_licensed: !currentStatus } : p));
+        }
     };
 
-    const confirmBulkImport = async () => {
-        setImporting(true);
-        const teamId = isSuperAdmin ? selectedImportTeam : myProfile?.team_id;
-        
-        if (!teamId) {
-            alert("Errore: Seleziona un team per l'importazione.");
-            setImporting(false);
-            return;
+    const handleToggleMember = async (userId: string, currentStatus: boolean) => {
+        const { error } = await supabase.from('profiles').update({ is_member: !currentStatus }).eq('id', userId);
+        if (error) alert("Errore: " + error.message);
+        else {
+            logAdminAction('TOGGLE_MEMBER', { userId, newStatus: !currentStatus });
+            setProfiles(prev => prev.map(p => p.id === userId ? { ...p, is_member: !currentStatus } : p));
         }
+    };
 
-        let successCount = 0;
-        const errors: string[] = [];
-
-        // Raggruppa i dati per l'inserimento
-        const athletesToInsert = importData.map(athlete => ({
-            full_name: athlete.full_name,
-            team_id: teamId,
-            is_team_admin: false,
-        }));
-
-        try {
-            // Inserimento massivo dei profili
-            const { data, error } = await supabase
-                .from('profiles')
-                .insert(athletesToInsert)
-                .select();
-
-            if (error) {
-                console.error("Supabase Insert Error:", error);
-                throw error;
-            }
-            
-            successCount = data?.length || 0;
-            
-            // LOGGING
-            await logAdminAction('BULK_IMPORT_ATHLETES', { 
-                count: successCount, 
-                team: teams.find(t => t.id === teamId)?.name || teamId,
-                athletes: importData.map(a => a.full_name)
-            });
-            
-        } catch (err: any) {
-            errors.push(`Errore durante l'inserimento: ${err.message || 'Errore sconosciuto'}`);
+    const handleUpdateCertificate = async (userId: string, expiryDate: string) => {
+        const { error } = await supabase.from('profiles').update({ medical_certificate_expiry: expiryDate }).eq('id', userId);
+        if (error) alert("Errore: " + error.message);
+        else {
+            logAdminAction('UPDATE_CERTIFICATE', { userId, expiryDate });
+            setProfiles(prev => prev.map(p => p.id === userId ? { ...p, medical_certificate_expiry: expiryDate } : p));
         }
+    };
 
-        setImportResults({ success: successCount, errors });
-        fetchAllData(isSuperAdmin, isSuperAdmin ? undefined : myProfile?.team_id);
-        setImporting(false);
+    const handleUpdateAthleteTeam = async (userId: string, teamId: string | null) => {
+        const { error } = await supabase.from('profiles').update({ team_id: teamId }).eq('id', userId);
+        if (error) alert("Errore: " + error.message);
+        else {
+            logAdminAction('UPDATE_ATHLETE_TEAM', { userId, teamId });
+            fetchAllData(isSuperAdmin, myProfile?.team_id);
+        }
     };
 
     const handleToggleAdmin = async (userId: string, currentStatus: boolean) => {
@@ -210,666 +258,299 @@ const AdminPage: React.FC = () => {
         if (error) alert("Errore: " + error.message);
         else {
             logAdminAction('TOGGLE_TEAM_ADMIN', { userId, newStatus: !currentStatus });
-            fetchAllData(true, myProfile?.team_id);
+            setProfiles(prev => prev.map(p => p.id === userId ? { ...p, is_team_admin: !currentStatus } : p));
         }
     };
 
-    const handleCopyCode = (code: string) => {
-        navigator.clipboard.writeText(code);
-        alert(`Codice ${code} copiato!`);
+    const handleDeleteAthlete = async (userId: string, name: string) => {
+        if (!window.confirm(`Eliminare ${name}?`)) return;
+        const timestamp = new Date().toISOString();
+        setProfiles(prev => prev.filter(p => p.id !== userId));
+        const { error } = await supabase.from('profiles').update({ deleted_at: timestamp }).eq('id', userId);
+        if (error) { alert("Errore: " + error.message); fetchAllData(isSuperAdmin, myProfile?.team_id); }
+        else { logAdminAction('DELETE_ATHLETE', { userId, name }); await supabase.from('user_plans').update({ deleted_at: timestamp }).eq('user_id', userId); }
     };
 
-    const handleUploadLogo = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-        setUploading(true);
-        try {
-            const fileExt = file.name.split('.').pop();
-            const fileName = `${Math.random()}.${fileExt}`;
-            const { error: uploadError } = await supabase.storage.from('team-logos').upload(fileName, file);
-            if (uploadError) throw uploadError;
-            const { data: { publicUrl } } = supabase.storage.from('team-logos').getPublicUrl(fileName);
-            setTeamForm(prev => ({ ...prev, logo_url: publicUrl }));
-        } catch (error: any) {
-            alert("Errore caricamento logo: " + error.message);
-        } finally {
-            setUploading(false);
-        }
+    const AthleteRow = ({ atleta }: { atleta: any }) => {
+        const isExpired = atleta.medical_certificate_expiry && new Date(atleta.medical_certificate_expiry) < new Date();
+        return (
+            <tr className="hover:bg-slate-50 transition-colors">
+                <td className="px-8 py-5"><div className="flex flex-col"><span className="font-black text-slate-800 flex items-center gap-2">{atleta.full_name || 'N/A'}{atleta.is_team_admin && <Shield className="w-3 h-3 text-amber-500 fill-current" />}</span><span className="text-[10px] font-bold text-slate-500 uppercase">{atleta.id.substring(0,8)}...</span></div></td>
+                <td className="px-8 py-5"><select value={atleta.team_id || ''} onChange={(e) => handleUpdateAthleteTeam(atleta.id, e.target.value || null)} className="bg-slate-100 border-none rounded-xl px-3 py-2 text-xs font-black uppercase" disabled={!isSuperAdmin}><option value="">Nessun Team</option>{teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select></td>
+                <td className="px-8 py-5"><input type="number" value={atleta.birth_year || ''} onBlur={(e) => handleUpdateBirthYear(atleta.id, e.target.value)} onChange={(e) => setProfiles(prev => prev.map(p => p.id === atleta.id ? { ...p, birth_year: e.target.value } : p))} className="w-16 bg-slate-50 border-none rounded-lg px-2 py-1 text-xs font-bold" /></td>
+                <td className="px-8 py-5"><span className="px-2 py-1 bg-slate-100 text-slate-600 rounded-md text-[10px] font-black uppercase">{getFitriCategory(atleta.birth_year)}</span></td>
+                <td className="px-8 py-5 text-center">
+                    <button onClick={() => handleToggleLicensed(atleta.id, atleta.is_licensed)} className={`p-2 rounded-xl transition-all ${atleta.is_licensed ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-400'}`} title="Tesserato FITRI">
+                        <CheckCircle2 className={`w-5 h-5 ${atleta.is_licensed ? 'opacity-100' : 'opacity-20'}`} />
+                    </button>
+                </td>
+                <td className="px-8 py-5 text-center">
+                    <button onClick={() => handleToggleMember(atleta.id, atleta.is_member)} className={`p-2 rounded-xl transition-all ${atleta.is_member ? 'bg-pink-100 text-pink-700 border border-pink-200' : 'bg-slate-100 text-slate-400'}`} title="Socio Associazione">
+                        <Heart className={`w-5 h-5 ${atleta.is_member ? 'opacity-100 fill-current' : 'opacity-20'}`} />
+                    </button>
+                </td>
+                <td className="px-8 py-5"><div className="flex items-center gap-2"><input type="date" value={atleta.medical_certificate_expiry || ''} onChange={(e) => handleUpdateCertificate(atleta.id, e.target.value)} className={`bg-transparent border-none text-xs font-bold ${isExpired ? 'text-red-600 bg-red-50' : 'text-slate-600'}`} />{isExpired && <AlertCircle className="w-3 h-3 text-red-500" />}</div></td>
+                <td className="px-8 py-5 text-center"><span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-black">{plansCount[atleta.id] || 0}</span></td>
+                <td className="px-8 py-5 text-right"><div className="flex items-center justify-end gap-2">{isSuperAdmin && <button onClick={() => handleToggleAdmin(atleta.id, atleta.is_team_admin)} className={`p-2 rounded-lg ${atleta.is_team_admin ? 'text-amber-600 bg-amber-50' : 'text-slate-400'}`}><Shield className="w-4 h-4" /></button>}<button onClick={() => handleDeleteAthlete(atleta.id, atleta.full_name)} className="p-2 text-slate-400 hover:text-red-700"><Trash2 className="w-4 h-4" /></button></div></td>
+            </tr>
+        );
+    };
+
+    const handleFileImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]; if (!file) return;
+        const reader = new FileReader(); reader.onload = (event) => {
+            const data = new Uint8Array(event.target?.result as ArrayBuffer);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+            setImportData(json.map((row: any) => ({ full_name: row['Nome Completo'] || row['Nome'] || row['atleta'], email: row['Email'] || row['email'] })).filter(item => item.full_name));
+            setIsImportModalOpen(true); if (fileInputRef.current) fileInputRef.current.value = '';
+        }; reader.readAsArrayBuffer(file);
+    };
+
+    const confirmBulkImport = async () => {
+        setImporting(true); const teamId = isSuperAdmin ? selectedImportTeam : myProfile?.team_id;
+        const { data, error } = await supabase.from('profiles').insert(importData.map(a => ({ full_name: a.full_name, team_id: teamId }))).select();
+        if (error) { setImportResults({ success: 0, errors: [error.message] }); }
+        else { setImportResults({ success: data.length, errors: [] }); logAdminAction('BULK_IMPORT', { count: data.length, teamId }); fetchAllData(isSuperAdmin, myProfile?.team_id); }
+        setImporting(false);
+    };
+
+    const handleExportAthletesExcel = () => {
+        const data = profiles.map(p => ({
+            'Nome Completo': p.full_name || 'N/A',
+            'Team': teams.find(t => t.id === p.team_id)?.name || 'Nessuno',
+            'Anno Nascita': p.birth_year || '',
+            'Categoria': getFitriCategory(p.birth_year),
+            'Tesserato': p.is_licensed ? 'Sì' : 'No',
+            'Socio': p.is_member ? 'Sì' : 'No',
+            'Scadenza Certificato': p.medical_certificate_expiry || 'N/D',
+            'Gare Pianificate': plansCount[p.id] || 0
+        }));
+        
+        const ws = XLSX.utils.json_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Atleti");
+        XLSX.writeFile(wb, `anagrafica-atleti-${new Date().toISOString().split('T')[0]}.xlsx`);
+        logAdminAction('EXPORT_ATHLETES_EXCEL', { count: data.length });
+    };
+
+    const handleExportExcel = async () => {
+        const userIds = profiles.map(p => p.id);
+        const { data: plans } = await supabase.from('user_plans').select('user_id, race_id').in('user_id', userIds).is('deleted_at', null);
+        const raceGroups: Record<string, string[]> = {};
+        plans?.forEach(p => { if (!raceGroups[p.race_id]) raceGroups[p.race_id] = []; raceGroups[p.race_id].push(profiles.find(prof => prof.id === p.user_id)?.full_name || 'N/A'); });
+        let csv = "Gara;Data;Atleti\n"; (racesData as any[]).forEach(r => { if (raceGroups[r.id]) csv += `"${r.title}";"${r.date}";"${raceGroups[r.id].join(', ')}"\n`; });
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = `gare-team.csv`; link.click();
     };
 
     const handleSaveTeam = async (e: React.FormEvent) => {
         e.preventDefault();
-        const payload = { 
-            ...teamForm, 
-            join_code: teamForm.join_code.toUpperCase().trim() 
-        };
-        let error;
-        let action = editingTeam ? 'UPDATE_TEAM' : 'CREATE_TEAM';
-        
-        if (editingTeam) {
-            const res = await supabase.from('teams').update(payload).eq('id', editingTeam.id);
-            error = res.error;
-        } else {
-            const res = await supabase.from('teams').insert([payload]);
-            error = res.error;
-        }
-        
-        if (error) {
-            alert("Errore nel salvataggio del team: " + error.message);
-        } else {
-            logAdminAction(action, { teamName: teamForm.name, join_code: payload.join_code });
-            setIsTeamModalOpen(false);
-            setEditingTeam(null);
-            setTeamForm({ name: '', join_code: '', primary_color: '#3b82f6', secondary_color: '#1e293b', logo_url: '', website_url: '', telegram_chat_id: '', admin_telegram_chat_id: '' });
-            fetchAllData(isSuperAdmin, myProfile?.team_id);
-        }
-    };
-
-    const handleUpdateAthleteTeam = React.useCallback(async (userId: string, teamId: string | null) => {
-        const { error } = await supabase.from('profiles').update({ team_id: teamId }).eq('id', userId);
-        if (error) alert("Errore aggiornamento atleta: " + error.message);
-        else {
-            logAdminAction('UPDATE_ATHLETE_TEAM', { userId, teamId });
-            fetchAllData(isSuperAdmin, myProfile?.team_id);
-        }
-    }, [isSuperAdmin, myProfile?.team_id, session]);
-
-    const handleUpdateCertificate = async (userId: string, expiryDate: string) => {
-        const { error } = await supabase.from('profiles').update({ medical_certificate_expiry: expiryDate }).eq('id', userId);
-        if (error) alert("Errore aggiornamento certificato: " + error.message);
-        else {
-            logAdminAction('UPDATE_CERTIFICATE', { userId, expiryDate });
-            setProfiles(prev => prev.map(p => p.id === userId ? { ...p, medical_certificate_expiry: expiryDate } : p));
-        }
-    };
-
-    const handleDeleteAthlete = React.useCallback(async (userId: string, name: string) => {
-        if (!window.confirm(`Eliminare ${name}?`)) return;
-        
-        // 1. Aggiornamento UI IMMEDIATO (priorità alta)
-        setProfiles(prev => prev.filter(p => p.id !== userId));
-
-        // 2. Esecuzione in background (non blocca l'interfaccia)
-        try {
-            const timestamp = new Date().toISOString();
-            // Eseguiamo le cancellazioni in PARALLELO (Soft Delete)
-            Promise.all([
-                supabase.from('user_plans').update({ deleted_at: timestamp }).eq('user_id', userId),
-                supabase.from('profiles').update({ deleted_at: timestamp }).eq('id', userId),
-                logAdminAction('DELETE_ATHLETE', { userId, name })
-            ]).then(([resPlans, resProf]) => {
-                if (resProf.error || resPlans.error) {
-                    alert("Errore durante l'eliminazione: " + (resProf.error?.message || resPlans.error?.message));
-                    fetchAllData(isSuperAdmin, myProfile?.team_id); // Revert
-                }
-            });
-        } catch (error: any) {
-            console.error("Errore silente:", error);
-        }
-    }, [isSuperAdmin, myProfile?.team_id, session, myProfile]);
-
-    const handleDeleteTeam = React.useCallback(async (teamId: string, name: string) => {
-        if (profiles.filter(p => p.team_id === teamId).length > 0) {
-            alert(`Sposta prima gli atleti di ${name}.`);
-            return;
-        }
-        if (!window.confirm(`Eliminare team ${name}?`)) return;
-        const { error } = await supabase.from('teams').delete().eq('id', teamId);
+        const payload = { ...teamForm, join_code: teamForm.join_code.toUpperCase().trim() };
+        let error = editingTeam ? (await supabase.from('teams').update(payload).eq('id', editingTeam.id)).error : (await supabase.from('teams').insert([payload])).error;
         if (error) alert("Errore: " + error.message);
-        else fetchAllData(isSuperAdmin, myProfile?.team_id);
-    }, [profiles, isSuperAdmin, myProfile?.team_id]);
-
-    const handleExportExcel = async () => {
-        if (!profiles.length) return;
-        const teamId = myProfile?.team_id || (editingTeam?.id);
-        const teamName = teams.find(t => t.id === (isSuperAdmin ? teams[0]?.id : teamId))?.name || 'team';
-        
-        setLoading(true);
-        try {
-            const userIds = profiles.map(p => p.id);
-            const { data: allTeamPlans, error } = await supabase
-                .from('user_plans')
-                .select('user_id, race_id')
-                .in('user_id', userIds)
-                .is('deleted_at', null);
-
-            if (error) throw error;
-
-            // Raggruppa per gara
-            const raceGroups: Record<string, string[]> = {};
-            allTeamPlans?.forEach(p => {
-                if (!raceGroups[p.race_id]) raceGroups[p.race_id] = [];
-                const athleteName = profiles.find(prof => prof.id === p.user_id)?.full_name || 'N/A';
-                raceGroups[p.race_id].push(athleteName);
-            });
-
-            // Costruisci il CSV (compatibile Excel con separatore punto e virgola)
-            let csvContent = "Gara;Data;Località;Atleti\n";
-            
-            // Ordiniamo le gare per data (usando i dati locali per velocità)
-            const sortedRaces = [...(racesData as any[])].sort((a,b) => a.date.split("-").reverse().join("-").localeCompare(b.date.split("-").reverse().join("-")));
-
-            sortedRaces.forEach(race => {
-                const participants = raceGroups[race.id];
-                if (participants && participants.length > 0) {
-                    const row = [
-                        `"${race.title.replace(/"/g, '""')}"`,
-                        `"${race.date}"`,
-                        `"${race.location.replace(/"/g, '""')}"`,
-                        `"${participants.join(', ')}"`
-                    ].join(';');
-                    csvContent += row + "\n";
-                }
-            });
-
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `elenco-gare-${teamName.toLowerCase().replace(/\s+/g, '-')}.csv`;
-            link.click();
-            URL.revokeObjectURL(url);
-        } catch (err: any) {
-            alert("Errore export excel: " + err.message);
-        } finally {
-            setLoading(false);
-        }
+        else { logAdminAction(editingTeam ? 'UPDATE_TEAM' : 'CREATE_TEAM', { teamName: teamForm.name }); setIsTeamModalOpen(false); fetchAllData(isSuperAdmin, myProfile?.team_id); }
     };
 
-    const handleExportTeamBackup = async () => {
-        if (!profiles.length) return;
-        const teamId = myProfile?.team_id || (editingTeam?.id);
-        const teamName = teams.find(t => t.id === (isSuperAdmin ? teams[0]?.id : teamId))?.name || 'team';
-        
-        setLoading(true);
-        try {
-            const userIds = profiles.map(p => p.id);
-            const { data: allTeamPlans, error } = await supabase
-                .from('user_plans')
-                .select('*')
-                .in('user_id', userIds)
-                .is('deleted_at', null);
-
-            if (error) throw error;
-
-            const backupData = {
-                team: teams.find(t => t.id === (isSuperAdmin ? teams[0]?.id : teamId)),
-                athletes: profiles,
-                plans: allTeamPlans,
-                exported_at: new Date().toISOString(),
-                version: "4.5"
-            };
-
-            const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `backup-${teamName.toLowerCase().replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.json`;
-            link.click();
-            URL.revokeObjectURL(url);
-        } catch (err: any) {
-            alert("Errore durante l'export: " + err.message);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const filteredProfiles = React.useMemo(() => 
-        profiles.filter(p => (p.full_name || '').toLowerCase().includes(searchTerm.toLowerCase())),
-    [profiles, searchTerm]);
-
-    const filteredTeams = React.useMemo(() => 
-        teams.filter(t => (t.name || '').toLowerCase().includes(teamSearchTerm.toLowerCase()) || (t.join_code || '').toLowerCase().includes(teamSearchTerm.toLowerCase())),
-    [teams, teamSearchTerm]);
+    const filteredProfiles = profiles.filter(p => (p.full_name || '').toLowerCase().includes(searchTerm.toLowerCase()));
+    const filteredTeams = teams.filter(t => (t.name || '').toLowerCase().includes(teamSearchTerm.toLowerCase()) || (t.join_code || '').toLowerCase().includes(teamSearchTerm.toLowerCase()));
 
     if (!loading && !isSuperAdmin && !myProfile?.is_team_admin) return <Navigate to="/" replace />;
     if (loading) return <div className="p-20 text-center font-black uppercase text-slate-400">Caricamento...</div>;
 
     return (
         <div className="max-w-6xl mx-auto px-4 py-10">
+            {/* HEADER */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
-                <div className="flex items-center gap-4">
-                    <div className="bg-amber-500 p-4 rounded-[2rem] text-white shadow-xl rotate-3"><Shield className="w-8 h-8" /></div>
-                    <div><h1 className="text-3xl font-black text-slate-800 uppercase tracking-tight">{isSuperAdmin ? 'SaaS Command Center' : `Gestione ${teams[0]?.name || 'Team'}`}</h1><p className="text-slate-500 font-bold text-sm">{isSuperAdmin ? 'Benvenuto Stefano.' : `Benvenuto ${myProfile?.full_name}.`}</p></div>
-                </div>
-                <div className="flex bg-slate-100 p-1.5 rounded-[1.5rem]">
-                    <button onClick={() => setActiveTab('atleti')} className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'atleti' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}><div className="flex items-center gap-2"><Users className="w-4 h-4" /> Atleti</div></button>
-                    {isSuperAdmin && <button onClick={() => setActiveTab('team')} className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'team' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}><div className="flex items-center gap-2"><Trophy className="w-4 h-4" /> Team</div></button>}
-                    <button onClick={() => setActiveTab('social')} className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'social' ? 'bg-white text-purple-600 shadow-sm' : 'text-slate-500'}`}><div className="flex items-center gap-2"><Camera className="w-4 h-4" /> Social</div></button>
-                    <button onClick={() => setActiveTab('logs')} className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'logs' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}><div className="flex items-center gap-2"><FileText className="w-4 h-4" /> Log Attività</div></button>
+                <div className="flex items-center gap-4"><div className="bg-amber-500 p-4 rounded-[2rem] text-white shadow-xl rotate-3"><Shield className="w-8 h-8" /></div><div><h1 className="text-3xl font-black text-slate-800 uppercase tracking-tight">{isSuperAdmin ? 'SaaS Command Center' : `Gestione ${teams[0]?.name}`}</h1><p className="text-slate-500 font-bold text-sm">Benvenuto Stefano.</p></div></div>
+                <div className="flex bg-slate-100 p-1.5 rounded-[1.5rem] overflow-x-auto no-scrollbar">
+                    {['atleti', 'stats', 'social', 'logs'].map(tab => (<button key={tab} onClick={() => setActiveTab(tab as any)} className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === tab ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}>{tab}</button>))}
+                    {isSuperAdmin && <button onClick={() => setActiveTab('team')} className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'team' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}>Team</button>}
                 </div>
             </div>
 
-            {activeTab === 'logs' && (
-                <div className="space-y-6">
-                    <div className="bg-white rounded-[3rem] shadow-sm border border-slate-100 overflow-hidden">
-                        <div className="p-8 border-b border-slate-50 flex justify-between items-center">
-                            <h3 className="text-xl font-black text-slate-800 uppercase flex items-center gap-3">
-                                <FileText className="w-6 h-6 text-slate-400" /> Cronologia Operazioni Admin
-                            </h3>
-                            <button onClick={() => fetchAllData(isSuperAdmin, myProfile?.team_id)} className="p-2 hover:bg-slate-50 rounded-xl transition-colors"><RotateCw className="w-5 h-5 text-slate-400" /></button>
+            {activeTab === 'atleti' && (
+                <div className="space-y-12">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div className="relative group max-w-md w-full"><Mail className="absolute left-4 top-3.5 w-5 h-5 text-slate-500" /><input type="text" placeholder="Cerca atleta..." className="w-full pl-12 pr-4 py-3.5 bg-white border-2 border-slate-200 rounded-2xl outline-none text-sm font-medium" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} /></div>
+                        <div className="flex flex-wrap gap-2">
+                            <input type="file" accept=".xlsx, .xls, .csv" className="hidden" ref={fileInputRef} onChange={handleFileImport} />
+                            <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-blue-200"><FileSpreadsheet className="w-4 h-4" /> Importa</button>
+                            <button onClick={handleExportAthletesExcel} className="flex items-center gap-2 px-6 py-3 bg-white border-2 border-slate-200 text-slate-600 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 transition-all"><Download className="w-4 h-4" /> Esporta Atleti</button>
+                            <button onClick={handleExportExcel} className="flex items-center gap-2 px-6 py-3 bg-emerald-50 text-emerald-700 rounded-2xl text-[10px] font-black uppercase tracking-widest border-2 border-emerald-100"><FileText className="w-4 h-4" /> Esporta Gare</button>
                         </div>
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left border-collapse">
-                                <thead className="bg-slate-50">
-                                    <tr>
-                                        <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Data / Ora</th>
-                                        <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Amministratore</th>
-                                        <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Azione</th>
-                                        <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Dettagli</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-50">
-                                    {auditLogs.map((log) => (
-                                        <tr key={log.id} className="hover:bg-slate-50/50 transition-colors">
-                                            <td className="px-8 py-4">
-                                                <div className="text-[11px] font-bold text-slate-800">{new Date(log.created_at).toLocaleDateString('it-IT')}</div>
-                                                <div className="text-[10px] font-medium text-slate-400">{new Date(log.created_at).toLocaleTimeString('it-IT')}</div>
-                                            </td>
-                                            <td className="px-8 py-4">
-                                                <div className="flex items-center gap-2">
-                                                    <div className="w-6 h-6 bg-slate-100 rounded-full flex items-center justify-center text-[10px] font-black text-slate-500">
-                                                        {(log.profiles?.full_name || 'Sys')[0]}
-                                                    </div>
-                                                    <span className="text-[11px] font-black text-slate-700">{log.profiles?.full_name || 'Sistema'}</span>
-                                                </div>
-                                            </td>
-                                            <td className="px-8 py-4">
-                                                <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-tighter ${
-                                                    log.action.includes('DELETE') ? 'bg-red-50 text-red-600' :
-                                                    log.action.includes('IMPORT') ? 'bg-blue-50 text-blue-600' :
-                                                    log.action.includes('CREATE') ? 'bg-emerald-50 text-emerald-600' :
-                                                    'bg-slate-100 text-slate-600'
-                                                }`}>
-                                                    {log.action.replace(/_/g, ' ')}
-                                                </span>
-                                            </td>
-                                            <td className="px-8 py-4 max-w-xs">
-                                                <div className="text-[10px] font-bold text-slate-500 truncate">
-                                                    {JSON.stringify(log.details).substring(0, 100)}
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                    {auditLogs.length === 0 && (
-                                        <tr>
-                                            <td colSpan={4} className="px-8 py-20 text-center text-slate-400 font-bold uppercase text-xs tracking-widest">
-                                                Nessuna attività registrata negli ultimi 50 eventi.
-                                            </td>
-                                        </tr>
-                                    )}
-                                </tbody>
-                            </table>
+                    </div>
+                    {isImportModalOpen && (
+                        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+                            <div className="bg-white rounded-[3rem] p-10 max-w-lg w-full shadow-2xl overflow-hidden flex flex-col">
+                                <div className="flex justify-between mb-6"><div className="bg-blue-50 p-4 rounded-3xl text-blue-600"><FileSpreadsheet className="w-8 h-8" /></div><button onClick={() => setIsImportModalOpen(false)} className="p-2 hover:bg-slate-100 rounded-xl"><X className="w-6 h-6 text-slate-400" /></button></div>
+                                {importResults.success > 0 ? (
+                                    <div className="space-y-6"><div className="p-6 bg-emerald-50 text-emerald-700 rounded-[2rem] font-black uppercase text-sm flex items-center gap-2"><CheckCircle2 className="w-5 h-5" /> {importResults.success} Atleti Importati</div><button onClick={() => setIsImportModalOpen(false)} className="w-full py-4 bg-slate-900 text-white rounded-[1.5rem] text-xs font-black uppercase">Chiudi</button></div>
+                                ) : (
+                                    <><h3 className="text-2xl font-black text-slate-800 uppercase mb-2">Conferma Importazione</h3><p className="text-slate-500 font-bold text-sm mb-6">Trovati {importData.length} atleti. Confermi?</p>{isSuperAdmin && (<select value={selectedImportTeam} onChange={(e) => setSelectedImportTeam(e.target.value)} className="w-full mb-6 p-4 bg-slate-50 rounded-2xl font-black uppercase text-xs border-2 border-slate-100">{teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select>)}<div className="flex gap-4"><button onClick={() => setIsImportModalOpen(false)} className="flex-1 py-4 bg-slate-100 text-slate-600 rounded-[1.5rem] text-xs font-black uppercase">Annulla</button><button onClick={confirmBulkImport} disabled={importing} className="flex-[2] py-4 bg-blue-600 text-white rounded-[1.5rem] text-xs font-black uppercase shadow-xl shadow-blue-200">{importing ? 'Importazione...' : 'Conferma'}</button></div></>
+                                )}
+                            </div>
+                        </div>
+                    )}
+                    <div className="space-y-4">
+                        <h3 className="text-sm font-black text-emerald-600 uppercase tracking-widest flex items-center gap-2 pl-4"><CheckCircle2 className="w-4 h-4" /> Atleti Tesserati ({filteredProfiles.filter(p => p.is_licensed).length})</h3>
+                        <div className="bg-white rounded-[3rem] shadow-sm border border-emerald-50 overflow-hidden overflow-x-auto">
+                            <table className="w-full text-left border-collapse"><thead className="bg-emerald-50/50"><tr className="text-[11px] font-black text-emerald-800 uppercase tracking-widest"><th className="px-8 py-5">Atleta</th><th className="px-8 py-5">Team</th><th className="px-8 py-5">Anno</th><th className="px-8 py-5">Cat.</th><th className="px-8 py-5 text-center">Tesserato</th><th className="px-8 py-5 text-center">Socio</th><th className="px-8 py-5">Certificato</th><th className="px-8 py-5 text-center">Gare</th><th className="px-8 py-5 text-right">Azioni</th></tr></thead><tbody className="divide-y divide-emerald-50/30">{filteredProfiles.filter(p => p.is_licensed).map(atleta => <AthleteRow key={atleta.id} atleta={atleta} />)}</tbody></table>
+                        </div>
+                    </div>
+                    <div className="space-y-4">
+                        <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 pl-4"><X className="w-4 h-4" /> Atleti Da Tesserare ({filteredProfiles.filter(p => !p.is_licensed).length})</h3>
+                        <div className="bg-white rounded-[3rem] shadow-sm border border-slate-100 overflow-hidden overflow-x-auto opacity-90 hover:opacity-100 transition-opacity">
+                            <table className="w-full text-left border-collapse"><thead className="bg-slate-50"><tr className="text-[11px] font-black text-slate-600 uppercase tracking-widest"><th className="px-8 py-5">Atleta</th><th className="px-8 py-5">Team</th><th className="px-8 py-5">Anno</th><th className="px-8 py-5">Cat.</th><th className="px-8 py-5 text-center">Tesserato</th><th className="px-8 py-5 text-center">Socio</th><th className="px-8 py-5">Certificato</th><th className="px-8 py-5 text-center">Gare</th><th className="px-8 py-5 text-right">Azioni</th></tr></thead><tbody className="divide-y divide-slate-100">{filteredProfiles.filter(p => !p.is_licensed).map(atleta => <AthleteRow key={atleta.id} atleta={atleta} />)}</tbody></table>
                         </div>
                     </div>
                 </div>
             )}
 
-            {activeTab === 'atleti' && (
-                <div className="space-y-4">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <div className="relative group max-w-md w-full"><Mail className="absolute left-4 top-3.5 w-5 h-5 text-slate-500" /><input type="text" placeholder="Cerca atleta..." className="w-full pl-12 pr-4 py-3.5 bg-white border-2 border-slate-200 rounded-2xl focus:border-blue-500 outline-none text-sm font-medium shadow-sm transition-all placeholder:text-slate-400" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} /></div>
-                        <div className="flex flex-wrap gap-2">
-                            <input 
-                                type="file" 
-                                accept=".xlsx, .xls, .csv" 
-                                className="hidden" 
-                                ref={fileInputRef} 
-                                onChange={handleFileImport} 
-                            />
-                            <button 
-                                onClick={() => fileInputRef.current?.click()}
-                                className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all shrink-0 shadow-lg shadow-blue-200"
-                            >
-                                <FileSpreadsheet className="w-4 h-4" /> Importa Atleti (Excel)
-                            </button>
-                            <button 
-                                onClick={handleExportExcel}
-                                className="flex items-center gap-2 px-6 py-3 bg-emerald-50 border-2 border-emerald-100 text-emerald-700 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-100 transition-all shrink-0 shadow-sm"
-                            >
-                                <FileText className="w-4 h-4" /> Esporta Elenco Gare (Excel)
-                            </button>
-                            <button 
-                                onClick={handleExportTeamBackup}
-                                className="flex items-center gap-2 px-6 py-3 bg-white border-2 border-slate-200 text-slate-600 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 transition-all shrink-0 shadow-sm"
-                            >
-                                <Download className="w-4 h-4" /> Scarica Backup Team
-                            </button>
+            {activeTab === 'stats' && (
+                <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 flex flex-col items-center text-center">
+                            <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-4"><Users className="w-6 h-6" /></div>
+                            <span className="text-3xl font-black text-slate-800">{stats.totalAthletes}</span>
+                            <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest mt-1">Atleti Totali</span>
+                        </div>
+                        <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 flex flex-col items-center text-center">
+                            <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mb-4"><Trophy className="w-6 h-6" /></div>
+                            <span className="text-3xl font-black text-slate-800">{stats.activeAthletes}</span>
+                            <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest mt-1">Atleti Attivi</span>
+                        </div>
+                        <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 flex flex-col items-center text-center">
+                            <div className="w-12 h-12 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center mb-4"><Calendar className="w-6 h-6" /></div>
+                            <span className="text-3xl font-black text-slate-800">{allPlans.length}</span>
+                            <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest mt-1">Iscrizioni 2026</span>
                         </div>
                     </div>
-                    
-                    {/* MODALE IMPORTAZIONE */}
-                    {isImportModalOpen && (
-                        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-                            <div className="bg-white rounded-[3rem] p-10 max-w-2xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-                                <div className="flex justify-between items-start mb-6">
-                                    <div className="bg-blue-50 p-4 rounded-3xl text-blue-600 shadow-sm"><FileSpreadsheet className="w-8 h-8" /></div>
-                                    <button onClick={() => { setIsImportModalOpen(false); setImportResults({ success: 0, errors: [] }); }} className="p-2 hover:bg-slate-100 rounded-xl"><X className="w-6 h-6 text-slate-400" /></button>
-                                </div>
-
-                                {importResults.success > 0 || importResults.errors.length > 0 ? (
-                                    <div className="space-y-6 overflow-y-auto">
-                                        <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tight">Risultato Importazione</h3>
-                                        <div className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100">
-                                            <div className="flex items-center gap-3 text-emerald-600 font-black uppercase text-sm mb-4">
-                                                <CheckCircle2 className="w-5 h-5" /> {importResults.success} Atleti Pronti per l'invito
-                                            </div>
-                                            {importResults.errors.length > 0 && (
-                                                <div className="space-y-2">
-                                                    <div className="flex items-center gap-3 text-amber-600 font-black uppercase text-[10px] mb-2">
-                                                        <AlertCircle className="w-4 h-4" /> Notifiche/Errori:
-                                                    </div>
-                                                    <div className="max-h-40 overflow-y-auto text-[10px] font-bold text-slate-500 bg-white p-4 rounded-xl border border-slate-100">
-                                                        {importResults.errors.map((err, i) => <div key={i} className="mb-1">• {err}</div>)}
-                                                    </div>
-                                                </div>
-                                            )}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <div className="bg-white p-8 rounded-[3rem] shadow-sm border border-slate-100">
+                            <h3 className="text-xl font-black text-slate-800 uppercase mb-6 flex items-center gap-3"><Trophy className="w-6 h-6 text-amber-500" /> Gare più Gettonate</h3>
+                            <div className="space-y-4">
+                                {stats.topRaces.map((race, idx) => (
+                                    <div key={race.id} className="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100 group">
+                                        <div className="w-10 h-10 flex items-center justify-center font-black text-lg text-slate-300 group-hover:text-blue-500">{idx + 1}</div>
+                                        <div className="flex-1">
+                                            <div className="font-bold text-slate-800 text-sm">{race.title}</div>
+                                            <div className="text-[10px] font-black text-blue-600 uppercase">Gara ID: {race.id}</div>
                                         </div>
-                                        <p className="text-xs text-slate-500 font-medium leading-relaxed italic">
-                                            Gli atleti sono stati caricati come profili. Ora possono registrarsi con la loro email e il join code del team per attivare l'account.
-                                        </p>
-                                        <button 
-                                            onClick={() => setIsImportModalOpen(false)}
-                                            className="w-full py-4 bg-slate-900 text-white rounded-[1.5rem] text-xs font-black uppercase tracking-widest hover:bg-slate-800 transition-all"
-                                        >
-                                            Chiudi
-                                        </button>
+                                        <div className="bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm text-center">
+                                            <div className="text-lg font-black text-slate-800">{race.count}</div>
+                                            <div className="text-[8px] font-black uppercase text-slate-400 tracking-tighter">Atleti</div>
+                                        </div>
                                     </div>
-                                ) : (
-                                <>
-                                    <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tight mb-2">Conferma Importazione</h3>
-                                    <p className="text-slate-500 font-bold text-sm mb-6">Abbiamo trovato {importData.length} atleti nel file. Confermi il caricamento?</p>
-                                    
-                                    {isSuperAdmin && (
-                                        <div className="mb-6 p-6 bg-blue-50 rounded-[2rem] border border-blue-100">
-                                            <label className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-2 block">Seleziona Team di Destinazione</label>
-                                            <select 
-                                                value={selectedImportTeam} 
-                                                onChange={(e) => setSelectedImportTeam(e.target.value)}
-                                                className="w-full px-5 py-3.5 bg-white border-2 border-blue-200 rounded-2xl outline-none text-sm font-black uppercase text-slate-700 focus:border-blue-500 shadow-sm"
-                                            >
-                                                {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                                            </select>
-                                        </div>
-                                    )}
-
-                                    <div className="flex-1 overflow-y-auto mb-8 border border-slate-100 rounded-[2rem]">
-                                        <table className="w-full text-left text-xs">
-                                                <thead className="sticky top-0 bg-slate-50 border-b border-slate-100">
-                                                    <tr>
-                                                        <th className="px-6 py-3 font-black text-slate-400 uppercase">Nome</th>
-                                                        <th className="px-6 py-3 font-black text-slate-400 uppercase">Email</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody className="divide-y divide-slate-50">
-                                                    {importData.map((row, i) => (
-                                                        <tr key={i} className="hover:bg-slate-50">
-                                                            <td className="px-6 py-3 font-bold text-slate-700">{row.full_name}</td>
-                                                            <td className="px-6 py-3 text-slate-500">{row.email}</td>
-                                                        </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
-                                        </div>
-
-                                        <div className="flex gap-4">
-                                            <button 
-                                                onClick={() => setIsImportModalOpen(false)}
-                                                className="flex-1 py-4 bg-slate-100 text-slate-600 rounded-[1.5rem] text-xs font-black uppercase tracking-widest hover:bg-slate-200 transition-all"
-                                            >
-                                                Annulla
-                                            </button>
-                                            <button 
-                                                onClick={confirmBulkImport}
-                                                disabled={importing}
-                                                className="flex-[2] py-4 bg-blue-600 text-white rounded-[1.5rem] text-xs font-black uppercase tracking-widest shadow-xl shadow-blue-200 hover:bg-blue-700 transition-all disabled:opacity-50"
-                                            >
-                                                {importing ? 'Importazione in corso...' : 'Conferma e Importa'}
-                                            </button>
-                                        </div>
-                                    </>
-                                )}
+                                ))}
                             </div>
                         </div>
-                    )}
-
-                    <div className="bg-white rounded-[3rem] shadow-sm border border-slate-100 overflow-hidden">
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left border-collapse">
-                            <thead><tr className="bg-slate-100"><th className="px-8 py-5 text-[11px] font-black text-slate-600 uppercase tracking-widest">Atleta</th><th className="px-8 py-5 text-[11px] font-black text-slate-600 uppercase tracking-widest">Team</th><th className="px-8 py-5 text-[11px] font-black text-slate-600 uppercase tracking-widest">Certificato</th><th className="px-8 py-5 text-[11px] font-black text-slate-600 uppercase tracking-widest text-center">Gare</th><th className="px-8 py-5 text-[11px] font-black text-slate-600 uppercase tracking-widest text-right">Azioni</th></tr></thead>
-                            <tbody className="divide-y divide-slate-100">
-                                {filteredProfiles.map((atleta) => {
-                                    const isExpired = atleta.medical_certificate_expiry && new Date(atleta.medical_certificate_expiry) < new Date();
+                        <div className="bg-white p-8 rounded-[3rem] shadow-sm border border-slate-100">
+                            <h3 className="text-xl font-black text-slate-800 uppercase mb-6 flex items-center gap-3"><Users className="w-6 h-6 text-blue-500" /> Categorie</h3>
+                            <div className="space-y-4">
+                                {Object.entries(stats.categoryDist).sort(([,a], [,b]) => b - a).map(([cat, count]) => {
+                                    const percentage = Math.round((count / stats.totalAthletes) * 100);
                                     return (
-                                    <tr key={atleta.id} className="hover:bg-slate-50 transition-colors">
-                                        <td className="px-8 py-5">
-                                            <div className="flex items-center gap-3">
-                                                <div className="flex flex-col">
-                                                    <span className="font-black text-slate-800 flex items-center gap-2">
-                                                        {atleta.full_name || 'N/A'}
-                                                        {atleta.is_team_admin && <span title="Team Admin"><Shield className="w-3 h-3 text-amber-500 fill-current" /></span>}
-                                                    </span>
-                                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">{atleta.license_number || atleta.id.substring(0,8) + '...'}</span>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-8 py-5"><select value={atleta.team_id || ''} onChange={(e) => handleUpdateAthleteTeam(atleta.id, e.target.value || null)} className="bg-slate-100 border-none rounded-xl px-3 py-2 text-xs font-black uppercase text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer" disabled={!isSuperAdmin}><option value="">Nessun Team</option>{teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select></td>
-                                        <td className="px-8 py-5">
-                                            <div className="flex items-center gap-2">
-                                                <input 
-                                                    type="date" 
-                                                    value={atleta.medical_certificate_expiry || ''} 
-                                                    onChange={(e) => handleUpdateCertificate(atleta.id, e.target.value)}
-                                                    className={`bg-transparent border-none text-xs font-bold outline-none cursor-pointer p-1 rounded-md transition-colors ${isExpired ? 'text-red-600 bg-red-50' : 'text-slate-600 hover:bg-slate-100'}`}
-                                                />
-                                                {isExpired && <span title="Certificato Scaduto"><AlertCircle className="w-3 h-3 text-red-500" /></span>}
-                                            </div>
-                                        </td>
-                                        <td className="px-8 py-5 text-center"><span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-black">{plansCount[atleta.id] || 0}</span></td>
-                                        <td className="px-8 py-5 text-right">
-                                            <div className="flex items-center justify-end gap-2">
-                                                {isSuperAdmin && (
-                                                    <button 
-                                                        onClick={() => handleToggleAdmin(atleta.id, atleta.is_team_admin)} 
-                                                        className={`p-2 rounded-lg transition-colors ${atleta.is_team_admin ? 'text-amber-600 bg-amber-50' : 'text-slate-400 hover:text-amber-600 hover:bg-amber-50'}`}
-                                                        title={atleta.is_team_admin ? "Rimuovi privilegi Admin" : "Nomina Team Admin"}
-                                                    >
-                                                        <Shield className="w-4 h-4" />
-                                                    </button>
-                                                )}
-                                                <button 
-                                                    onClick={() => handleDeleteAthlete(atleta.id, atleta.full_name)} 
-                                                    className="p-2 text-slate-400 hover:text-red-700 transition-colors"
-                                                    aria-label={`Elimina atleta ${atleta.full_name}`}
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
-                                            </div>
-                                        </td>
-                                        
-                                    </tr>
-                                );
+                                        <div key={cat} className="space-y-2">
+                                            <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-slate-500"><span>{cat}</span><span>{count} ({percentage}%)</span></div>
+                                            <div className="h-3 bg-slate-100 rounded-full overflow-hidden"><div className="h-full bg-blue-500 transition-all duration-1000" style={{ width: `${percentage}%` }}></div></div>
+                                        </div>
+                                    );
                                 })}
-                            </tbody>
-                            </table>
+                            </div>
+                        </div>
+                        <div className="bg-white p-8 rounded-[3rem] shadow-sm border border-slate-100 lg:col-span-2">
+                            <h3 className="text-xl font-black text-slate-800 uppercase mb-6 flex items-center gap-3"><Calendar className="w-6 h-6 text-purple-500" /> Attività Mensile</h3>
+                            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4">
+                                {['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno', 'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre'].map(month => {
+                                    const count = stats.monthlyActivity[month] || 0;
+                                    return (
+                                        <div key={month} className={`p-4 rounded-[2rem] border text-center transition-all ${count > 0 ? 'bg-purple-50 border-purple-100' : 'bg-slate-50 border-slate-100 opacity-40'}`}>
+                                            <div className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">{month.substring(0,3)}</div>
+                                            <div className={`text-2xl font-black ${count > 0 ? 'text-purple-600' : 'text-slate-300'}`}>{count}</div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
                         </div>
                     </div>
                 </div>
             )}
 
             {activeTab === 'social' && (
-                <div className="space-y-6">
+                <div className="space-y-6 animate-in fade-in">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <div className="bg-white p-2 rounded-2xl border border-slate-100 flex items-center gap-2">
-                            <label className="text-[10px] font-black uppercase text-slate-500 pl-3">Mese:</label>
-                            <select 
-                                value={socialMonth} 
-                                onChange={(e) => setSocialMonth(e.target.value)}
-                                className="bg-transparent text-sm font-bold text-slate-800 outline-none p-2 cursor-pointer"
-                            >
-                                {['01','02','03','04','05','06','07','08','09','10','11','12'].map(m => (
-                                    <option key={m} value={m}>{new Date(2026, parseInt(m)-1, 1).toLocaleString('it-IT', { month: 'long' })}</option>
-                                ))}
-                            </select>
+                        <div className="flex flex-wrap gap-3">
+                            <div className="bg-white p-2 rounded-2xl border border-slate-100 flex items-center gap-2">
+                                <label className="text-[10px] font-black uppercase text-slate-500 pl-3">Mese:</label>
+                                <select value={socialMonth} onChange={(e) => setSocialMonth(e.target.value)} className="bg-transparent text-sm font-bold text-slate-800 outline-none p-2 cursor-pointer">
+                                    {['01','02','03','04','05','06','07','08','09','10','11','12'].map(m => (
+                                        <option key={m} value={m}>{new Date(2026, parseInt(m)-1, 1).toLocaleString('it-IT', { month: 'long' })}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            {isSuperAdmin && (
+                                <div className="bg-white p-2 rounded-2xl border border-slate-100 flex items-center gap-2">
+                                    <label className="text-[10px] font-black uppercase text-slate-500 pl-3">Team:</label>
+                                    <select value={selectedSocialTeam} onChange={(e) => setSelectedSocialTeam(e.target.value)} className="bg-transparent text-sm font-bold text-slate-800 outline-none p-2 cursor-pointer">
+                                        <option value="">Auto (Rileva)</option>
+                                        {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                                    </select>
+                                </div>
+                            )}
                         </div>
-                        <div className="flex gap-2">
-                            <button 
-                                onClick={async () => {
-                                    if (socialCardRef.current) {
-                                        const { toPng } = await import('html-to-image');
-                                        const dataUrl = await toPng(socialCardRef.current, { backgroundColor: '#0f172a', width: 1080, height: 1350 });
-                                        const link = document.createElement('a');
-                                        link.download = `social-stats-${socialMonth}-2026.png`;
-                                        link.href = dataUrl;
-                                        link.click();
-                                    }
-                                }}
-                                className="flex items-center gap-2 px-6 py-3 bg-purple-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl hover:bg-purple-700 transition-all"
-                            >
-                                <Download className="w-4 h-4" /> Scarica Immagine
-                            </button>
-                        </div>
+                        <button 
+                            onClick={async () => {
+                                if (socialCardRef.current) {
+                                    const { toPng } = await import('html-to-image');
+                                    const dataUrl = await toPng(socialCardRef.current, { backgroundColor: '#0f172a', width: 1080, height: 1350 });
+                                    const link = document.createElement('a');
+                                    link.download = `ranking-${socialMonth}-2026.png`; link.href = dataUrl; link.click();
+                                }
+                            }}
+                            className="flex items-center gap-2 px-6 py-3 bg-purple-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl hover:bg-purple-700"
+                        >
+                            <Download className="w-4 h-4" /> Scarica Immagine
+                        </button>
                     </div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                        {/* LISTA DATI */}
                         <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
-                            <h3 className="text-xl font-black text-slate-800 uppercase mb-6 flex items-center gap-3">
-                                <Trophy className="w-6 h-6 text-yellow-500" /> 
-                                Top Athletes - {new Date(2026, parseInt(socialMonth)-1, 1).toLocaleString('it-IT', { month: 'long' })}
-                            </h3>
+                            <h3 className="text-xl font-black text-slate-800 uppercase mb-6 flex items-center gap-3"><Trophy className="w-6 h-6 text-yellow-500" /> Ranking Atleti</h3>
                             <div className="space-y-4">
-                                {(() => {
-                                    // 1. Filtra piani per mese
-                                    const relevantPlans = allPlans.filter(p => {
-                                        const race = (racesData as any[]).find(r => r.id === p.race_id);
-                                        if (!race) return false;
-                                        const [d, m, y] = race.date.split("-");
-                                        return m === socialMonth;
-                                    });
-
-                                    // 2. Conta per user
-                                    const counts: Record<string, number> = {};
-                                    relevantPlans.forEach(p => { counts[p.user_id] = (counts[p.user_id] || 0) + 1; });
-
-                                    // 3. Ordina e prendi top 10
-                                    const sortedUsers = Object.entries(counts)
-                                        .sort(([,a], [,b]) => b - a)
-                                        .slice(0, 10);
-
-                                    if (sortedUsers.length === 0) return <div className="text-center py-10 text-slate-400 font-bold">Nessuna gara in questo mese.</div>;
-
-                                    return sortedUsers.map(([userId, count], index) => {
-                                        const profile = profiles.find(p => p.id === userId);
-                                        return (
-                                            <div key={userId} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                                                <div className="flex items-center gap-4">
-                                                    <div className={`w-8 h-8 flex items-center justify-center rounded-lg font-black text-xs ${index === 0 ? 'bg-yellow-100 text-yellow-700' : index === 1 ? 'bg-slate-200 text-slate-700' : index === 2 ? 'bg-orange-100 text-orange-800' : 'bg-white border text-slate-500'}`}>
-                                                        {index + 1}
-                                                    </div>
-                                                    <div>
-                                                        <div className="font-bold text-slate-800">{profile?.full_name || 'Sconosciuto'}</div>
-                                                        <div className="text-[10px] font-bold text-slate-400 uppercase">{profile?.team_id || 'No Team'}</div>
-                                                    </div>
-                                                </div>
-                                                <div className="text-xl font-black text-slate-800">{count} <span className="text-[10px] font-bold text-slate-400 uppercase">Gare</span></div>
-                                            </div>
-                                        );
-                                    });
-                                })()}
+                                {socialData.topAtleti.length === 0 ? <div className="text-center py-10 text-slate-400 font-bold uppercase text-xs tracking-widest">Nessuna gara registrata</div> : 
+                                socialData.topAtleti.map((item, idx) => (
+                                    <div key={item.userId} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                                        <div className="flex items-center gap-4">
+                                            <div className={`w-8 h-8 flex items-center justify-center rounded-lg font-black text-xs ${idx === 0 ? 'bg-yellow-100 text-yellow-700' : 'bg-white text-slate-500'}`}>{idx + 1}</div>
+                                            <div><div className="font-bold text-slate-800">{item.profile?.full_name || 'Sconosciuto'}</div></div>
+                                        </div>
+                                        <div className="text-xl font-black text-slate-800">{item.count} <span className="text-[10px] font-bold text-slate-400 uppercase">Gare</span></div>
+                                    </div>
+                                ))}
                             </div>
                         </div>
-
-                        {/* ANTEPRIMA CARD */}
                         <div className="relative overflow-hidden rounded-[2.5rem] border-4 border-slate-100 bg-slate-900 flex items-center justify-center p-4 min-h-[600px]">
-                            <p className="absolute text-[10px] font-black text-white/30 uppercase tracking-[0.3em] top-6 z-20">Anteprima Social Card</p>
-                            
-                            {/* Container di scaling per l'anteprima */}
-                            <div className="w-full flex items-center justify-center overflow-hidden" style={{ height: '550px' }}>
-                                <div 
-                                    ref={socialCardRef}
-                                    className="w-[1080px] h-[1350px] bg-slate-950 text-white relative flex flex-col items-center p-20 shrink-0"
-                                    style={{ transform: 'scale(0.38)', transformOrigin: 'center center' }}
-                                >
-                                    {(() => {
-                                        // Trova il team corrente per la card
-                                        const currentTeam = isSuperAdmin 
-                                            ? (teams.find(t => t.id === profiles.find(p => p.id === allPlans.find(pl => {
-                                                const r = (racesData as any[]).find(rd => rd.id === pl.race_id);
-                                                return r && r.date.split("-")[1] === socialMonth;
-                                              })?.user_id)?.team_id) || teams[0])
-                                            : teams.find(t => t.id === myProfile?.team_id);
-
-                                        return (
-                                            <>
-                                                {/* Background Elements */}
-                                                <div className="absolute top-0 right-0 w-[900px] h-[900px] bg-gradient-to-bl from-purple-500/30 to-transparent rounded-full blur-[120px] -mr-40 -mt-40"></div>
-                                                <div className="absolute bottom-0 left-0 w-[700px] h-[700px] bg-gradient-to-tr from-blue-500/30 to-transparent rounded-full blur-[120px] -ml-20 -mb-20"></div>
-                                                <img src={currentTeam?.logo_url || "/Logo.png"} className="absolute top-20 right-20 w-48 opacity-10 grayscale brightness-200" alt="" />
-
-                                                {/* Header */}
-                                                <div className="w-full text-center mb-20 relative z-10">
-                                                    <div className="inline-block px-12 py-6 bg-purple-600 rounded-full mb-8 shadow-2xl shadow-purple-900/50">
-                                                        <span className="text-4xl font-black uppercase tracking-[0.3em]">Athlete of the Month</span>
-                                                    </div>
-                                                    <h1 className="text-[10rem] font-black uppercase tracking-tighter mb-4 leading-none">
-                                                        {new Date(2026, parseInt(socialMonth)-1, 1).toLocaleString('it-IT', { month: 'long' })}
-                                                    </h1>
-                                                    <p className="text-5xl font-bold uppercase tracking-[0.6em] text-white/40">Ranking 2026</p>
-                                                </div>
-
-                                                {/* List */}
-                                                <div className="w-full max-w-5xl space-y-10 relative z-10">
-                                                    {(() => {
-                                                        const relevantPlans = allPlans.filter(p => {
-                                                            const race = (racesData as any[]).find(r => r.id === p.race_id);
-                                                            return race && race.date.split("-")[1] === socialMonth;
-                                                        });
-                                                        const counts: Record<string, number> = {};
-                                                        relevantPlans.forEach(p => { counts[p.user_id] = (counts[p.user_id] || 0) + 1; });
-                                                        
-                                                        const topAtleti = Object.entries(counts)
-                                                            .sort(([,a], [,b]) => b - a)
-                                                            .slice(0, 5);
-
-                                                        if (topAtleti.length === 0) return <div className="text-center text-4xl font-bold text-white/20 mt-40 uppercase tracking-widest">No Races this Month</div>;
-
-                                                        return topAtleti.map(([userId, count], index) => {
-                                                                const profile = profiles.find(p => p.id === userId);
-                                                                return (
-                                                                    <div key={userId} className="flex items-center justify-between p-10 bg-white/5 rounded-[4rem] border border-white/10 backdrop-blur-xl shadow-2xl">
-                                                                        <div className="flex items-center gap-12">
-                                                                            <div className={`w-28 h-28 flex items-center justify-center rounded-[2.5rem] text-6xl font-black ${index === 0 ? 'bg-yellow-400 text-yellow-950' : index === 1 ? 'bg-slate-300 text-slate-900' : index === 2 ? 'bg-orange-400 text-orange-950' : 'bg-white/10 text-white'}`}>
-                                                                                {index + 1}
-                                                                            </div>
-                                                                            <div className="text-6xl font-black">{profile?.full_name}</div>
-                                                                        </div>
-                                                                        <div className="flex flex-col items-center bg-white/10 px-10 py-6 rounded-[3rem] border border-white/5">
-                                                                            <span className="text-6xl font-black text-purple-400">{count}</span>
-                                                                            <span className="text-xl font-black uppercase tracking-[0.2em] opacity-40">Gare</span>
-                                                                        </div>
-                                                                    </div>
-                                                                );
-                                                            });
-                                                    })()}
-                                                </div>
-
-                                                {/* Footer */}
-                                                <div className="mt-auto w-full flex items-center justify-between opacity-50 relative z-10">
-                                                    <div className="flex items-center gap-8">
-                                                        <img src={currentTeam?.logo_url || "/Logo.png"} className="w-24 h-24 object-contain grayscale brightness-200" alt="" />
-                                                        <div className="text-left">
-                                                            <div className="text-3xl font-black uppercase tracking-widest">{currentTeam?.name || 'Race Planner'}</div>
-                                                            <div className="text-2xl font-bold">{currentTeam?.website_url || 'raceplanner.saas'}</div>
-                                                        </div>
-                                                    </div>
-                                                    <div className="text-right">
-                                                        <div className="text-2xl font-black opacity-40 uppercase tracking-[0.4em]">Official Ranking</div>
-                                                    </div>
-                                                </div>
-                                            </>
-                                        );
-                                    })()}
+                            <div className="w-full flex items-center justify-center" style={{ height: '550px' }}>
+                                <div ref={socialCardRef} className="w-[1080px] h-[1350px] bg-slate-950 text-white relative flex flex-col items-center p-20 shrink-0" style={{ transform: 'scale(0.38)', transformOrigin: 'center center' }}>
+                                    <div className="absolute top-0 right-0 w-[900px] h-[900px] bg-gradient-to-bl from-purple-500/30 to-transparent rounded-full blur-[120px] -mr-40 -mt-40"></div>
+                                    <img src={socialData.displayTeam?.logo_url || "/Logo.png"} className="absolute top-20 right-20 w-48 opacity-10 grayscale brightness-200" alt="" />
+                                    <div className="w-full text-center mb-20 relative z-10">
+                                        <div className="inline-block px-12 py-6 bg-purple-600 rounded-full mb-8 shadow-2xl shadow-purple-900/50"><span className="text-4xl font-black uppercase tracking-[0.3em]">Athlete of the Month</span></div>
+                                        <h1 className="text-[10rem] font-black uppercase tracking-tighter mb-4 leading-none text-white">{new Date(2026, parseInt(socialMonth)-1, 1).toLocaleString('it-IT', { month: 'long' })}</h1>
+                                        <p className="text-5xl font-bold uppercase tracking-[0.6em] text-white/40">Ranking 2026</p>
+                                    </div>
+                                    <div className="w-full max-w-5xl space-y-10 relative z-10">
+                                        {socialData.topAtleti.slice(0, 5).map((item, idx) => (
+                                            <div key={item.userId} className="flex items-center justify-between p-10 bg-white/5 rounded-[4rem] border border-white/10 backdrop-blur-xl">
+                                                <div className="flex items-center gap-12 text-white"><div className={`w-28 h-28 flex items-center justify-center rounded-[2.5rem] text-6xl font-black ${idx === 0 ? 'bg-yellow-400 text-yellow-950' : 'bg-white/10 text-white'}`}>{idx + 1}</div><div className="text-6xl font-black">{item.profile?.full_name}</div></div>
+                                                <div className="flex flex-col items-center bg-white/10 px-10 py-6 rounded-[3rem] border border-white/5"><span className="text-6xl font-black text-purple-400">{item.count}</span><span className="text-xl font-black uppercase tracking-[0.2em] opacity-40">Gare</span></div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div className="mt-auto w-full flex items-center justify-between opacity-50 relative z-10">
+                                        <div className="flex items-center gap-8"><img src={socialData.displayTeam?.logo_url || "/Logo.png"} className="w-24 h-24 object-contain grayscale brightness-200" alt="" /><div><div className="text-3xl font-black uppercase tracking-widest">{socialData.displayTeam?.name}</div><div className="text-2xl font-bold">raceplanner.saas</div></div></div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -877,111 +558,34 @@ const AdminPage: React.FC = () => {
                 </div>
             )}
 
+            {activeTab === 'logs' && (
+                <div className="bg-white rounded-[3rem] shadow-sm border border-slate-100 overflow-hidden animate-in fade-in">
+                    <div className="p-8 border-b border-slate-50 flex justify-between items-center"><h3 className="text-xl font-black uppercase text-slate-800">Log Attività</h3><button onClick={() => fetchAllData(isSuperAdmin, myProfile?.team_id)}><RotateCw className="w-5 h-5 text-slate-400"/></button></div>
+                    <div className="overflow-x-auto"><table className="w-full text-left"><thead><tr className="bg-slate-50 text-[10px] font-black text-slate-400 uppercase tracking-widest"><th className="px-8 py-4">Data</th><th className="px-8 py-4">Admin</th><th className="px-8 py-4">Azione</th><th className="px-8 py-4 text-right">Dettagli</th></tr></thead><tbody className="divide-y divide-slate-50">{auditLogs.map(log => (<tr key={log.id} className="text-[11px]"><td className="px-8 py-4 font-bold">{new Date(log.created_at).toLocaleString('it-IT')}</td><td className="px-8 py-4 font-black">{log.profiles?.full_name || 'Sistema'}</td><td className="px-8 py-4"><span className="px-3 py-1 bg-slate-100 rounded-full">{log.action}</span></td><td className="px-8 py-4 text-slate-400 text-right truncate max-w-xs">{JSON.stringify(log.details)}</td></tr>))}</tbody></table></div>
+                </div>
+            )}
+
             {activeTab === 'team' && isSuperAdmin && (
-                <div className="space-y-6">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <div className="relative group max-w-md w-full"><Trophy className="absolute left-4 top-3.5 w-5 h-5 text-slate-500" /><input type="text" placeholder="Cerca team..." className="w-full pl-12 pr-4 py-3.5 bg-white border-2 border-slate-200 rounded-2xl focus:border-blue-500 outline-none text-sm font-medium shadow-sm transition-all placeholder:text-slate-400" value={teamSearchTerm} onChange={(e) => setTeamSearchTerm(e.target.value)} /></div>
-                        <button onClick={() => { setEditingTeam(null); setTeamForm({ name: '', join_code: '', primary_color: '#3b82f6', secondary_color: '#1e293b', logo_url: '', website_url: '', telegram_chat_id: '', admin_telegram_chat_id: '' }); setIsTeamModalOpen(true); }} className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl hover:bg-slate-800 transition-all shrink-0"><Plus className="w-4 h-4" /> Nuovo Team</button>
-                    </div>
+                <div className="space-y-6 animate-in fade-in">
+                    <div className="flex justify-between items-center"><input type="text" placeholder="Cerca team..." className="pl-6 py-3 bg-white border-2 border-slate-200 rounded-2xl outline-none text-sm font-medium" value={teamSearchTerm} onChange={(e) => setTeamSearchTerm(e.target.value)} /><button onClick={() => { setEditingTeam(null); setTeamForm({ name: '', join_code: '', primary_color: '#3b82f6', secondary_color: '#1e293b', logo_url: '', website_url: '', telegram_chat_id: '', admin_telegram_chat_id: '' }); setIsTeamModalOpen(true); }} className="px-6 py-3 bg-slate-900 text-white rounded-2xl text-xs font-black uppercase shadow-xl"><Plus className="w-4 h-4 inline mr-2"/>Nuovo Team</button></div>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {filteredTeams.map((team) => (
-                            <div key={team.id} className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 flex flex-col relative overflow-hidden group">
-                                <div className="absolute top-0 right-0 w-32 h-32 -mr-8 -mt-8 bg-slate-50 rounded-full opacity-50 group-hover:scale-110 transition-transform duration-500"></div>
-                                <div className="flex items-center gap-4 mb-6 relative z-10">
-                                    <div className="w-16 h-16 bg-slate-50 rounded-2xl p-2 flex items-center justify-center border border-slate-100"><img src={team.logo_url || "/Logo.png"} alt="" className="max-w-full max-h-full object-contain" /></div>
-                                    <div className="flex-1">
-                                        <h3 className="font-black text-slate-800 uppercase leading-none mb-1">{team.name}</h3>
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-[10px] font-black px-2 py-0.5 rounded bg-slate-800 text-white uppercase tracking-tighter">{team.join_code}</span>
-                                            <button 
-                                                onClick={() => handleCopyCode(team.join_code)}
-                                                className="p-1 text-slate-400 hover:text-blue-600 transition-colors"
-                                                title="Copia codice invito"
-                                            >
-                                                <Copy className="w-3 h-3" />
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="space-y-3 mb-8 relative z-10">
-                                    <div className="flex items-center justify-between text-xs"><span className="font-bold text-slate-500 uppercase">Colors</span><div className="flex gap-1"><div className="w-6 h-6 rounded-lg border border-slate-200" style={{ backgroundColor: team.primary_color }}></div><div className="w-6 h-6 rounded-lg border border-slate-200" style={{ backgroundColor: team.secondary_color }}></div></div></div>
-                                    <div className="flex items-center justify-between text-xs">
-                                        <span className="font-bold text-slate-500 uppercase">Telegram Notifications</span>
-                                        {team.telegram_chat_id ? (
-                                            <span className="flex items-center gap-1 text-blue-600 font-black"><Camera className="w-3 h-3" /> Active</span>
-                                        ) : (
-                                            <span className="text-slate-300 font-bold italic">Not set</span>
-                                        )}
-                                    </div>
-                                    <div className="flex items-center justify-between text-xs"><span className="font-bold text-slate-500 uppercase">Atleti</span><span className="font-black text-slate-800">{profiles.filter(p => p.team_id === team.id).length}</span></div>
-                                </div>
-                                <div className="flex items-center gap-2 mt-auto pt-6 border-t border-slate-50 relative z-10">
-                                    <button 
-                                        onClick={() => { setEditingTeam(team); setTeamForm({ name: team.name, join_code: team.join_code || '', primary_color: team.primary_color || '#3b82f6', secondary_color: team.secondary_color || '#1e293b', logo_url: team.logo_url || '', website_url: team.website_url || '', telegram_chat_id: team.telegram_chat_id || '', admin_telegram_chat_id: team.admin_telegram_chat_id || '' }); setIsTeamModalOpen(true); }} 
-                                        className="flex-1 flex items-center justify-center gap-2 py-3 bg-slate-50 text-slate-600 rounded-xl text-[10px] font-black uppercase hover:bg-blue-50 hover:text-blue-600 transition-all"
-                                        aria-label={`Modifica team ${team.name}`}
-                                    >
-                                        <Edit2 className="w-3.5 h-3.5" /> Modifica
-                                    </button>
-                                    <button 
-                                        onClick={() => handleDeleteTeam(team.id, team.name)} 
-                                        className="p-3 bg-slate-50 text-slate-400 rounded-xl hover:bg-red-50 hover:text-red-600 transition-all"
-                                        aria-label={`Elimina team ${team.name}`}
-                                    >
-                                        <Trash2 className="w-4 h-4" />
-                                    </button>
-                                    <a 
-                                        href={team.website_url} 
-                                        target="_blank" 
-                                        rel="noopener noreferrer" 
-                                        className="p-3 bg-slate-50 text-slate-400 rounded-xl hover:bg-slate-100 transition-all"
-                                        aria-label={`Visita sito web di ${team.name}`}
-                                    >
-                                        <ExternalLink className="w-4 h-4" />
-                                    </a>
-                                </div>
-                            </div>
-                        ))}
+                        {filteredTeams.map(team => (<div key={team.id} className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100"><div className="flex items-center gap-4 mb-6"><div className="w-12 h-12 bg-slate-50 rounded-xl p-1 flex items-center justify-center"><img src={team.logo_url || "/Logo.png"} className="max-w-full max-h-full" alt=""/></div><h3 className="font-black text-slate-800 uppercase leading-none">{team.name}</h3></div><div className="flex items-center justify-between text-xs mb-6"><span className="font-bold text-slate-500 uppercase">Codice: {team.join_code}</span><div className="flex gap-1"><div className="w-4 h-4 rounded shadow-sm" style={{backgroundColor:team.primary_color}}></div><div className="w-4 h-4 rounded shadow-sm" style={{backgroundColor:team.secondary_color}}></div></div></div><button onClick={() => { setEditingTeam(team); setTeamForm({ name: team.name, join_code: team.join_code, primary_color: team.primary_color, secondary_color: team.secondary_color, logo_url: team.logo_url, website_url: team.website_url, telegram_chat_id: team.telegram_chat_id, admin_telegram_chat_id: team.admin_telegram_chat_id }); setIsTeamModalOpen(true); }} className="w-full py-3 bg-slate-50 text-slate-600 rounded-xl text-[10px] font-black uppercase hover:bg-slate-100 transition-all">Modifica</button></div>))}
                     </div>
                 </div>
             )}
 
             {isTeamModalOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
-                    <div className="bg-white rounded-[3rem] p-10 max-w-lg w-full shadow-2xl animate-in zoom-in-95 overflow-y-auto max-h-[90vh]">
-                        <div className="flex justify-between items-start mb-8"><div className="bg-blue-50 p-4 rounded-3xl text-blue-600 shadow-sm"><Trophy className="w-8 h-8" /></div><button onClick={() => setIsTeamModalOpen(false)} className="p-2 hover:bg-slate-100 rounded-xl"><X className="w-6 h-6 text-slate-400" /></button></div>
-                        <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tight mb-2">{editingTeam ? 'Modifica Team' : 'Nuovo Team'}</h3>
-                        <form onSubmit={handleSaveTeam} className="space-y-5">
-                            <div><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Nome</label><input type="text" className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-bold" value={teamForm.name} onChange={e => setTeamForm({...teamForm, name: e.target.value})} required /></div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Codice</label><input type="text" className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-bold uppercase" value={teamForm.join_code} onChange={e => setTeamForm({...teamForm, join_code: e.target.value})} required /></div>
-                                <div><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Colori</label><div className="flex items-center gap-2"><input type="color" className="w-10 h-10 rounded-xl cursor-pointer" value={teamForm.primary_color} onChange={e => setTeamForm({...teamForm, primary_color: e.target.value})} /><input type="color" className="w-10 h-10 rounded-xl cursor-pointer" value={teamForm.secondary_color} onChange={e => setTeamForm({...teamForm, secondary_color: e.target.value})} /></div></div>
-                            </div>
-                            <div><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Logo</label><div className="flex items-center gap-4"><div className="w-16 h-16 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 flex items-center justify-center overflow-hidden shrink-0">{teamForm.logo_url ? <img src={teamForm.logo_url} alt="Preview" className="max-w-full max-h-full object-contain" /> : <Upload className="w-6 h-6 text-slate-300" />}</div><div className="flex-1"><input type="file" accept="image/*" id="logo-upload" className="hidden" onChange={handleUploadLogo} disabled={uploading} /><label htmlFor="logo-upload" className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest cursor-pointer transition-all ${uploading ? 'bg-slate-100 text-slate-400' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'}`}>{uploading ? 'Caricamento...' : 'Carica'}</label></div></div><input type="text" className="w-full mt-3 px-5 py-3 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-[10px] font-medium" value={teamForm.logo_url} onChange={e => setTeamForm({...teamForm, logo_url: e.target.value})} placeholder="URL..." /></div>
-                            <div><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Sito</label><input type="text" className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-medium" value={teamForm.website_url} onChange={e => setTeamForm({...teamForm, website_url: e.target.value})} /></div>
-                            <div>
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">ID Gruppo Telegram (Team Group)</label>
-                                <input 
-                                    type="text" 
-                                    className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-medium" 
-                                    value={teamForm.telegram_chat_id} 
-                                    onChange={e => setTeamForm({...teamForm, telegram_chat_id: e.target.value})} 
-                                    placeholder="Es: -100123456789"
-                                />
-                                <p className="text-[9px] text-slate-400 mt-1 font-bold italic">Notifiche generali (iscrizioni gare) per tutto il team.</p>
-                            </div>
-                            <div>
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">ID Telegram STAFF/ADMIN (Privato)</label>
-                                <input 
-                                    type="text" 
-                                    className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-medium" 
-                                    value={teamForm.admin_telegram_chat_id} 
-                                    onChange={e => setTeamForm({...teamForm, admin_telegram_chat_id: e.target.value})} 
-                                    placeholder="Es: -100987654321"
-                                />
-                                <p className="text-[9px] text-slate-400 mt-1 font-bold italic">Solo per avvisi tecnici (es. scadenze certificati).</p>
-                            </div>
-                            <button type="submit" className="w-full mt-6 py-4 bg-slate-900 text-white rounded-[1.5rem] text-xs font-black uppercase tracking-widest shadow-xl hover:bg-slate-800 transition-all flex items-center justify-center gap-2"><Save className="w-4 h-4" /> Salva</button>
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+                    <div className="bg-white rounded-[3rem] p-10 max-w-lg w-full shadow-2xl overflow-y-auto max-h-[90vh]">
+                        <div className="flex justify-between mb-8"><Trophy className="w-8 h-8 text-blue-600"/><button onClick={() => setIsTeamModalOpen(false)}><X className="w-6 h-6 text-slate-400"/></button></div>
+                        <h3 className="text-2xl font-black uppercase mb-6">{editingTeam ? 'Modifica Team' : 'Nuovo Team'}</h3>
+                        <form onSubmit={handleSaveTeam} className="space-y-4">
+                            <input type="text" placeholder="Nome Team" className="w-full px-5 py-3 bg-slate-50 rounded-2xl outline-none" value={teamForm.name} onChange={e => setTeamForm({...teamForm, name: e.target.value})} required />
+                            <input type="text" placeholder="Codice Invito" className="w-full px-5 py-3 bg-slate-50 rounded-2xl outline-none uppercase" value={teamForm.join_code} onChange={e => setTeamForm({...teamForm, join_code: e.target.value})} required />
+                            <div className="flex gap-4"><input type="color" value={teamForm.primary_color} onChange={e => setTeamForm({...teamForm, primary_color: e.target.value})} className="w-full h-10 rounded-xl"/><input type="color" value={teamForm.secondary_color} onChange={e => setTeamForm({...teamForm, secondary_color: e.target.value})} className="w-full h-10 rounded-xl"/></div>
+                            <input type="text" placeholder="Logo URL" className="w-full px-5 py-3 bg-slate-50 rounded-2xl outline-none" value={teamForm.logo_url} onChange={e => setTeamForm({...teamForm, logo_url: e.target.value})} />
+                            <input type="text" placeholder="Telegram Chat ID" className="w-full px-5 py-3 bg-slate-50 rounded-2xl outline-none" value={teamForm.telegram_chat_id} onChange={e => setTeamForm({...teamForm, telegram_chat_id: e.target.value})} />
+                            <button type="submit" className="w-full py-4 bg-slate-900 text-white rounded-[1.5rem] font-black uppercase">Salva Team</button>
                         </form>
                     </div>
                 </div>
