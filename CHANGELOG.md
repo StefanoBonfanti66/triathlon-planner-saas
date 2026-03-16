@@ -2,6 +2,11 @@
 
 Tutti i cambiamenti significativi a questo progetto saranno documentati in questo file.
 
+## [6.3.1] - 2026-03-16
+### Corretto
+- **RLS Stability Fix**: Ripristinata la visibilità pubblica (SELECT) per profili, team e piani gara per evitare downtime dei dati in modalità anonima.
+- **Ottimizzazione Policy**: Risolti potenziali conflitti di ricorsione nelle query di aggiornamento profili.
+
 ## [6.3.0] - 2026-03-16
 ### Aggiunto
 - **Security Hardening**: Implementazione Row Level Security (RLS) su tutte le tabelle critiche.
