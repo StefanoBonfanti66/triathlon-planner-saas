@@ -2,6 +2,10 @@
 
 Tutti i cambiamenti significativi a questo progetto saranno documentati in questo file.
 
+## [6.3.2] - 2026-03-17
+### Corretto
+- **Fix Build Vercel**: Risolti errori di tipo TypeScript in `AdminPage.tsx` e `RaceDetailPage.tsx` che impedivano il corretto deploy su Vercel.
+
 ## [6.3.1] - 2026-03-16
 ### Corretto
 - **RLS Stability Fix**: Ripristinata la visibilità pubblica (SELECT) per profili, team e piani gara per evitare downtime dei dati in modalità anonima.
