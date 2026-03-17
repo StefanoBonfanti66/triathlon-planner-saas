@@ -30,6 +30,15 @@ const AdminPage: React.FC = () => {
     const [plansCount, setPlansCount] = useState<Record<string, number>>({});
     const [auditLogs, setAuditLogs] = useState<any[]>([]);
 
+    // Athlete Modal State
+    const [isAthleteModalOpen, setIsAthleteModalOpen] = useState(false);
+    const [editingAthlete, setEditingAthlete] = useState<any>(null);
+    const [athleteForm, setAthleteForm] = useState({
+        full_name: '', team_id: '', license_number: '', medical_certificate_expiry: '',
+        birth_year: '', birth_date: '', gender: '', shirt_size: '',
+        is_licensed: false, is_member: false, is_team_admin: false
+    });
+
     // Statistiche State
     const [stats, setStats] = useState({
         topRaces: [] as any[],
@@ -271,30 +280,105 @@ const AdminPage: React.FC = () => {
         else { logAdminAction('DELETE_ATHLETE', { userId, name }); await supabase.from('user_plans').update({ deleted_at: timestamp }).eq('user_id', userId); }
     };
 
+    const handleSaveAthlete = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            const payload: any = { ...athleteForm };
+            // Converte stringhe vuote in null per le colonne DATE/INT di Postgres
+            if (!payload.medical_certificate_expiry) payload.medical_certificate_expiry = null;
+            if (!payload.birth_date) payload.birth_date = null;
+            if (!payload.birth_year) payload.birth_year = null;
+            
+            let error;
+            if (editingAthlete) {
+                error = (await supabase.from('profiles').update(payload).eq('id', editingAthlete.id)).error;
+            } else {
+                error = (await supabase.from('profiles').insert([payload])).error;
+            }
+            if (error) throw error;
+            logAdminAction(editingAthlete ? 'UPDATE_ATHLETE' : 'CREATE_ATHLETE', { name: athleteForm.full_name });
+            setIsAthleteModalOpen(false);
+            fetchAllData(isSuperAdmin, myProfile?.team_id);
+        } catch (err: any) { alert("Errore: " + err.message); }
+    };
+
     const AthleteRow = ({ atleta }: { atleta: any }) => {
         const isExpired = atleta.medical_certificate_expiry && new Date(atleta.medical_certificate_expiry) < new Date();
         return (
             <tr className="hover:bg-slate-50 transition-colors">
-                <td className="px-8 py-5"><div className="flex flex-col"><span className="font-black text-slate-800 flex items-center gap-2">{atleta.full_name || 'N/A'}{atleta.is_team_admin && <Shield className="w-3 h-3 text-amber-500 fill-current" />}</span><span className="text-[10px] font-bold text-slate-500 uppercase">{atleta.id.substring(0,8)}...</span></div></td>
-                <td className="px-8 py-5"><select value={atleta.team_id || ''} onChange={(e) => handleUpdateAthleteTeam(atleta.id, e.target.value || null)} className="bg-slate-100 border-none rounded-xl px-3 py-2 text-xs font-black uppercase" disabled={!isSuperAdmin}><option value="">Nessun Team</option>{teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select></td>
-                <td className="px-8 py-5"><input type="number" value={atleta.birth_year || ''} onBlur={(e) => handleUpdateBirthYear(atleta.id, e.target.value)} onChange={(e) => setProfiles(prev => prev.map(p => p.id === atleta.id ? { ...p, birth_year: e.target.value } : p))} className="w-16 bg-slate-50 border-none rounded-lg px-2 py-1 text-xs font-bold" /></td>
-                <td className="px-8 py-5"><span className="px-2 py-1 bg-slate-100 text-slate-600 rounded-md text-[10px] font-black uppercase">{getFitriCategory(atleta.birth_year)}</span></td>
-                <td className="px-8 py-5 text-center">
-                    <button onClick={() => handleToggleLicensed(atleta.id, atleta.is_licensed)} className={`p-2 rounded-xl transition-all ${atleta.is_licensed ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-400'}`} title="Tesserato FITRI">
-                        <CheckCircle2 className={`w-5 h-5 ${atleta.is_licensed ? 'opacity-100' : 'opacity-20'}`} />
-                    </button>
+                <td className="px-4 py-4">
+                    <div className="flex flex-col">
+                        <span className="font-black text-slate-800 flex items-center gap-2 text-sm">{atleta.full_name || 'N/A'}{atleta.is_team_admin && <Shield className="w-3 h-3 text-amber-500 fill-current" />}</span>
+                        <select value={atleta.team_id || ''} onChange={(e) => handleUpdateAthleteTeam(atleta.id, e.target.value || null)} className="bg-transparent border-none p-0 text-[10px] font-bold uppercase text-blue-600 focus:ring-0 cursor-pointer" disabled={!isSuperAdmin}><option value="">Nessun Team</option>{teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select>
+                    </div>
                 </td>
-                <td className="px-8 py-5 text-center">
-                    <button onClick={() => handleToggleMember(atleta.id, atleta.is_member)} className={`p-2 rounded-xl transition-all ${atleta.is_member ? 'bg-pink-100 text-pink-700 border border-pink-200' : 'bg-slate-100 text-slate-400'}`} title="Socio Associazione">
-                        <Heart className={`w-5 h-5 ${atleta.is_member ? 'opacity-100 fill-current' : 'opacity-20'}`} />
-                    </button>
+                <td className="px-4 py-4"><span className="text-xs font-bold text-slate-500">{atleta.license_number || '-'}</span></td>
+                <td className="px-4 py-4">
+                    <div className="flex items-center gap-2">
+                        <input type="date" value={atleta.medical_certificate_expiry || ''} onChange={(e) => handleUpdateCertificate(atleta.id, e.target.value)} className={`bg-transparent border-none text-[11px] font-bold p-0 focus:ring-0 ${isExpired ? 'text-red-600' : 'text-slate-600'}`} />
+                        {isExpired && <AlertCircle className="w-3 h-3 text-red-500" />}
+                    </div>
                 </td>
-                <td className="px-8 py-5"><div className="flex items-center gap-2"><input type="date" value={atleta.medical_certificate_expiry || ''} onChange={(e) => handleUpdateCertificate(atleta.id, e.target.value)} className={`bg-transparent border-none text-xs font-bold ${isExpired ? 'text-red-600 bg-red-50' : 'text-slate-600'}`} />{isExpired && <AlertCircle className="w-3 h-3 text-red-500" />}</div></td>
-                <td className="px-8 py-5 text-center"><span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-black">{plansCount[atleta.id] || 0}</span></td>
-                <td className="px-8 py-5 text-right"><div className="flex items-center justify-end gap-2">{isSuperAdmin && <button onClick={() => handleToggleAdmin(atleta.id, atleta.is_team_admin)} className={`p-2 rounded-lg ${atleta.is_team_admin ? 'text-amber-600 bg-amber-50' : 'text-slate-400'}`}><Shield className="w-4 h-4" /></button>}<button onClick={() => handleDeleteAthlete(atleta.id, atleta.full_name)} className="p-2 text-slate-400 hover:text-red-700"><Trash2 className="w-4 h-4" /></button></div></td>
+                <td className="px-4 py-4">
+                    <div className="flex flex-col">
+                        <input type="number" value={atleta.birth_year || ''} onBlur={(e) => handleUpdateBirthYear(atleta.id, e.target.value)} onChange={(e) => setProfiles(prev => prev.map(p => p.id === atleta.id ? { ...p, birth_year: e.target.value } : p))} className="w-12 bg-transparent border-none p-0 text-xs font-bold focus:ring-0" />
+                        <span className="text-[9px] font-black uppercase text-slate-400">{getFitriCategory(atleta.birth_year)}</span>
+                    </div>
+                </td>
+                <td className="px-4 py-4">
+                    <div className="flex items-center gap-1">
+                        <button onClick={() => handleToggleLicensed(atleta.id, atleta.is_licensed)} className={`p-1.5 rounded-lg transition-all ${atleta.is_licensed ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-slate-50 text-slate-300'}`} title="Tesserato FITRI"><CheckCircle2 className="w-4 h-4" /></button>
+                        <button onClick={() => handleToggleMember(atleta.id, atleta.is_member)} className={`p-1.5 rounded-lg transition-all ${atleta.is_member ? 'bg-pink-50 text-pink-600 border border-pink-100' : 'bg-slate-50 text-slate-300'}`} title="Socio Associazione"><Heart className={`w-4 h-4 ${atleta.is_member ? 'fill-current' : ''}`} /></button>
+                    </div>
+                </td>
+                <td className="px-4 py-4 text-right">
+                    <div className="flex items-center justify-end gap-3">
+                        <span className="bg-slate-100 text-slate-800 px-2 py-0.5 rounded-md text-[10px] font-black">{plansCount[atleta.id] || 0}</span>
+                        <div className="flex items-center gap-1">
+                            <button onClick={() => { setEditingAthlete(atleta); setAthleteForm({ full_name: atleta.full_name || '', team_id: atleta.team_id || '', license_number: atleta.license_number || '', medical_certificate_expiry: atleta.medical_certificate_expiry || '', birth_year: atleta.birth_year || '', birth_date: atleta.birth_date || '', gender: atleta.gender || '', shirt_size: atleta.shirt_size || '', is_licensed: atleta.is_licensed || false, is_member: atleta.is_member || false, is_team_admin: atleta.is_team_admin || false }); setIsAthleteModalOpen(true); }} className="p-1.5 text-slate-300 hover:text-blue-600 transition-all"><Edit2 className="w-3.5 h-3.5" /></button>
+                            {isSuperAdmin && <button onClick={() => handleToggleAdmin(atleta.id, atleta.is_team_admin)} className={`p-1.5 rounded-lg ${atleta.is_team_admin ? 'text-amber-600 bg-amber-50' : 'text-slate-300'}`}><Shield className="w-3.5 h-3.5" /></button>}
+                            <button onClick={() => handleDeleteAthlete(atleta.id, atleta.full_name)} className="p-1.5 text-slate-300 hover:text-red-600"><Trash2 className="w-3.5 h-3.5" /></button>
+                        </div>
+                    </div>
+                </td>
             </tr>
         );
     };
+
+    const AthleteModal = () => (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
+            <div className="bg-white rounded-[3rem] p-10 max-w-2xl w-full shadow-2xl overflow-y-auto max-h-[90vh]">
+                <div className="flex justify-between items-start mb-8"><div className="bg-blue-50 p-4 rounded-3xl text-blue-600"><Users className="w-8 h-8" /></div><button onClick={() => setIsAthleteModalOpen(false)} className="p-2 hover:bg-slate-100 rounded-xl"><X className="w-6 h-6 text-slate-400" /></button></div>
+                <h3 className="text-2xl font-black text-slate-800 uppercase mb-6">{editingAthlete ? 'Modifica Anagrafica' : 'Nuovo Atleta'}</h3>
+                <form onSubmit={handleSaveAthlete} className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-4">
+                            <div><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Nome Completo</label><input type="text" className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-bold" value={athleteForm.full_name} onChange={e => setAthleteForm({...athleteForm, full_name: e.target.value})} required /></div>
+                            <div><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Team</label><select value={athleteForm.team_id} onChange={e => setAthleteForm({...athleteForm, team_id: e.target.value})} className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-bold" required><option value="">Seleziona Team</option>{teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select></div>
+                            <div><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Tessera FITRI</label><input type="text" className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-bold" value={athleteForm.license_number} onChange={e => setAthleteForm({...athleteForm, license_number: e.target.value})} /></div>
+                            <div><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Certificato Medico (Scadenza)</label><input type="date" className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-bold" value={athleteForm.medical_certificate_expiry} onChange={e => setAthleteForm({...athleteForm, medical_certificate_expiry: e.target.value})} /></div>
+                        </div>
+                        <div className="space-y-4">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Data di Nascita</label><div className="relative"><input type="date" className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-bold" value={athleteForm.birth_date} onChange={e => { const year = e.target.value.split('-')[0]; setAthleteForm({...athleteForm, birth_date: e.target.value, birth_year: year}); }} /><Calendar className="absolute right-4 top-3.5 w-5 h-5 text-slate-400 pointer-events-none" /></div></div>
+                                <div><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Anno (Cat)</label><input type="number" className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-bold" value={athleteForm.birth_year} onChange={e => setAthleteForm({...athleteForm, birth_year: e.target.value})} /></div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Sesso</label><select value={athleteForm.gender} onChange={e => setAthleteForm({...athleteForm, gender: e.target.value})} className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-bold"><option value="">-</option><option value="M">Maschio</option><option value="F">Femmina</option></select></div>
+                                <div><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Taglia Maglia</label><select value={athleteForm.shirt_size} onChange={e => setAthleteForm({...athleteForm, shirt_size: e.target.value})} className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-bold"><option value="">-</option><option value="XS">XS</option><option value="S">S</option><option value="M">M</option><option value="L">L</option><option value="XL">XL</option><option value="XXL">XXL</option></select></div>
+                            </div>
+                            <div className="p-6 bg-slate-50 rounded-[2rem] space-y-4">
+                                <div className="flex items-center justify-between"><span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Tesserato FITRI</span><button type="button" onClick={() => setAthleteForm({...athleteForm, is_licensed: !athleteForm.is_licensed})} className={`w-12 h-6 rounded-full transition-all relative ${athleteForm.is_licensed ? 'bg-emerald-500' : 'bg-slate-300'}`}><div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${athleteForm.is_licensed ? 'left-7' : 'left-1'}`}></div></button></div>
+                                <div className="flex items-center justify-between"><span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Socio Associazione</span><button type="button" onClick={() => setAthleteForm({...athleteForm, is_member: !athleteForm.is_member})} className={`w-12 h-6 rounded-full transition-all relative ${athleteForm.is_member ? 'bg-pink-500' : 'bg-slate-300'}`}><div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${athleteForm.is_member ? 'left-7' : 'left-1'}`}></div></button></div>
+                                {isSuperAdmin && <div className="flex items-center justify-between"><span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Team Admin</span><button type="button" onClick={() => setAthleteForm({...athleteForm, is_team_admin: !athleteForm.is_team_admin})} className={`w-12 h-6 rounded-full transition-all relative ${athleteForm.is_team_admin ? 'bg-amber-500' : 'bg-slate-300'}`}><div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${athleteForm.is_team_admin ? 'left-7' : 'left-1'}`}></div></button></div>}
+                            </div>
+                        </div>
+                    </div>
+                    <button type="submit" className="w-full mt-6 py-4 bg-slate-900 text-white rounded-[1.5rem] text-xs font-black uppercase tracking-widest shadow-xl hover:bg-slate-800 transition-all flex items-center justify-center gap-2"><Save className="w-4 h-4" /> Salva Anagrafica</button>
+                </form>
+            </div>
+        </div>
+    );
 
     const handleFileImport = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]; if (!file) return;
@@ -352,6 +436,31 @@ const AdminPage: React.FC = () => {
         else { logAdminAction(editingTeam ? 'UPDATE_TEAM' : 'CREATE_TEAM', { teamName: teamForm.name }); setIsTeamModalOpen(false); fetchAllData(isSuperAdmin, myProfile?.team_id); }
     };
 
+    const handleUploadLogo = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setUploading(true);
+        try {
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${Math.random()}.${fileExt}`;
+            const filePath = `team-logos/${fileName}`;
+            const { error: uploadError } = await supabase.storage.from('team-logos').upload(filePath, file);
+            if (uploadError) throw uploadError;
+            const { data: { publicUrl } } = supabase.storage.from('team-logos').getPublicUrl(filePath);
+            setTeamForm({ ...teamForm, logo_url: publicUrl });
+            logAdminAction('UPLOAD_TEAM_LOGO', { fileName, publicUrl });
+        } catch (err: any) {
+            alert("Errore caricamento: " + err.message);
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    const handleCopyCode = (code: string) => {
+        navigator.clipboard.writeText(code);
+        alert("Codice copiato!");
+    };
+
     const filteredProfiles = profiles.filter(p => (p.full_name || '').toLowerCase().includes(searchTerm.toLowerCase()));
     const filteredTeams = teams.filter(t => (t.name || '').toLowerCase().includes(teamSearchTerm.toLowerCase()) || (t.join_code || '').toLowerCase().includes(teamSearchTerm.toLowerCase()));
 
@@ -375,6 +484,7 @@ const AdminPage: React.FC = () => {
                         <div className="relative group max-w-md w-full"><Mail className="absolute left-4 top-3.5 w-5 h-5 text-slate-500" /><input type="text" placeholder="Cerca atleta..." className="w-full pl-12 pr-4 py-3.5 bg-white border-2 border-slate-200 rounded-2xl outline-none text-sm font-medium" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} /></div>
                         <div className="flex flex-wrap gap-2">
                             <input type="file" accept=".xlsx, .xls, .csv" className="hidden" ref={fileInputRef} onChange={handleFileImport} />
+                            <button onClick={() => { setEditingAthlete(null); setAthleteForm({ full_name: '', team_id: isSuperAdmin ? '' : (myProfile?.team_id || ''), license_number: '', medical_certificate_expiry: '', birth_year: '', birth_date: '', gender: '', shirt_size: '', is_licensed: false, is_member: false, is_team_admin: false }); setIsAthleteModalOpen(true); }} className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg hover:bg-slate-800 transition-all"><Plus className="w-4 h-4" /> Nuovo Atleta</button>
                             <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-blue-200"><FileSpreadsheet className="w-4 h-4" /> Importa</button>
                             <button onClick={handleExportAthletesExcel} className="flex items-center gap-2 px-6 py-3 bg-white border-2 border-slate-200 text-slate-600 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 transition-all"><Download className="w-4 h-4" /> Esporta Atleti</button>
                             <button onClick={handleExportExcel} className="flex items-center gap-2 px-6 py-3 bg-emerald-50 text-emerald-700 rounded-2xl text-[10px] font-black uppercase tracking-widest border-2 border-emerald-100"><FileText className="w-4 h-4" /> Esporta Gare</button>
@@ -395,13 +505,20 @@ const AdminPage: React.FC = () => {
                     <div className="space-y-4">
                         <h3 className="text-sm font-black text-emerald-600 uppercase tracking-widest flex items-center gap-2 pl-4"><CheckCircle2 className="w-4 h-4" /> Atleti Tesserati ({filteredProfiles.filter(p => p.is_licensed).length})</h3>
                         <div className="bg-white rounded-[3rem] shadow-sm border border-emerald-50 overflow-hidden overflow-x-auto">
-                            <table className="w-full text-left border-collapse"><thead className="bg-emerald-50/50"><tr className="text-[11px] font-black text-emerald-800 uppercase tracking-widest"><th className="px-8 py-5">Atleta</th><th className="px-8 py-5">Team</th><th className="px-8 py-5">Anno</th><th className="px-8 py-5">Cat.</th><th className="px-8 py-5 text-center">Tesserato</th><th className="px-8 py-5 text-center">Socio</th><th className="px-8 py-5">Certificato</th><th className="px-8 py-5 text-center">Gare</th><th className="px-8 py-5 text-right">Azioni</th></tr></thead><tbody className="divide-y divide-emerald-50/30">{filteredProfiles.filter(p => p.is_licensed).map(atleta => <AthleteRow key={atleta.id} atleta={atleta} />)}</tbody></table>
+                            <table className="w-full text-left border-collapse"><thead className="bg-emerald-50/50"><tr className="bg-emerald-50/50 text-[10px] font-black text-emerald-800 uppercase tracking-widest">
+                                        <th className="px-4 py-5">Atleta / Team</th>
+                                        <th className="px-4 py-5">Tessera</th>
+                                        <th className="px-4 py-5">Certificato</th>
+                                        <th className="px-4 py-5">Anno/Cat.</th>
+                                        <th className="px-4 py-5">Status</th>
+                                        <th className="px-4 py-5 text-right">Gare/Azioni</th>
+                                    </tr></thead><tbody className="divide-y divide-emerald-50/30">{filteredProfiles.filter(p => p.is_licensed).map(atleta => <AthleteRow key={atleta.id} atleta={atleta} />)}</tbody></table>
                         </div>
                     </div>
                     <div className="space-y-4">
                         <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 pl-4"><X className="w-4 h-4" /> Atleti Da Tesserare ({filteredProfiles.filter(p => !p.is_licensed).length})</h3>
                         <div className="bg-white rounded-[3rem] shadow-sm border border-slate-100 overflow-hidden overflow-x-auto opacity-90 hover:opacity-100 transition-opacity">
-                            <table className="w-full text-left border-collapse"><thead className="bg-slate-50"><tr className="text-[11px] font-black text-slate-600 uppercase tracking-widest"><th className="px-8 py-5">Atleta</th><th className="px-8 py-5">Team</th><th className="px-8 py-5">Anno</th><th className="px-8 py-5">Cat.</th><th className="px-8 py-5 text-center">Tesserato</th><th className="px-8 py-5 text-center">Socio</th><th className="px-8 py-5">Certificato</th><th className="px-8 py-5 text-center">Gare</th><th className="px-8 py-5 text-right">Azioni</th></tr></thead><tbody className="divide-y divide-slate-100">{filteredProfiles.filter(p => !p.is_licensed).map(atleta => <AthleteRow key={atleta.id} atleta={atleta} />)}</tbody></table>
+                            <table className="w-full text-left border-collapse"><thead className="bg-slate-50"><tr className="text-[11px] font-black text-slate-600 uppercase tracking-widest"><th className="px-8 py-5">Atleta</th><th className="px-8 py-5">Team</th><th className="px-8 py-5">Tessera</th><th className="px-8 py-5">Anno</th><th className="px-8 py-5">Cat.</th><th className="px-8 py-5 text-center">Tesserato</th><th className="px-8 py-5 text-center">Socio</th><th className="px-8 py-5">Certificato</th><th className="px-8 py-5 text-center">Gare</th><th className="px-8 py-5 text-right">Azioni</th></tr></thead><tbody className="divide-y divide-slate-100">{filteredProfiles.filter(p => !p.is_licensed).map(atleta => <AthleteRow key={atleta.id} atleta={atleta} />)}</tbody></table>
                         </div>
                     </div>
                 </div>
@@ -567,29 +684,81 @@ const AdminPage: React.FC = () => {
 
             {activeTab === 'team' && isSuperAdmin && (
                 <div className="space-y-6 animate-in fade-in">
-                    <div className="flex justify-between items-center"><input type="text" placeholder="Cerca team..." className="pl-6 py-3 bg-white border-2 border-slate-200 rounded-2xl outline-none text-sm font-medium" value={teamSearchTerm} onChange={(e) => setTeamSearchTerm(e.target.value)} /><button onClick={() => { setEditingTeam(null); setTeamForm({ name: '', join_code: '', primary_color: '#3b82f6', secondary_color: '#1e293b', logo_url: '', website_url: '', telegram_chat_id: '', admin_telegram_chat_id: '' }); setIsTeamModalOpen(true); }} className="px-6 py-3 bg-slate-900 text-white rounded-2xl text-xs font-black uppercase shadow-xl"><Plus className="w-4 h-4 inline mr-2"/>Nuovo Team</button></div>
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">     
+                        <div className="relative group max-w-md w-full"><Trophy className="absolute left-4 top-3.5 w-5 h-5 text-slate-500" /><input type="text" placeholder="Cerca team..." className="w-full pl-12 pr-4 py-3.5 bg-white border-2 border-slate-200 rounded-2xl focus:border-blue-500 outline-none text-sm font-medium shadow-sm transition-all placeholder:text-slate-400" value={teamSearchTerm} onChange={(e) => setTeamSearchTerm(e.target.value)} /></div>
+                        <button onClick={() => { setEditingTeam(null); setTeamForm({ name: '', join_code: '', primary_color: '#3b82f6', secondary_color: '#1e293b', logo_url: '', website_url: '', telegram_chat_id: '', admin_telegram_chat_id: '', federation_code: '' }); setIsTeamModalOpen(true); }} className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl hover:bg-slate-800 transition-all shrink-0"><Plus className="w-4 h-4" /> Nuovo Team</button>
+                    </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {filteredTeams.map(team => (<div key={team.id} className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100"><div className="flex items-center gap-4 mb-6"><div className="w-12 h-12 bg-slate-50 rounded-xl p-1 flex items-center justify-center"><img src={team.logo_url || "/Logo.png"} className="max-w-full max-h-full" alt=""/></div><h3 className="font-black text-slate-800 uppercase leading-none">{team.name}</h3></div><div className="flex items-center justify-between text-xs mb-6"><span className="font-bold text-slate-500 uppercase">Codice: {team.join_code}</span><div className="flex gap-1"><div className="w-4 h-4 rounded shadow-sm" style={{backgroundColor:team.primary_color}}></div><div className="w-4 h-4 rounded shadow-sm" style={{backgroundColor:team.secondary_color}}></div></div></div><button onClick={() => { setEditingTeam(team); setTeamForm({ name: team.name, join_code: team.join_code, primary_color: team.primary_color, secondary_color: team.secondary_color, logo_url: team.logo_url, website_url: team.website_url, telegram_chat_id: team.telegram_chat_id, admin_telegram_chat_id: team.admin_telegram_chat_id }); setIsTeamModalOpen(true); }} className="w-full py-3 bg-slate-50 text-slate-600 rounded-xl text-[10px] font-black uppercase hover:bg-slate-100 transition-all">Modifica</button></div>))}
+                        {filteredTeams.map((team) => (
+                            <div key={team.id} className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 flex flex-col relative overflow-hidden group">
+                                <div className="absolute top-0 right-0 w-32 h-32 -mr-8 -mt-8 bg-slate-50 rounded-full opacity-50 group-hover:scale-110 transition-transform duration-500"></div>
+                                <div className="flex items-center gap-4 mb-6 relative z-10">
+                                    <div className="w-16 h-16 bg-slate-50 rounded-2xl p-2 flex items-center justify-center border border-slate-100"><img src={team.logo_url || "/Logo.png"} alt="" className="max-w-full max-h-full object-contain" /></div>
+                                    <div className="flex-1">
+                                        <h3 className="font-black text-slate-800 uppercase leading-none mb-1">{team.name}</h3>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-[10px] font-black px-2 py-0.5 rounded bg-slate-800 text-white uppercase tracking-tighter">{team.join_code}</span>
+                                            <button onClick={() => handleCopyCode(team.join_code)} className="p-1 text-slate-400 hover:text-blue-600 transition-colors"><Copy className="w-3 h-3" /></button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="space-y-3 mb-8 relative z-10">
+                                    <div className="flex items-center justify-between text-xs"><span className="font-bold text-slate-500 uppercase">Colors</span><div className="flex gap-1"><div className="w-6 h-6 rounded-lg border border-slate-200" style={{ backgroundColor: team.primary_color }}></div><div className="w-6 h-6 rounded-lg border border-slate-200" style={{ backgroundColor: team.secondary_color }}></div></div></div>
+                                    <div className="flex items-center justify-between text-xs">
+                                        <span className="font-bold text-slate-500 uppercase">Telegram Notifications</span>
+                                        {team.telegram_chat_id ? (<span className="flex items-center gap-1 text-blue-600 font-black"><Camera className="w-3 h-3" /> Active</span>) : (<span className="text-slate-300 font-bold italic">Not set</span>)}
+                                    </div>
+                                    <div className="flex items-center justify-between text-xs"><span className="font-bold text-slate-500 uppercase">Atleti</span><span className="font-black text-slate-800">{profiles.filter(p => p.team_id === team.id).length}</span></div>
+                                </div>
+                                <div className="flex items-center gap-2 mt-auto pt-6 border-t border-slate-50 relative z-10">
+                                    <button onClick={() => { setEditingTeam(team); setTeamForm({ name: team.name, join_code: team.join_code || '', primary_color: team.primary_color || '#3b82f6', secondary_color: team.secondary_color || '#1e293b', logo_url: team.logo_url || '', website_url: team.website_url || '', telegram_chat_id: team.telegram_chat_id || '', admin_telegram_chat_id: team.admin_telegram_chat_id || '', federation_code: team.federation_code || '' }); setIsTeamModalOpen(true); }} className="flex-1 flex items-center justify-center gap-2 py-3 bg-slate-50 text-slate-600 rounded-xl text-[10px] font-black uppercase hover:bg-blue-50 hover:text-blue-600 transition-all"><Edit2 className="w-3.5 h-3.5" /> Modifica</button>
+                                    <button onClick={() => handleDeleteTeam(team.id, team.name)} className="p-3 bg-slate-50 text-slate-400 rounded-xl hover:bg-red-50 hover:text-red-600 transition-all"><Trash2 className="w-4 h-4" /></button>
+                                    <a href={team.website_url} target="_blank" rel="noopener noreferrer" className="p-3 bg-slate-50 text-slate-400 rounded-xl hover:bg-slate-100 transition-all"><ExternalLink className="w-4 h-4" /></a>
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 </div>
             )}
 
             {isTeamModalOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
                     <div className="bg-white rounded-[3rem] p-10 max-w-lg w-full shadow-2xl overflow-y-auto max-h-[90vh]">
-                        <div className="flex justify-between mb-8"><Trophy className="w-8 h-8 text-blue-600"/><button onClick={() => setIsTeamModalOpen(false)}><X className="w-6 h-6 text-slate-400"/></button></div>
-                        <h3 className="text-2xl font-black uppercase mb-6">{editingTeam ? 'Modifica Team' : 'Nuovo Team'}</h3>
-                        <form onSubmit={handleSaveTeam} className="space-y-4">
-                            <input type="text" placeholder="Nome Team" className="w-full px-5 py-3 bg-slate-50 rounded-2xl outline-none" value={teamForm.name} onChange={e => setTeamForm({...teamForm, name: e.target.value})} required />
-                            <input type="text" placeholder="Codice Invito" className="w-full px-5 py-3 bg-slate-50 rounded-2xl outline-none uppercase" value={teamForm.join_code} onChange={e => setTeamForm({...teamForm, join_code: e.target.value})} required />
-                            <div className="flex gap-4"><input type="color" value={teamForm.primary_color} onChange={e => setTeamForm({...teamForm, primary_color: e.target.value})} className="w-full h-10 rounded-xl"/><input type="color" value={teamForm.secondary_color} onChange={e => setTeamForm({...teamForm, secondary_color: e.target.value})} className="w-full h-10 rounded-xl"/></div>
-                            <input type="text" placeholder="Logo URL" className="w-full px-5 py-3 bg-slate-50 rounded-2xl outline-none" value={teamForm.logo_url} onChange={e => setTeamForm({...teamForm, logo_url: e.target.value})} />
-                            <input type="text" placeholder="Telegram Chat ID" className="w-full px-5 py-3 bg-slate-50 rounded-2xl outline-none" value={teamForm.telegram_chat_id} onChange={e => setTeamForm({...teamForm, telegram_chat_id: e.target.value})} />
-                            <button type="submit" className="w-full py-4 bg-slate-900 text-white rounded-[1.5rem] font-black uppercase">Salva Team</button>
+                        <div className="flex justify-between items-start mb-8"><div className="bg-blue-50 p-4 rounded-3xl text-blue-600"><Trophy className="w-8 h-8" /></div><button onClick={() => setIsTeamModalOpen(false)} className="p-2 hover:bg-slate-100 rounded-xl"><X className="w-6 h-6 text-slate-400" /></button></div>
+                        <h3 className="text-2xl font-black text-slate-800 uppercase mb-6">{editingTeam ? 'Modifica Team' : 'Nuovo Team'}</h3>
+                        <form onSubmit={handleSaveTeam} className="space-y-5">
+                            <div><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block">Nome</label><input type="text" className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-bold" value={teamForm.name} onChange={e => setTeamForm({...teamForm, name: e.target.value})} required /></div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block">Codice Invito</label><input type="text" className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-bold uppercase" value={teamForm.join_code} onChange={e => setTeamForm({...teamForm, join_code: e.target.value})} required /></div>
+                                <div><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block">Codice FITRI</label><input type="text" className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-bold uppercase" value={teamForm.federation_code} onChange={e => setTeamForm({...teamForm, federation_code: e.target.value})} placeholder="Es: 2566" /></div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block">Colore Primario</label><input type="color" className="w-full h-12 rounded-xl cursor-pointer" value={teamForm.primary_color} onChange={e => setTeamForm({...teamForm, primary_color: e.target.value})} /></div>
+                                <div><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block">Colore Secondario</label><input type="color" className="w-full h-12 rounded-xl cursor-pointer" value={teamForm.secondary_color} onChange={e => setTeamForm({...teamForm, secondary_color: e.target.value})} /></div>
+                            </div>
+                            <div>
+                                <label className="text-[10px] font-black text-slate-400 uppercase mb-2 block">Logo</label>
+                                <div className="flex items-center gap-4">
+                                    <div className="w-16 h-16 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 flex items-center justify-center overflow-hidden shrink-0">
+                                        {teamForm.logo_url ? <img src={teamForm.logo_url} alt="Preview" className="max-w-full max-h-full object-contain" /> : <Upload className="w-6 h-6 text-slate-300" />}
+                                    </div>
+                                    <div className="flex-1">
+                                        <input type="file" accept="image/*" id="logo-upload" className="hidden" onChange={handleUploadLogo} disabled={uploading} />
+                                        <label htmlFor="logo-upload" className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest cursor-pointer transition-all ${uploading ? 'bg-slate-100 text-slate-400' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'}`}>
+                                            {uploading ? 'Caricamento...' : 'Scegli File'}
+                                        </label>
+                                    </div>
+                                </div>
+                                <input type="text" className="w-full mt-3 px-5 py-3 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-[10px] font-medium" value={teamForm.logo_url} onChange={e => setTeamForm({...teamForm, logo_url: e.target.value})} placeholder="O inserisci URL logo..." />
+                            </div>
+                            <div><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block">Telegram Chat ID (Notifiche)</label><input type="text" className="w-full px-5 py-3.5 bg-slate-50 rounded-2xl outline-none text-xs" value={teamForm.telegram_chat_id} onChange={e => setTeamForm({...teamForm, telegram_chat_id: e.target.value})} /></div>
+                            <button type="submit" className="w-full mt-6 py-4 bg-slate-900 text-white rounded-[1.5rem] text-xs font-black uppercase tracking-widest shadow-xl hover:bg-slate-800 transition-all flex items-center justify-center gap-2"><Save className="w-4 h-4" /> Salva</button>
                         </form>
                     </div>
                 </div>
             )}
+
+            {isAthleteModalOpen && <AthleteModal />}
         </div>
     );
 };

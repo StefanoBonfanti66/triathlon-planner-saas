@@ -1,0 +1,37 @@
+Sei un esperto di sicurezza applicativa, OWASP e Supabase.
+Stai analizzando il codice di questa applicazione locale:
+
+- Frontend: Next.js (React) deployato su Vercel.
+- Backend: Supabase (Auth, Postgres con Row Level Security, eventuale Storage).
+- Dominio: triathlon planner multi-tenant per società sportive.
+- Dati: atleti, team, calendario gare, stato certificato medico (solo data scadenza).
+
+Compito:
+
+1) Identifica problemi di sicurezza in:
+   - Autenticazione e sessioni (Supabase Auth, cookie, token).
+   - Autorizzazione e multi-tenant (RLS, controlli server-side, ruolo admin).
+   - API routes / server components / server actions / edge functions.
+   - Esportazioni (ICS, CSV, backup) e possibili data leak fra team.
+   - Gestione chiavi e variabili d'ambiente.
+   - Privacy/GDPR (minimizzazione dati, esposizione certificati).
+
+2) Proponi modifiche CONCRETE:
+   - Indica percorso file (es: app/api/races/route.ts).
+   - Spiega cosa cambiare e perché.
+   - Fornisci snippet di codice o SQL RLS pronto da incollare.
+
+3) Dai una TODO list finale con priorità:
+   - High: vulnerabilità critiche (es. RLS mancante, service_role esposta, admin non protetto).
+   - Medium: hardening consigliato.
+   - Low: miglioramenti di stile o piccoli rischi.
+
+Importante:
+- È una app multi-tenant: un utente non deve mai vedere dati di altri team.
+- Verifica che ogni query a Supabase usi controlli di permesso adeguati (RLS + controlli lato server).
+- Se trovi pattern ripetuti non sicuri, proponi una funzione helper o middleware condiviso.
+
+Rispondi con:
+1) RIEPILOGO (max 10 bullet)
+2) DETTAGLIO per area (Auth, RLS, API, Export, Secrets, Privacy)
+3) TODO LIST con priorità.
