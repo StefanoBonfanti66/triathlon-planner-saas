@@ -428,6 +428,18 @@ const AdminPage: React.FC = () => {
         const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = `gare-team.csv`; link.click();
     };
 
+    const handleDeleteTeam = async (id: string, name: string) => {
+        if (window.confirm(`Eliminare il team ${name}?`)) {
+            const { error } = await supabase.from('teams').delete().eq('id', id);
+            if (!error) {
+                setTeams(teams.filter(t => t.id !== id));
+                logAdminAction('DELETE_TEAM', { team_id: id, name });
+            } else {
+                alert("Impossibile eliminare il team: " + error.message);
+            }
+        }
+    };
+
     const handleSaveTeam = async (e: React.FormEvent) => {
         e.preventDefault();
         const payload = { ...teamForm, join_code: teamForm.join_code.toUpperCase().trim() };
