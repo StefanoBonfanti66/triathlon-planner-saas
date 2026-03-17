@@ -5,6 +5,8 @@ Tutti i cambiamenti significativi a questo progetto saranno documentati in quest
 ## [6.3.2] - 2026-03-17
 ### Corretto
 - **Fix Build Vercel**: Risolti errori di tipo TypeScript in `AdminPage.tsx` e `RaceDetailPage.tsx` che impedivano il corretto deploy su Vercel.
+- **Fix Admin UX**: Risolto bug che causava la perdita del focus nei campi di input del modulo "Nuovo Atleta".
+- **Fix Security Policy**: Aggiunta policy RLS per permettere agli Admin di creare (INSERT) nuovi profili atleti.
 
 ## [6.3.1] - 2026-03-16
 ### Corretto
