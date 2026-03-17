@@ -14,6 +14,59 @@ import * as XLSX from 'xlsx';
 
 const ADMIN_EMAIL = "bonfantistefano4@gmail.com";
 
+interface AthleteFormState {
+    full_name: string; team_id: string; license_number: string; medical_certificate_expiry: string;
+    birth_year: string; birth_date: string; gender: string; shirt_size: string;
+    is_licensed: boolean; is_member: boolean; is_team_admin: boolean;
+}
+
+interface AthleteModalProps {
+    onClose: () => void;
+    editingAthlete: any | null;
+    athleteForm: AthleteFormState;
+    setAthleteForm: React.Dispatch<React.SetStateAction<AthleteFormState>>;
+    handleSaveAthlete: (e: React.FormEvent) => Promise<void>;
+    teams: any[];
+    isSuperAdmin: boolean;
+}
+
+const AthleteModal: React.FC<AthleteModalProps> = ({ 
+    onClose, editingAthlete, athleteForm, setAthleteForm, handleSaveAthlete, teams, isSuperAdmin 
+}) => (
+    <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
+        <div className="bg-white rounded-[3rem] p-10 max-w-2xl w-full shadow-2xl overflow-y-auto max-h-[90vh]">
+            <div className="flex justify-between items-start mb-8"><div className="bg-blue-50 p-4 rounded-3xl text-blue-600"><Users className="w-8 h-8" /></div><button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-xl"><X className="w-6 h-6 text-slate-400" /></button></div>
+            <h3 className="text-2xl font-black text-slate-800 uppercase mb-6">{editingAthlete ? 'Modifica Anagrafica' : 'Nuovo Atleta'}</h3>
+            <form onSubmit={handleSaveAthlete} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                        <div><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Nome Completo</label><input type="text" className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-bold" value={athleteForm.full_name} onChange={e => setAthleteForm({...athleteForm, full_name: e.target.value})} required /></div>
+                        <div><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Team</label><select value={athleteForm.team_id} onChange={e => setAthleteForm({...athleteForm, team_id: e.target.value})} className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-bold" required><option value="">Seleziona Team</option>{teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select></div>
+                        <div><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Tessera FITRI</label><input type="text" className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-bold" value={athleteForm.license_number} onChange={e => setAthleteForm({...athleteForm, license_number: e.target.value})} /></div>
+                        <div><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Certificato Medico (Scadenza)</label><input type="date" className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-bold" value={athleteForm.medical_certificate_expiry} onChange={e => setAthleteForm({...athleteForm, medical_certificate_expiry: e.target.value})} /></div>
+                    </div>
+                    <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Data di Nascita</label><div className="relative"><input type="date" className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-bold" value={athleteForm.birth_date} onChange={e => { const year = e.target.value.split('-')[0]; setAthleteForm({...athleteForm, birth_date: e.target.value, birth_year: year}); }} /><Calendar className="absolute right-4 top-3.5 w-5 h-5 text-slate-400 pointer-events-none" /></div></div>
+                            <div><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Anno (Cat)</label><input type="number" className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-bold" value={athleteForm.birth_year} onChange={e => setAthleteForm({...athleteForm, birth_year: e.target.value})} /></div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Sesso</label><select value={athleteForm.gender} onChange={e => setAthleteForm({...athleteForm, gender: e.target.value})} className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-bold"><option value="">-</option><option value="M">Maschio</option><option value="F">Femmina</option></select></div>
+                            <div><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Taglia Maglia</label><select value={athleteForm.shirt_size} onChange={e => setAthleteForm({...athleteForm, shirt_size: e.target.value})} className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-bold"><option value="">-</option><option value="XS">XS</option><option value="S">S</option><option value="M">M</option><option value="L">L</option><option value="XL">XL</option><option value="XXL">XXL</option></select></div>
+                        </div>
+                        <div className="p-6 bg-slate-50 rounded-[2rem] space-y-4">
+                            <div className="flex items-center justify-between"><span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Tesserato FITRI</span><button type="button" onClick={() => setAthleteForm({...athleteForm, is_licensed: !athleteForm.is_licensed})} className={`w-12 h-6 rounded-full transition-all relative ${athleteForm.is_licensed ? 'bg-emerald-500' : 'bg-slate-300'}`}><div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${athleteForm.is_licensed ? 'left-7' : 'left-1'}`}></div></button></div>
+                            <div className="flex items-center justify-between"><span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Socio Associazione</span><button type="button" onClick={() => setAthleteForm({...athleteForm, is_member: !athleteForm.is_member})} className={`w-12 h-6 rounded-full transition-all relative ${athleteForm.is_member ? 'bg-pink-500' : 'bg-slate-300'}`}><div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${athleteForm.is_member ? 'left-7' : 'left-1'}`}></div></button></div>
+                            {isSuperAdmin && <div className="flex items-center justify-between"><span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Team Admin</span><button type="button" onClick={() => setAthleteForm({...athleteForm, is_team_admin: !athleteForm.is_team_admin})} className={`w-12 h-6 rounded-full transition-all relative ${athleteForm.is_team_admin ? 'bg-amber-500' : 'bg-slate-300'}`}><div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${athleteForm.is_team_admin ? 'left-7' : 'left-1'}`}></div></button></div>}
+                        </div>
+                    </div>
+                </div>
+                <button type="submit" className="w-full mt-6 py-4 bg-slate-900 text-white rounded-[1.5rem] text-xs font-black uppercase tracking-widest shadow-xl hover:bg-slate-800 transition-all flex items-center justify-center gap-2"><Save className="w-4 h-4" /> Salva Anagrafica</button>
+            </form>
+        </div>
+    </div>
+);
+
 const AdminPage: React.FC = () => {
     const [session, setSession] = useState<any>(null);
     const [myProfile, setMyProfile] = useState<any>(null);
@@ -33,7 +86,7 @@ const AdminPage: React.FC = () => {
     // Athlete Modal State
     const [isAthleteModalOpen, setIsAthleteModalOpen] = useState(false);
     const [editingAthlete, setEditingAthlete] = useState<any>(null);
-    const [athleteForm, setAthleteForm] = useState({
+    const [athleteForm, setAthleteForm] = useState<AthleteFormState>({
         full_name: '', team_id: '', license_number: '', medical_certificate_expiry: '',
         birth_year: '', birth_date: '', gender: '', shirt_size: '',
         is_licensed: false, is_member: false, is_team_admin: false
@@ -344,41 +397,6 @@ const AdminPage: React.FC = () => {
             </tr>
         );
     };
-
-    const AthleteModal = () => (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
-            <div className="bg-white rounded-[3rem] p-10 max-w-2xl w-full shadow-2xl overflow-y-auto max-h-[90vh]">
-                <div className="flex justify-between items-start mb-8"><div className="bg-blue-50 p-4 rounded-3xl text-blue-600"><Users className="w-8 h-8" /></div><button onClick={() => setIsAthleteModalOpen(false)} className="p-2 hover:bg-slate-100 rounded-xl"><X className="w-6 h-6 text-slate-400" /></button></div>
-                <h3 className="text-2xl font-black text-slate-800 uppercase mb-6">{editingAthlete ? 'Modifica Anagrafica' : 'Nuovo Atleta'}</h3>
-                <form onSubmit={handleSaveAthlete} className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-4">
-                            <div><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Nome Completo</label><input type="text" className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-bold" value={athleteForm.full_name} onChange={e => setAthleteForm({...athleteForm, full_name: e.target.value})} required /></div>
-                            <div><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Team</label><select value={athleteForm.team_id} onChange={e => setAthleteForm({...athleteForm, team_id: e.target.value})} className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-bold" required><option value="">Seleziona Team</option>{teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select></div>
-                            <div><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Tessera FITRI</label><input type="text" className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-bold" value={athleteForm.license_number} onChange={e => setAthleteForm({...athleteForm, license_number: e.target.value})} /></div>
-                            <div><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Certificato Medico (Scadenza)</label><input type="date" className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-bold" value={athleteForm.medical_certificate_expiry} onChange={e => setAthleteForm({...athleteForm, medical_certificate_expiry: e.target.value})} /></div>
-                        </div>
-                        <div className="space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Data di Nascita</label><div className="relative"><input type="date" className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-bold" value={athleteForm.birth_date} onChange={e => { const year = e.target.value.split('-')[0]; setAthleteForm({...athleteForm, birth_date: e.target.value, birth_year: year}); }} /><Calendar className="absolute right-4 top-3.5 w-5 h-5 text-slate-400 pointer-events-none" /></div></div>
-                                <div><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Anno (Cat)</label><input type="number" className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-bold" value={athleteForm.birth_year} onChange={e => setAthleteForm({...athleteForm, birth_year: e.target.value})} /></div>
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Sesso</label><select value={athleteForm.gender} onChange={e => setAthleteForm({...athleteForm, gender: e.target.value})} className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-bold"><option value="">-</option><option value="M">Maschio</option><option value="F">Femmina</option></select></div>
-                                <div><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Taglia Maglia</label><select value={athleteForm.shirt_size} onChange={e => setAthleteForm({...athleteForm, shirt_size: e.target.value})} className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-bold"><option value="">-</option><option value="XS">XS</option><option value="S">S</option><option value="M">M</option><option value="L">L</option><option value="XL">XL</option><option value="XXL">XXL</option></select></div>
-                            </div>
-                            <div className="p-6 bg-slate-50 rounded-[2rem] space-y-4">
-                                <div className="flex items-center justify-between"><span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Tesserato FITRI</span><button type="button" onClick={() => setAthleteForm({...athleteForm, is_licensed: !athleteForm.is_licensed})} className={`w-12 h-6 rounded-full transition-all relative ${athleteForm.is_licensed ? 'bg-emerald-500' : 'bg-slate-300'}`}><div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${athleteForm.is_licensed ? 'left-7' : 'left-1'}`}></div></button></div>
-                                <div className="flex items-center justify-between"><span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Socio Associazione</span><button type="button" onClick={() => setAthleteForm({...athleteForm, is_member: !athleteForm.is_member})} className={`w-12 h-6 rounded-full transition-all relative ${athleteForm.is_member ? 'bg-pink-500' : 'bg-slate-300'}`}><div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${athleteForm.is_member ? 'left-7' : 'left-1'}`}></div></button></div>
-                                {isSuperAdmin && <div className="flex items-center justify-between"><span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Team Admin</span><button type="button" onClick={() => setAthleteForm({...athleteForm, is_team_admin: !athleteForm.is_team_admin})} className={`w-12 h-6 rounded-full transition-all relative ${athleteForm.is_team_admin ? 'bg-amber-500' : 'bg-slate-300'}`}><div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${athleteForm.is_team_admin ? 'left-7' : 'left-1'}`}></div></button></div>}
-                            </div>
-                        </div>
-                    </div>
-                    <button type="submit" className="w-full mt-6 py-4 bg-slate-900 text-white rounded-[1.5rem] text-xs font-black uppercase tracking-widest shadow-xl hover:bg-slate-800 transition-all flex items-center justify-center gap-2"><Save className="w-4 h-4" /> Salva Anagrafica</button>
-                </form>
-            </div>
-        </div>
-    );
 
     const handleFileImport = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]; if (!file) return;
@@ -770,7 +788,15 @@ const AdminPage: React.FC = () => {
                 </div>
             )}
 
-            {isAthleteModalOpen && <AthleteModal />}
+            {isAthleteModalOpen && <AthleteModal 
+                onClose={() => setIsAthleteModalOpen(false)}
+                editingAthlete={editingAthlete}
+                athleteForm={athleteForm}
+                setAthleteForm={setAthleteForm}
+                handleSaveAthlete={handleSaveAthlete}
+                teams={teams}
+                isSuperAdmin={isSuperAdmin}
+            />}
         </div>
     );
 };

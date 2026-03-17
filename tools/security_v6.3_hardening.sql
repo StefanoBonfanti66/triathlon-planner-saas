@@ -78,6 +78,22 @@ FOR UPDATE USING (
     AND team_id = (SELECT team_id FROM public.profiles WHERE id = auth.uid())
 );
 
+DROP POLICY IF EXISTS "Profiles: Admins can create new team members" ON public.profiles;
+CREATE POLICY "Profiles: Admins can create new team members" ON public.profiles
+FOR INSERT
+WITH CHECK (
+    -- Team admins can insert into their own team
+    (
+        (SELECT is_team_admin FROM public.profiles WHERE id = auth.uid()) AND
+        team_id = (SELECT team_id FROM public.profiles WHERE id = auth.uid())
+    )
+    OR
+    -- Super Admin (bonfantistefano4@gmail.com) can insert anywhere
+    (
+        auth.email() = 'bonfantistefano4@gmail.com'
+    )
+);
+
 --------------------------------------------------------------------------------
 -- 5. USER PLANS POLICIES
 --------------------------------------------------------------------------------
