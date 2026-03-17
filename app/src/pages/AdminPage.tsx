@@ -65,7 +65,7 @@ const AdminPage: React.FC = () => {
     const [editingTeam, setEditingTeam] = useState<any>(null);
     const [teamForm, setTeamForm] = useState({
         name: '', join_code: '', primary_color: '#3b82f6', secondary_color: '#1e293b', 
-        logo_url: '', website_url: '', telegram_chat_id: '', admin_telegram_chat_id: ''
+        logo_url: '', website_url: '', telegram_chat_id: '', admin_telegram_chat_id: '', federation_code: ''
     });
 
     const isSuperAdmin = session?.user?.email === ADMIN_EMAIL;

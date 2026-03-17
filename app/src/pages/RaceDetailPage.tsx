@@ -99,46 +99,46 @@ const RaceDetailPage: React.FC = () => {
   }, [race]);
 
   useEffect(() => {
-    const updateApiData = (data: any) => {
-      if (!data) return;
-      
-      // Estrazione intelligente del link regolamento (Strapi v4/v5)
-      let regLink = data.regolamento || data.link_regolamento;
-      if (typeof regLink === 'object' && regLink !== null) {
-        regLink = regLink.url || (regLink.data?.attributes?.url) || (regLink.data?.url);
-      }
-      
-      // Se il link è relativo (inizia con /), aggiungi il dominio del CMS
-      if (regLink && regLink.startsWith('/')) {
-        regLink = `https://cms.myfitri.it${regLink}`;
-      }
-
-      // Fallback alla pagina evento ufficiale se il PDF manca
-      if (!regLink || regLink === "#") {
-        regLink = `https://www.myfitri.it/evento/${data.id_evento || id.split('-')[0]}`;
-      }
-      
-      const enrichedData = {
-        ora_partenza: data.ora_partenza || data.oraPartenza || "--:--",
-        link_regolamento: regLink,
-        descrizione_percorsi: data.percorsi || data.descrizione_percorsi || "Vedi regolamento.",
-        note_organizzatore: data.note || data.note_organizzatore || "",
-        programma: data.programma || data.programma_gara || "",
-        iscrizioni_chiusura: data.chiusura_iscrizioni || data.data_chiusura_iscrizioni || "",
-        organizzatore: data.organizzatore || data.societa || "",
-        lat: data.latitudine || data.lat || null,
-        lng: data.longitudine || data.lng || null
-      };
-
-      if (enrichedData.lat && enrichedData.lng) {
-        setApiCoords([parseFloat(enrichedData.lat), parseFloat(enrichedData.lng)]);
-      }
-      setApiData(enrichedData);
-    };
-
     const fetchData = async () => {
       setLoading(true);
       if (!id) { setLoading(false); return; }
+
+      const updateApiData = (data: any) => {
+        if (!data) return;
+        
+        // Estrazione intelligente del link regolamento (Strapi v4/v5)
+        let regLink = data.regolamento || data.link_regolamento;
+        if (typeof regLink === 'object' && regLink !== null) {
+          regLink = regLink.url || (regLink.data?.attributes?.url) || (regLink.data?.url);
+        }
+        
+        // Se il link è relativo (inizia con /), aggiungi il dominio del CMS
+        if (regLink && regLink.startsWith('/')) {
+          regLink = `https://cms.myfitri.it${regLink}`;
+        }
+  
+        // Fallback alla pagina evento ufficiale se il PDF manca
+        if (!regLink || regLink === "#") {
+          regLink = `https://www.myfitri.it/evento/${data.id_evento || id.split('-')[0]}`;
+        }
+        
+        const enrichedData = {
+          ora_partenza: data.ora_partenza || data.oraPartenza || "--:--",
+          link_regolamento: regLink,
+          descrizione_percorsi: data.percorsi || data.descrizione_percorsi || "Vedi regolamento.",
+          note_organizzatore: data.note || data.note_organizzatore || "",
+          programma: data.programma || data.programma_gara || "",
+          iscrizioni_chiusura: data.chiusura_iscrizioni || data.data_chiusura_iscrizioni || "",
+          organizzatore: data.organizzatore || data.societa || "",
+          lat: data.latitudine || data.lat || null,
+          lng: data.longitudine || data.lng || null
+        };
+  
+        if (enrichedData.lat && enrichedData.lng) {
+          setApiCoords([parseFloat(enrichedData.lat), parseFloat(enrichedData.lng)]);
+        }
+        setApiData(enrichedData);
+      };
       
       const baseRace = (racesData as Race[]).find(r => r.id === id);
       if (baseRace) setRace(baseRace);
@@ -207,6 +207,7 @@ const RaceDetailPage: React.FC = () => {
   };
   
   const handleAddToSeason = async () => {
+    if (!id) return;
     const { data: { session: authSession } } = await supabase.auth.getSession();
     if (!authSession?.user) { navigate('/login'); return; }
     try {
