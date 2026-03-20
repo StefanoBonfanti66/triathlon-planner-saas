@@ -15,11 +15,6 @@ import * as XLSX from 'xlsx';
 const ADMIN_EMAIL = "bonfantistefano4@gmail.com";
 
 interface AthleteFormState {
-<<<<<<< HEAD
-    full_name: string; team_id: string; license_number: string; medical_certificate_expiry: string;
-    birth_year: string; birth_date: string; gender: string; shirt_size: string;
-    is_licensed: boolean; is_member: boolean; is_team_admin: boolean;
-=======
     full_name: string; 
     email: string; // Aggiunto per onboarding
     password?: string; // Password temporanea opzionale
@@ -33,7 +28,6 @@ interface AthleteFormState {
     is_licensed: boolean; 
     is_member: boolean; 
     is_team_admin: boolean;
->>>>>>> develop
 }
 
 interface AthleteModalProps {
@@ -57,13 +51,6 @@ const AthleteModal: React.FC<AthleteModalProps> = ({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-4">
                         <div><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Nome Completo</label><input type="text" className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-bold" value={athleteForm.full_name} onChange={e => setAthleteForm({...athleteForm, full_name: e.target.value})} required /></div>
-<<<<<<< HEAD
-                        <div><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Team</label><select value={athleteForm.team_id} onChange={e => setAthleteForm({...athleteForm, team_id: e.target.value})} className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-bold" required><option value="">Seleziona Team</option>{teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select></div>
-                        <div><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Tessera FITRI</label><input type="text" className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-bold" value={athleteForm.license_number} onChange={e => setAthleteForm({...athleteForm, license_number: e.target.value})} /></div>
-                        <div><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Certificato Medico (Scadenza)</label><input type="date" className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-bold" value={athleteForm.medical_certificate_expiry} onChange={e => setAthleteForm({...athleteForm, medical_certificate_expiry: e.target.value})} /></div>
-                    </div>
-                    <div className="space-y-4">
-=======
                         <div><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Email (Per Onboarding)</label><input type="email" className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-bold" value={athleteForm.email} onChange={e => setAthleteForm({...athleteForm, email: e.target.value})} placeholder="atleta@esempio.it" /></div>
                         {!editingAthlete && (
                             <div>
@@ -77,7 +64,6 @@ const AthleteModal: React.FC<AthleteModalProps> = ({
                     </div>
                     <div className="space-y-4">
                         <div><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Certificato Medico (Scadenza)</label><input type="date" className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-bold" value={athleteForm.medical_certificate_expiry} onChange={e => setAthleteForm({...athleteForm, medical_certificate_expiry: e.target.value})} /></div>
->>>>>>> develop
                         <div className="grid grid-cols-2 gap-4">
                             <div><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Data di Nascita</label><div className="relative"><input type="date" className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-bold" value={athleteForm.birth_date} onChange={e => { const year = e.target.value.split('-')[0]; setAthleteForm({...athleteForm, birth_date: e.target.value, birth_year: year}); }} /><Calendar className="absolute right-4 top-3.5 w-5 h-5 text-slate-400 pointer-events-none" /></div></div>
                             <div><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Anno (Cat)</label><input type="number" className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-bold" value={athleteForm.birth_year} onChange={e => setAthleteForm({...athleteForm, birth_year: e.target.value})} /></div>
@@ -86,16 +72,6 @@ const AthleteModal: React.FC<AthleteModalProps> = ({
                             <div><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Sesso</label><select value={athleteForm.gender} onChange={e => setAthleteForm({...athleteForm, gender: e.target.value})} className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-bold"><option value="">-</option><option value="M">Maschio</option><option value="F">Femmina</option></select></div>
                             <div><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Taglia Maglia</label><select value={athleteForm.shirt_size} onChange={e => setAthleteForm({...athleteForm, shirt_size: e.target.value})} className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-bold"><option value="">-</option><option value="XS">XS</option><option value="S">S</option><option value="M">M</option><option value="L">L</option><option value="XL">XL</option><option value="XXL">XXL</option></select></div>
                         </div>
-<<<<<<< HEAD
-                        <div className="p-6 bg-slate-50 rounded-[2rem] space-y-4">
-                            <div className="flex items-center justify-between"><span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Tesserato FITRI</span><button type="button" onClick={() => setAthleteForm({...athleteForm, is_licensed: !athleteForm.is_licensed})} className={`w-12 h-6 rounded-full transition-all relative ${athleteForm.is_licensed ? 'bg-emerald-500' : 'bg-slate-300'}`}><div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${athleteForm.is_licensed ? 'left-7' : 'left-1'}`}></div></button></div>
-                            <div className="flex items-center justify-between"><span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Socio Associazione</span><button type="button" onClick={() => setAthleteForm({...athleteForm, is_member: !athleteForm.is_member})} className={`w-12 h-6 rounded-full transition-all relative ${athleteForm.is_member ? 'bg-pink-500' : 'bg-slate-300'}`}><div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${athleteForm.is_member ? 'left-7' : 'left-1'}`}></div></button></div>
-                            {isSuperAdmin && <div className="flex items-center justify-between"><span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Team Admin</span><button type="button" onClick={() => setAthleteForm({...athleteForm, is_team_admin: !athleteForm.is_team_admin})} className={`w-12 h-6 rounded-full transition-all relative ${athleteForm.is_team_admin ? 'bg-amber-500' : 'bg-slate-300'}`}><div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${athleteForm.is_team_admin ? 'left-7' : 'left-1'}`}></div></button></div>}
-                        </div>
-                    </div>
-                </div>
-                <button type="submit" className="w-full mt-6 py-4 bg-slate-900 text-white rounded-[1.5rem] text-xs font-black uppercase tracking-widest shadow-xl hover:bg-slate-800 transition-all flex items-center justify-center gap-2"><Save className="w-4 h-4" /> Salva Anagrafica</button>
-=======
                     </div>
                 </div>
                 <div className="p-6 bg-slate-50 rounded-[2rem] space-y-4">
@@ -106,7 +82,6 @@ const AthleteModal: React.FC<AthleteModalProps> = ({
                     </div>
                 </div>
                 <button type="submit" className="w-full mt-6 py-4 bg-slate-900 text-white rounded-[1.5rem] text-xs font-black uppercase tracking-widest shadow-xl hover:bg-slate-800 transition-all flex items-center justify-center gap-2"><Save className="w-4 h-4" /> {editingAthlete ? 'Salva Modifiche' : 'Salva e Invia Invito Email'}</button>
->>>>>>> develop
             </form>
         </div>
     </div>
@@ -132,11 +107,6 @@ const AdminPage: React.FC = () => {
     const [isAthleteModalOpen, setIsAthleteModalOpen] = useState(false);
     const [editingAthlete, setEditingAthlete] = useState<any>(null);
     const [athleteForm, setAthleteForm] = useState<AthleteFormState>({
-<<<<<<< HEAD
-        full_name: '', team_id: '', license_number: '', medical_certificate_expiry: '',
-        birth_year: '', birth_date: '', gender: '', shirt_size: '',
-        is_licensed: false, is_member: false, is_team_admin: false
-=======
         full_name: '', 
         email: '', 
         team_id: '', 
@@ -149,7 +119,6 @@ const AdminPage: React.FC = () => {
         is_licensed: false, 
         is_member: false, 
         is_team_admin: false
->>>>>>> develop
     });
 
     // Statistiche State
@@ -585,18 +554,6 @@ const AdminPage: React.FC = () => {
         const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = `gare-team.csv`; link.click();
     };
 
-    const handleDeleteTeam = async (id: string, name: string) => {
-        if (window.confirm(`Eliminare il team ${name}?`)) {
-            const { error } = await supabase.from('teams').delete().eq('id', id);
-            if (!error) {
-                setTeams(teams.filter(t => t.id !== id));
-                logAdminAction('DELETE_TEAM', { team_id: id, name });
-            } else {
-                alert("Impossibile eliminare il team: " + error.message);
-            }
-        }
-    };
-
     const handleSaveTeam = async (e: React.FormEvent) => {
         e.preventDefault();
         const payload = { ...teamForm, join_code: teamForm.join_code.toUpperCase().trim() };
@@ -927,17 +884,6 @@ const AdminPage: React.FC = () => {
                 </div>
             )}
 
-<<<<<<< HEAD
-            {isAthleteModalOpen && <AthleteModal 
-                onClose={() => setIsAthleteModalOpen(false)}
-                editingAthlete={editingAthlete}
-                athleteForm={athleteForm}
-                setAthleteForm={setAthleteForm}
-                handleSaveAthlete={handleSaveAthlete}
-                teams={teams}
-                isSuperAdmin={isSuperAdmin}
-            />}
-=======
             {isAthleteModalOpen && (
                 <AthleteModal 
                     onClose={() => setIsAthleteModalOpen(false)}
@@ -949,7 +895,6 @@ const AdminPage: React.FC = () => {
                     isSuperAdmin={isSuperAdmin}
                 />
             )}
->>>>>>> develop
         </div>
     );
 };
