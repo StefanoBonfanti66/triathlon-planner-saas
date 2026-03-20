@@ -2,8 +2,14 @@
 
 Tutti i cambiamenti significativi a questo progetto saranno documentati in questo file.
 
+## [6.3.2] - 2026-03-19
+### Aggiunto
+- **Admin Password Management**: Possibilità per l'amministratore di impostare una password temporanea durante la creazione di un nuovo atleta, bypassando l'invito email se SMTP non è configurato.
+- **Profile Uniqueness Constraint**: Aggiunto vincolo `UNIQUE` sulla colonna `email` della tabella `profiles` per prevenire duplicati e garantire la stabilità dell'onboarding.
+
 ## [6.3.1] - 2026-03-16
 ### Corretto
+- **Cleanup Profili Duplicati**: Risolta l'incoerenza degli utenti "test" con email multiple nel database, ripristinando l'accesso admin all'utente corretto.
 - **RLS Stability Fix**: Ripristinata la visibilità pubblica (SELECT) per profili, team e piani gara per evitare downtime dei dati in modalità anonima.
 - **Ottimizzazione Policy**: Risolti potenziali conflitti di ricorsione nelle query di aggiornamento profili.
 

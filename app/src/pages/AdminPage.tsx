@@ -17,6 +17,7 @@ const ADMIN_EMAIL = "bonfantistefano4@gmail.com";
 interface AthleteFormState {
     full_name: string; 
     email: string; // Aggiunto per onboarding
+    password?: string; // Password temporanea opzionale
     team_id: string; 
     license_number: string; 
     medical_certificate_expiry: string;
@@ -51,6 +52,13 @@ const AthleteModal: React.FC<AthleteModalProps> = ({
                     <div className="space-y-4">
                         <div><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Nome Completo</label><input type="text" className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-bold" value={athleteForm.full_name} onChange={e => setAthleteForm({...athleteForm, full_name: e.target.value})} required /></div>
                         <div><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Email (Per Onboarding)</label><input type="email" className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-bold" value={athleteForm.email} onChange={e => setAthleteForm({...athleteForm, email: e.target.value})} placeholder="atleta@esempio.it" /></div>
+                        {!editingAthlete && (
+                            <div>
+                                <label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Password Temporanea (Opzionale)</label>
+                                <input type="text" className="w-full px-5 py-3.5 bg-slate-100 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-bold" value={athleteForm.password || ''} onChange={e => setAthleteForm({...athleteForm, password: e.target.value})} placeholder="es: Gara2026!" />
+                                <p className="text-[9px] text-slate-400 font-bold mt-1 uppercase tracking-tighter">Se inserita, l'utente potrà loggarsi subito con questa password.</p>
+                            </div>
+                        )}
                         <div><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Team</label><select value={athleteForm.team_id} onChange={e => setAthleteForm({...athleteForm, team_id: e.target.value})} className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-bold" required><option value="">Seleziona Team</option>{teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select></div>
                         <div><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Tessera FITRI</label><input type="text" className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-bold" value={athleteForm.license_number} onChange={e => setAthleteForm({...athleteForm, license_number: e.target.value})} /></div>
                     </div>
@@ -373,9 +381,11 @@ const AdminPage: React.FC = () => {
             
             let error;
             if (editingAthlete) {
-                error = (await supabase.from('profiles').update(payload).eq('id', editingAthlete.id)).error;
+                // Rimuoviamo la password dal payload di update del profilo
+                const { password, ...updatePayload } = payload;
+                error = (await supabase.from('profiles').update(updatePayload).eq('id', editingAthlete.id)).error;
             } else {
-                // Nuova logica: Usa RPC per l'onboarding con invito
+                // Nuova logica: Crea l'atleta via RPC per la parte anagrafica
                 const { data: rpcRes, error: rpcErr } = await supabase.rpc('invite_athlete', {
                     p_full_name: payload.full_name,
                     p_email: payload.email,
@@ -390,16 +400,45 @@ const AdminPage: React.FC = () => {
                     p_is_member: payload.is_member,
                     p_is_team_admin: payload.is_team_admin
                 });
+                
                 if (rpcErr) throw rpcErr;
                 if (rpcRes && !rpcRes.success) throw new Error(rpcRes.message);
+
+                // Gestione Auth: Se c'è una password, creiamo l'utente direttamente
+                if (payload.password && payload.password.trim().length >= 6) {
+                    const { error: authError } = await supabase.auth.admin.createUser({
+                        email: payload.email,
+                        password: payload.password,
+                        email_confirm: true,
+                        user_metadata: { full_name: payload.full_name, team_id: payload.team_id }
+                    });
+                    if (authError) {
+                        console.warn("Creazione Auth diretta fallita: ", authError.message);
+                        alert("Profilo creato, ma errore creazione account (password): " + authError.message);
+                    }
+                } else {
+                    // Altrimenti mandiamo il classico invito
+                    const { error: inviteError } = await supabase.auth.admin.inviteUserByEmail(payload.email, {
+                        data: { full_name: payload.full_name, team_id: payload.team_id }
+                    });
+                    if (inviteError) {
+                        console.warn("Invito email fallito (Auth API): ", inviteError.message);
+                    }
+                }
+                
                 error = null;
             }
             if (error) throw error;
             logAdminAction(editingAthlete ? 'UPDATE_ATHLETE' : 'CREATE_ATHLETE', { name: athleteForm.full_name, email: athleteForm.email });
             setIsAthleteModalOpen(false);
             fetchAllData(isSuperAdmin, myProfile?.team_id);
-            if (!editingAthlete && athleteForm.email) {
-                alert("Atleta creato con successo. Se hai configurato SMTP su Supabase, riceverà l'email di invito.");
+            
+            if (!editingAthlete) {
+                if (payload.password) {
+                    alert(`Atleta creato con successo! Può loggarsi subito con:\nEmail: ${payload.email}\nPassword: ${payload.password}`);
+                } else {
+                    alert("Atleta creato con successo. Riceverà l'email di invito se SMTP è attivo.");
+                }
             }
         } catch (err: any) { alert("Errore: " + err.message); }
     };

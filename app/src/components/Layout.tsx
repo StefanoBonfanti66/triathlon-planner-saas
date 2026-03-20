@@ -42,16 +42,32 @@ const Layout: React.FC = () => {
 
   const fetchTeamData = async (userId: string) => {
     try {
-      const { data: profile } = await supabase
+      // Cerchiamo il profilo dell'utente
+      const { data: profile, error: profError } = await supabase
         .from('profiles')
-        .select('full_name, team_id, is_team_admin')
+        .select('full_name, team_id, is_team_admin, email')
         .eq('id', userId)
         .single();
 
+      if (profError && profError.code === 'PGRST116') {
+        console.log("⚠️ Profilo non trovato per l'ID attuale, provo via email...");
+        // Se non lo trova per ID, proviamo per email (caso di mismatch post-invito)
+        const { data: profileByEmail } = await supabase
+          .from('profiles')
+          .select('id, full_name, team_id, is_team_admin')
+          .eq('email', session?.user?.email)
+          .single();
+        
+        if (profileByEmail) {
+          // Se lo troviamo per email, aggiorniamo l'ID del profilo con quello di Auth
+          // per "riagganciare" l'utente al profilo creato dall'admin
+          await supabase.from('profiles').update({ id: userId }).eq('id', profileByEmail.id);
+          profile = profileByEmail;
+        }
+      }
+
       if (profile) {
         const isSuperAdmin = session?.user?.email === ADMIN_EMAIL;
-        // Log ridotto: appare solo una volta per caricamento reale
-        console.log("✅ Profile Sync:", { name: profile.full_name || session?.user?.email, admin: profile.is_team_admin });
         
         if (profile.team_id) {
           const { data: teamData } = await supabase
@@ -61,13 +77,13 @@ const Layout: React.FC = () => {
             .single();
           
           if (teamData) {
-            setTeam({ ...teamData, is_team_admin: profile.is_team_admin, is_super_admin: isSuperAdmin });
+            setTeam({ ...teamData, is_team_admin: profile.is_team_admin || isSuperAdmin, is_super_admin: isSuperAdmin });
           }
         } else {
           setTeam({ 
             name: isSuperAdmin ? 'Super Admin' : 'Nessun Team', 
             is_super_admin: isSuperAdmin, 
-            is_team_admin: profile.is_team_admin 
+            is_team_admin: profile.is_team_admin || isSuperAdmin 
           });
         }
       }
