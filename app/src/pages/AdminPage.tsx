@@ -15,9 +15,25 @@ import * as XLSX from 'xlsx';
 const ADMIN_EMAIL = "bonfantistefano4@gmail.com";
 
 interface AthleteFormState {
+<<<<<<< HEAD
     full_name: string; team_id: string; license_number: string; medical_certificate_expiry: string;
     birth_year: string; birth_date: string; gender: string; shirt_size: string;
     is_licensed: boolean; is_member: boolean; is_team_admin: boolean;
+=======
+    full_name: string; 
+    email: string; // Aggiunto per onboarding
+    password?: string; // Password temporanea opzionale
+    team_id: string; 
+    license_number: string; 
+    medical_certificate_expiry: string;
+    birth_year: string; 
+    birth_date: string; 
+    gender: string; 
+    shirt_size: string;
+    is_licensed: boolean; 
+    is_member: boolean; 
+    is_team_admin: boolean;
+>>>>>>> develop
 }
 
 interface AthleteModalProps {
@@ -41,11 +57,27 @@ const AthleteModal: React.FC<AthleteModalProps> = ({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-4">
                         <div><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Nome Completo</label><input type="text" className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-bold" value={athleteForm.full_name} onChange={e => setAthleteForm({...athleteForm, full_name: e.target.value})} required /></div>
+<<<<<<< HEAD
                         <div><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Team</label><select value={athleteForm.team_id} onChange={e => setAthleteForm({...athleteForm, team_id: e.target.value})} className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-bold" required><option value="">Seleziona Team</option>{teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select></div>
                         <div><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Tessera FITRI</label><input type="text" className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-bold" value={athleteForm.license_number} onChange={e => setAthleteForm({...athleteForm, license_number: e.target.value})} /></div>
                         <div><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Certificato Medico (Scadenza)</label><input type="date" className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-bold" value={athleteForm.medical_certificate_expiry} onChange={e => setAthleteForm({...athleteForm, medical_certificate_expiry: e.target.value})} /></div>
                     </div>
                     <div className="space-y-4">
+=======
+                        <div><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Email (Per Onboarding)</label><input type="email" className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-bold" value={athleteForm.email} onChange={e => setAthleteForm({...athleteForm, email: e.target.value})} placeholder="atleta@esempio.it" /></div>
+                        {!editingAthlete && (
+                            <div>
+                                <label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Password Temporanea (Opzionale)</label>
+                                <input type="text" className="w-full px-5 py-3.5 bg-slate-100 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-bold" value={athleteForm.password || ''} onChange={e => setAthleteForm({...athleteForm, password: e.target.value})} placeholder="es: Gara2026!" />
+                                <p className="text-[9px] text-slate-400 font-bold mt-1 uppercase tracking-tighter">Se inserita, l'utente potrà loggarsi subito con questa password.</p>
+                            </div>
+                        )}
+                        <div><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Team</label><select value={athleteForm.team_id} onChange={e => setAthleteForm({...athleteForm, team_id: e.target.value})} className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-bold" required><option value="">Seleziona Team</option>{teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select></div>
+                        <div><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Tessera FITRI</label><input type="text" className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-bold" value={athleteForm.license_number} onChange={e => setAthleteForm({...athleteForm, license_number: e.target.value})} /></div>
+                    </div>
+                    <div className="space-y-4">
+                        <div><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Certificato Medico (Scadenza)</label><input type="date" className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-bold" value={athleteForm.medical_certificate_expiry} onChange={e => setAthleteForm({...athleteForm, medical_certificate_expiry: e.target.value})} /></div>
+>>>>>>> develop
                         <div className="grid grid-cols-2 gap-4">
                             <div><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Data di Nascita</label><div className="relative"><input type="date" className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-bold" value={athleteForm.birth_date} onChange={e => { const year = e.target.value.split('-')[0]; setAthleteForm({...athleteForm, birth_date: e.target.value, birth_year: year}); }} /><Calendar className="absolute right-4 top-3.5 w-5 h-5 text-slate-400 pointer-events-none" /></div></div>
                             <div><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Anno (Cat)</label><input type="number" className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-bold" value={athleteForm.birth_year} onChange={e => setAthleteForm({...athleteForm, birth_year: e.target.value})} /></div>
@@ -54,6 +86,7 @@ const AthleteModal: React.FC<AthleteModalProps> = ({
                             <div><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Sesso</label><select value={athleteForm.gender} onChange={e => setAthleteForm({...athleteForm, gender: e.target.value})} className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-bold"><option value="">-</option><option value="M">Maschio</option><option value="F">Femmina</option></select></div>
                             <div><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Taglia Maglia</label><select value={athleteForm.shirt_size} onChange={e => setAthleteForm({...athleteForm, shirt_size: e.target.value})} className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-bold"><option value="">-</option><option value="XS">XS</option><option value="S">S</option><option value="M">M</option><option value="L">L</option><option value="XL">XL</option><option value="XXL">XXL</option></select></div>
                         </div>
+<<<<<<< HEAD
                         <div className="p-6 bg-slate-50 rounded-[2rem] space-y-4">
                             <div className="flex items-center justify-between"><span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Tesserato FITRI</span><button type="button" onClick={() => setAthleteForm({...athleteForm, is_licensed: !athleteForm.is_licensed})} className={`w-12 h-6 rounded-full transition-all relative ${athleteForm.is_licensed ? 'bg-emerald-500' : 'bg-slate-300'}`}><div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${athleteForm.is_licensed ? 'left-7' : 'left-1'}`}></div></button></div>
                             <div className="flex items-center justify-between"><span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Socio Associazione</span><button type="button" onClick={() => setAthleteForm({...athleteForm, is_member: !athleteForm.is_member})} className={`w-12 h-6 rounded-full transition-all relative ${athleteForm.is_member ? 'bg-pink-500' : 'bg-slate-300'}`}><div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${athleteForm.is_member ? 'left-7' : 'left-1'}`}></div></button></div>
@@ -62,6 +95,18 @@ const AthleteModal: React.FC<AthleteModalProps> = ({
                     </div>
                 </div>
                 <button type="submit" className="w-full mt-6 py-4 bg-slate-900 text-white rounded-[1.5rem] text-xs font-black uppercase tracking-widest shadow-xl hover:bg-slate-800 transition-all flex items-center justify-center gap-2"><Save className="w-4 h-4" /> Salva Anagrafica</button>
+=======
+                    </div>
+                </div>
+                <div className="p-6 bg-slate-50 rounded-[2rem] space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="flex items-center justify-between"><span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Tesserato FITRI</span><button type="button" onClick={() => setAthleteForm({...athleteForm, is_licensed: !athleteForm.is_licensed})} className={`w-12 h-6 rounded-full transition-all relative ${athleteForm.is_licensed ? 'bg-emerald-500' : 'bg-slate-300'}`}><div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${athleteForm.is_licensed ? 'left-7' : 'left-1'}`}></div></button></div>
+                        <div className="flex items-center justify-between"><span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Socio Associazione</span><button type="button" onClick={() => setAthleteForm({...athleteForm, is_member: !athleteForm.is_member})} className={`w-12 h-6 rounded-full transition-all relative ${athleteForm.is_member ? 'bg-pink-500' : 'bg-slate-300'}`}><div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${athleteForm.is_member ? 'left-7' : 'left-1'}`}></div></button></div>
+                        {isSuperAdmin && <div className="flex items-center justify-between"><span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Team Admin</span><button type="button" onClick={() => setAthleteForm({...athleteForm, is_team_admin: !athleteForm.is_team_admin})} className={`w-12 h-6 rounded-full transition-all relative ${athleteForm.is_team_admin ? 'bg-amber-500' : 'bg-slate-300'}`}><div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${athleteForm.is_team_admin ? 'left-7' : 'left-1'}`}></div></button></div>}
+                    </div>
+                </div>
+                <button type="submit" className="w-full mt-6 py-4 bg-slate-900 text-white rounded-[1.5rem] text-xs font-black uppercase tracking-widest shadow-xl hover:bg-slate-800 transition-all flex items-center justify-center gap-2"><Save className="w-4 h-4" /> {editingAthlete ? 'Salva Modifiche' : 'Salva e Invia Invito Email'}</button>
+>>>>>>> develop
             </form>
         </div>
     </div>
@@ -87,9 +132,24 @@ const AdminPage: React.FC = () => {
     const [isAthleteModalOpen, setIsAthleteModalOpen] = useState(false);
     const [editingAthlete, setEditingAthlete] = useState<any>(null);
     const [athleteForm, setAthleteForm] = useState<AthleteFormState>({
+<<<<<<< HEAD
         full_name: '', team_id: '', license_number: '', medical_certificate_expiry: '',
         birth_year: '', birth_date: '', gender: '', shirt_size: '',
         is_licensed: false, is_member: false, is_team_admin: false
+=======
+        full_name: '', 
+        email: '', 
+        team_id: '', 
+        license_number: '', 
+        medical_certificate_expiry: '',
+        birth_year: '', 
+        birth_date: '', 
+        gender: '', 
+        shirt_size: '',
+        is_licensed: false, 
+        is_member: false, 
+        is_team_admin: false
+>>>>>>> develop
     });
 
     // Statistiche State
@@ -333,6 +393,14 @@ const AdminPage: React.FC = () => {
         else { logAdminAction('DELETE_ATHLETE', { userId, name }); await supabase.from('user_plans').update({ deleted_at: timestamp }).eq('user_id', userId); }
     };
 
+    const handleDeleteTeam = async (teamId: string, name: string) => {
+        if (!isSuperAdmin) return;
+        if (!window.confirm(`Eliminare definitivamente il team ${name}? Questa azione non può essere annullata.`)) return;
+        const { error } = await supabase.from('teams').delete().eq('id', teamId);
+        if (error) alert("Errore: " + error.message);
+        else { logAdminAction('DELETE_TEAM', { teamId, name }); fetchAllData(isSuperAdmin, myProfile?.team_id); }
+    };
+
     const handleSaveAthlete = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
@@ -344,14 +412,65 @@ const AdminPage: React.FC = () => {
             
             let error;
             if (editingAthlete) {
-                error = (await supabase.from('profiles').update(payload).eq('id', editingAthlete.id)).error;
+                // Rimuoviamo la password dal payload di update del profilo
+                const { password, ...updatePayload } = payload;
+                error = (await supabase.from('profiles').update(updatePayload).eq('id', editingAthlete.id)).error;
             } else {
-                error = (await supabase.from('profiles').insert([payload])).error;
+                // Nuova logica: Crea l'atleta via RPC per la parte anagrafica
+                const { data: rpcRes, error: rpcErr } = await supabase.rpc('invite_athlete', {
+                    p_full_name: payload.full_name,
+                    p_email: payload.email,
+                    p_team_id: payload.team_id,
+                    p_license_number: payload.license_number,
+                    p_medical_expiry: payload.medical_certificate_expiry,
+                    p_birth_year: payload.birth_year,
+                    p_birth_date: payload.birth_date,
+                    p_gender: payload.gender,
+                    p_shirt_size: payload.shirt_size,
+                    p_is_licensed: payload.is_licensed,
+                    p_is_member: payload.is_member,
+                    p_is_team_admin: payload.is_team_admin
+                });
+                
+                if (rpcErr) throw rpcErr;
+                if (rpcRes && !rpcRes.success) throw new Error(rpcRes.message);
+
+                // Gestione Auth: Se c'è una password, creiamo l'utente direttamente
+                if (payload.password && payload.password.trim().length >= 6) {
+                    const { error: authError } = await supabase.auth.admin.createUser({
+                        email: payload.email,
+                        password: payload.password,
+                        email_confirm: true,
+                        user_metadata: { full_name: payload.full_name, team_id: payload.team_id }
+                    });
+                    if (authError) {
+                        console.warn("Creazione Auth diretta fallita: ", authError.message);
+                        alert("Profilo creato, ma errore creazione account (password): " + authError.message);
+                    }
+                } else {
+                    // Altrimenti mandiamo il classico invito
+                    const { error: inviteError } = await supabase.auth.admin.inviteUserByEmail(payload.email, {
+                        data: { full_name: payload.full_name, team_id: payload.team_id }
+                    });
+                    if (inviteError) {
+                        console.warn("Invito email fallito (Auth API): ", inviteError.message);
+                    }
+                }
+                
+                error = null;
             }
             if (error) throw error;
-            logAdminAction(editingAthlete ? 'UPDATE_ATHLETE' : 'CREATE_ATHLETE', { name: athleteForm.full_name });
+            logAdminAction(editingAthlete ? 'UPDATE_ATHLETE' : 'CREATE_ATHLETE', { name: athleteForm.full_name, email: athleteForm.email });
             setIsAthleteModalOpen(false);
             fetchAllData(isSuperAdmin, myProfile?.team_id);
+            
+            if (!editingAthlete) {
+                if (payload.password) {
+                    alert(`Atleta creato con successo! Può loggarsi subito con:\nEmail: ${payload.email}\nPassword: ${payload.password}`);
+                } else {
+                    alert("Atleta creato con successo. Riceverà l'email di invito se SMTP è attivo.");
+                }
+            }
         } catch (err: any) { alert("Errore: " + err.message); }
     };
 
@@ -362,7 +481,10 @@ const AdminPage: React.FC = () => {
                 <td className="px-4 py-4">
                     <div className="flex flex-col">
                         <span className="font-black text-slate-800 flex items-center gap-2 text-sm">{atleta.full_name || 'N/A'}{atleta.is_team_admin && <Shield className="w-3 h-3 text-amber-500 fill-current" />}</span>
-                        <select value={atleta.team_id || ''} onChange={(e) => handleUpdateAthleteTeam(atleta.id, e.target.value || null)} className="bg-transparent border-none p-0 text-[10px] font-bold uppercase text-blue-600 focus:ring-0 cursor-pointer" disabled={!isSuperAdmin}><option value="">Nessun Team</option>{teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select>
+                        <div className="flex flex-col gap-0.5">
+                            <select value={atleta.team_id || ''} onChange={(e) => handleUpdateAthleteTeam(atleta.id, e.target.value || null)} className="bg-transparent border-none p-0 text-[10px] font-bold uppercase text-blue-600 focus:ring-0 cursor-pointer" disabled={!isSuperAdmin}><option value="">Nessun Team</option>{teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select>
+                            {atleta.email && <span className="text-[9px] text-slate-400 font-medium italic">{atleta.email}</span>}
+                        </div>
                     </div>
                 </td>
                 <td className="px-4 py-4"><span className="text-xs font-bold text-slate-500">{atleta.license_number || '-'}</span></td>
@@ -388,7 +510,24 @@ const AdminPage: React.FC = () => {
                     <div className="flex items-center justify-end gap-3">
                         <span className="bg-slate-100 text-slate-800 px-2 py-0.5 rounded-md text-[10px] font-black">{plansCount[atleta.id] || 0}</span>
                         <div className="flex items-center gap-1">
-                            <button onClick={() => { setEditingAthlete(atleta); setAthleteForm({ full_name: atleta.full_name || '', team_id: atleta.team_id || '', license_number: atleta.license_number || '', medical_certificate_expiry: atleta.medical_certificate_expiry || '', birth_year: atleta.birth_year || '', birth_date: atleta.birth_date || '', gender: atleta.gender || '', shirt_size: atleta.shirt_size || '', is_licensed: atleta.is_licensed || false, is_member: atleta.is_member || false, is_team_admin: atleta.is_team_admin || false }); setIsAthleteModalOpen(true); }} className="p-1.5 text-slate-300 hover:text-blue-600 transition-all"><Edit2 className="w-3.5 h-3.5" /></button>
+                            <button onClick={() => { 
+                                setEditingAthlete(atleta); 
+                                setAthleteForm({ 
+                                    full_name: atleta.full_name || '', 
+                                    email: atleta.email || '', 
+                                    team_id: atleta.team_id || '', 
+                                    license_number: atleta.license_number || '', 
+                                    medical_certificate_expiry: atleta.medical_certificate_expiry || '', 
+                                    birth_year: atleta.birth_year || '', 
+                                    birth_date: atleta.birth_date || '', 
+                                    gender: atleta.gender || '', 
+                                    shirt_size: atleta.shirt_size || '', 
+                                    is_licensed: atleta.is_licensed || false, 
+                                    is_member: atleta.is_member || false, 
+                                    is_team_admin: atleta.is_team_admin || false 
+                                }); 
+                                setIsAthleteModalOpen(true); 
+                            }} className="p-1.5 text-slate-300 hover:text-blue-600 transition-all"><Edit2 className="w-3.5 h-3.5" /></button>
                             {isSuperAdmin && <button onClick={() => handleToggleAdmin(atleta.id, atleta.is_team_admin)} className={`p-1.5 rounded-lg ${atleta.is_team_admin ? 'text-amber-600 bg-amber-50' : 'text-slate-300'}`}><Shield className="w-3.5 h-3.5" /></button>}
                             <button onClick={() => handleDeleteAthlete(atleta.id, atleta.full_name)} className="p-1.5 text-slate-300 hover:text-red-600"><Trash2 className="w-3.5 h-3.5" /></button>
                         </div>
@@ -514,7 +653,7 @@ const AdminPage: React.FC = () => {
                         <div className="relative group max-w-md w-full"><Mail className="absolute left-4 top-3.5 w-5 h-5 text-slate-500" /><input type="text" placeholder="Cerca atleta..." className="w-full pl-12 pr-4 py-3.5 bg-white border-2 border-slate-200 rounded-2xl outline-none text-sm font-medium" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} /></div>
                         <div className="flex flex-wrap gap-2">
                             <input type="file" accept=".xlsx, .xls, .csv" className="hidden" ref={fileInputRef} onChange={handleFileImport} />
-                            <button onClick={() => { setEditingAthlete(null); setAthleteForm({ full_name: '', team_id: isSuperAdmin ? '' : (myProfile?.team_id || ''), license_number: '', medical_certificate_expiry: '', birth_year: '', birth_date: '', gender: '', shirt_size: '', is_licensed: false, is_member: false, is_team_admin: false }); setIsAthleteModalOpen(true); }} className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg hover:bg-slate-800 transition-all"><Plus className="w-4 h-4" /> Nuovo Atleta</button>
+                            <button onClick={() => { setEditingAthlete(null); setAthleteForm({ full_name: '', email: '', team_id: isSuperAdmin ? '' : (myProfile?.team_id || ''), license_number: '', medical_certificate_expiry: '', birth_year: '', birth_date: '', gender: '', shirt_size: '', is_licensed: false, is_member: false, is_team_admin: false }); setIsAthleteModalOpen(true); }} className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg hover:bg-slate-800 transition-all"><Plus className="w-4 h-4" /> Nuovo Atleta</button>
                             <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-blue-200"><FileSpreadsheet className="w-4 h-4" /> Importa</button>
                             <button onClick={handleExportAthletesExcel} className="flex items-center gap-2 px-6 py-3 bg-white border-2 border-slate-200 text-slate-600 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 transition-all"><Download className="w-4 h-4" /> Esporta Atleti</button>
                             <button onClick={handleExportExcel} className="flex items-center gap-2 px-6 py-3 bg-emerald-50 text-emerald-700 rounded-2xl text-[10px] font-black uppercase tracking-widest border-2 border-emerald-100"><FileText className="w-4 h-4" /> Esporta Gare</button>
@@ -522,7 +661,7 @@ const AdminPage: React.FC = () => {
                     </div>
                     {isImportModalOpen && (
                         <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-                            <div className="bg-white rounded-[3rem] p-10 max-w-lg w-full shadow-2xl overflow-hidden flex flex-col">
+                            <div className="bg-white rounded-[3rem] p-10 max-lg w-full shadow-2xl overflow-hidden flex flex-col">
                                 <div className="flex justify-between mb-6"><div className="bg-blue-50 p-4 rounded-3xl text-blue-600"><FileSpreadsheet className="w-8 h-8" /></div><button onClick={() => setIsImportModalOpen(false)} className="p-2 hover:bg-slate-100 rounded-xl"><X className="w-6 h-6 text-slate-400" /></button></div>
                                 {importResults.success > 0 ? (
                                     <div className="space-y-6"><div className="p-6 bg-emerald-50 text-emerald-700 rounded-[2rem] font-black uppercase text-sm flex items-center gap-2"><CheckCircle2 className="w-5 h-5" /> {importResults.success} Atleti Importati</div><button onClick={() => setIsImportModalOpen(false)} className="w-full py-4 bg-slate-900 text-white rounded-[1.5rem] text-xs font-black uppercase">Chiudi</button></div>
@@ -788,6 +927,7 @@ const AdminPage: React.FC = () => {
                 </div>
             )}
 
+<<<<<<< HEAD
             {isAthleteModalOpen && <AthleteModal 
                 onClose={() => setIsAthleteModalOpen(false)}
                 editingAthlete={editingAthlete}
@@ -797,6 +937,19 @@ const AdminPage: React.FC = () => {
                 teams={teams}
                 isSuperAdmin={isSuperAdmin}
             />}
+=======
+            {isAthleteModalOpen && (
+                <AthleteModal 
+                    onClose={() => setIsAthleteModalOpen(false)}
+                    editingAthlete={editingAthlete}
+                    athleteForm={athleteForm}
+                    setAthleteForm={setAthleteForm}
+                    handleSaveAthlete={handleSaveAthlete}
+                    teams={teams}
+                    isSuperAdmin={isSuperAdmin}
+                />
+            )}
+>>>>>>> develop
         </div>
     );
 };
