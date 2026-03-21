@@ -43,7 +43,7 @@ const Layout: React.FC = () => {
   const fetchTeamData = async (userId: string) => {
     try {
       // Cerchiamo il profilo dell'utente
-      const { data: profile, error: profError } = await supabase
+      let { data: profile, error: profError } = await supabase
         .from('profiles')
         .select('full_name, team_id, is_team_admin, email')
         .eq('id', userId)
