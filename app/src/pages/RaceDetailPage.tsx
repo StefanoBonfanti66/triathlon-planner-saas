@@ -188,7 +188,27 @@ const RaceDetailPage: React.FC = () => {
             setTeam(teamData);
             const { data: teamPlans } = await supabase.from('user_plans').select('user_id, profiles(full_name, deleted_at)').eq('race_id', id).is('deleted_at', null);
             if (teamPlans) {
-              const members = teamPlans.filter((p: any) => p.profiles?.full_name && !p.profiles.deleted_at).map((p: any) => p.profiles.full_name);
+              const getSortableName = (name: string) => {
+                const parts = name.trim().split(/\s+/);
+                if (parts.length <= 1) return name.toLowerCase();
+                const surname = parts.pop()?.toLowerCase() || '';
+                const rest = parts.join(' ').toLowerCase();
+                return `${surname} ${rest}`;
+              };
+
+              const formatDisplayName = (name: string) => {
+                const parts = name.trim().split(/\s+/);
+                if (parts.length <= 1) return name;
+                const surname = parts.pop()?.toUpperCase() || '';
+                const rest = parts.join(' ');
+                return `${surname} ${rest}`;
+              };
+
+              const members = teamPlans
+                .filter((p: any) => p.profiles?.full_name && !p.profiles.deleted_at)
+                .map((p: any) => formatDisplayName(p.profiles.full_name))
+                .sort((a, b) => getSortableName(a).localeCompare(getSortableName(b)));
+              
               setParticipants(members);
               setIsRegistered(teamPlans.some((p: any) => p.user_id === session.user.id));
             }

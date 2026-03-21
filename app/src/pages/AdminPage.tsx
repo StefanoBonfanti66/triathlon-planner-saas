@@ -19,7 +19,8 @@ interface AthleteFormState {
     email: string; // Aggiunto per onboarding
     password?: string; // Password temporanea opzionale
     team_id: string; 
-    license_number: string; 
+    license_fitri: string; 
+    license_fci: string; 
     medical_certificate_expiry: string;
     birth_year: string; 
     birth_date: string; 
@@ -60,7 +61,10 @@ const AthleteModal: React.FC<AthleteModalProps> = ({
                             </div>
                         )}
                         <div><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Team</label><select value={athleteForm.team_id} onChange={e => setAthleteForm({...athleteForm, team_id: e.target.value})} className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-bold" required><option value="">Seleziona Team</option>{teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select></div>
-                        <div><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Tessera FITRI</label><input type="text" className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-bold" value={athleteForm.license_number} onChange={e => setAthleteForm({...athleteForm, license_number: e.target.value})} /></div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Tessera FITRI</label><input type="text" className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-bold" value={athleteForm.license_fitri} onChange={e => setAthleteForm({...athleteForm, license_fitri: e.target.value})} /></div>
+                            <div><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Tessera FCI</label><input type="text" className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-bold" value={athleteForm.license_fci} onChange={e => setAthleteForm({...athleteForm, license_fci: e.target.value})} /></div>
+                        </div>
                     </div>
                     <div className="space-y-4">
                         <div><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Certificato Medico (Scadenza)</label><input type="date" className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-bold" value={athleteForm.medical_certificate_expiry} onChange={e => setAthleteForm({...athleteForm, medical_certificate_expiry: e.target.value})} /></div>
@@ -110,7 +114,8 @@ const AdminPage: React.FC = () => {
         full_name: '', 
         email: '', 
         team_id: '', 
-        license_number: '', 
+        license_fitri: '', 
+        license_fci: '', 
         medical_certificate_expiry: '',
         birth_year: '', 
         birth_date: '', 
@@ -373,16 +378,26 @@ const AdminPage: React.FC = () => {
     const handleSaveAthlete = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            const payload: any = { ...athleteForm };
-            // Converte stringhe vuote in null per le colonne DATE/INT di Postgres
-            if (!payload.medical_certificate_expiry) payload.medical_certificate_expiry = null;
-            if (!payload.birth_date) payload.birth_date = null;
-            if (!payload.birth_year) payload.birth_year = null;
+            const combinedLicense = [athleteForm.license_fitri, athleteForm.license_fci].filter(Boolean).join('/');
+            const payload: any = { 
+                full_name: athleteForm.full_name,
+                email: athleteForm.email,
+                team_id: athleteForm.team_id,
+                license_number: combinedLicense,
+                medical_certificate_expiry: athleteForm.medical_certificate_expiry || null,
+                birth_year: athleteForm.birth_year || null,
+                birth_date: athleteForm.birth_date || null,
+                gender: athleteForm.gender,
+                shirt_size: athleteForm.shirt_size,
+                is_licensed: athleteForm.is_licensed,
+                is_member: athleteForm.is_member,
+                is_team_admin: athleteForm.is_team_admin
+            };
             
             let error;
             if (editingAthlete) {
                 // Rimuoviamo la password dal payload di update del profilo
-                const { password, ...updatePayload } = payload;
+                const { password, email, ...updatePayload } = payload;
                 error = (await supabase.from('profiles').update(updatePayload).eq('id', editingAthlete.id)).error;
             } else {
                 // Nuova logica: Crea l'atleta via RPC per la parte anagrafica
@@ -405,10 +420,10 @@ const AdminPage: React.FC = () => {
                 if (rpcRes && !rpcRes.success) throw new Error(rpcRes.message);
 
                 // Gestione Auth: Se c'è una password, creiamo l'utente direttamente
-                if (payload.password && payload.password.trim().length >= 6) {
+                if (athleteForm.password && athleteForm.password.trim().length >= 6) {
                     const { error: authError } = await supabase.auth.admin.createUser({
                         email: payload.email,
-                        password: payload.password,
+                        password: athleteForm.password,
                         email_confirm: true,
                         user_metadata: { full_name: payload.full_name, team_id: payload.team_id }
                     });
@@ -434,8 +449,8 @@ const AdminPage: React.FC = () => {
             fetchAllData(isSuperAdmin, myProfile?.team_id);
             
             if (!editingAthlete) {
-                if (payload.password) {
-                    alert(`Atleta creato con successo! Può loggarsi subito con:\nEmail: ${payload.email}\nPassword: ${payload.password}`);
+                if (athleteForm.password) {
+                    alert(`Atleta creato con successo! Può loggarsi subito con:\nEmail: ${payload.email}\nPassword: ${athleteForm.password}`);
                 } else {
                     alert("Atleta creato con successo. Riceverà l'email di invito se SMTP è attivo.");
                 }
@@ -443,20 +458,38 @@ const AdminPage: React.FC = () => {
         } catch (err: any) { alert("Errore: " + err.message); }
     };
 
+    const formatDisplayName = (name: string) => {
+        const parts = (name || '').trim().split(/\s+/);
+        if (parts.length <= 1) return name || 'N/A';
+        const surname = parts.pop()?.toUpperCase() || '';
+        const rest = parts.join(' ');
+        return `${surname} ${rest}`;
+    };
+
     const AthleteRow = ({ atleta }: { atleta: any }) => {
         const isExpired = atleta.medical_certificate_expiry && new Date(atleta.medical_certificate_expiry) < new Date();
+        const [fitri, fci] = (atleta.license_number || '').split('/');
+        
         return (
             <tr className="hover:bg-slate-50 transition-colors">
                 <td className="px-4 py-4">
                     <div className="flex flex-col">
-                        <span className="font-black text-slate-800 flex items-center gap-2 text-sm">{atleta.full_name || 'N/A'}{atleta.is_team_admin && <Shield className="w-3 h-3 text-amber-500 fill-current" />}</span>
+                        <span className="font-black text-slate-800 flex items-center gap-2 text-sm">
+                            {formatDisplayName(atleta.full_name)}
+                            {atleta.is_team_admin && <Shield className="w-3 h-3 text-amber-500 fill-current" />}
+                        </span>
                         <div className="flex flex-col gap-0.5">
                             <select value={atleta.team_id || ''} onChange={(e) => handleUpdateAthleteTeam(atleta.id, e.target.value || null)} className="bg-transparent border-none p-0 text-[10px] font-bold uppercase text-blue-600 focus:ring-0 cursor-pointer" disabled={!isSuperAdmin}><option value="">Nessun Team</option>{teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select>
                             {atleta.email && <span className="text-[9px] text-slate-400 font-medium italic">{atleta.email}</span>}
                         </div>
                     </div>
                 </td>
-                <td className="px-4 py-4"><span className="text-xs font-bold text-slate-500">{atleta.license_number || '-'}</span></td>
+                <td className="px-4 py-4">
+                    <div className="flex flex-col gap-0.5 min-w-[80px]">
+                        <div className="flex items-center gap-1.5"><span className="text-[8px] font-black bg-blue-50 text-blue-600 px-1 rounded">FITRI</span><span className="text-[10px] font-bold text-slate-600">{fitri || '-'}</span></div>
+                        <div className="flex items-center gap-1.5"><span className="text-[8px] font-black bg-emerald-50 text-emerald-600 px-1 rounded">FCI</span><span className="text-[10px] font-bold text-slate-600">{fci || '-'}</span></div>
+                    </div>
+                </td>
                 <td className="px-4 py-4">
                     <div className="flex items-center gap-2">
                         <input type="date" value={atleta.medical_certificate_expiry || ''} onChange={(e) => handleUpdateCertificate(atleta.id, e.target.value)} className={`bg-transparent border-none text-[11px] font-bold p-0 focus:ring-0 ${isExpired ? 'text-red-600' : 'text-slate-600'}`} />
@@ -480,12 +513,14 @@ const AdminPage: React.FC = () => {
                         <span className="bg-slate-100 text-slate-800 px-2 py-0.5 rounded-md text-[10px] font-black">{plansCount[atleta.id] || 0}</span>
                         <div className="flex items-center gap-1">
                             <button onClick={() => { 
+                                const [fit, fc] = (atleta.license_number || '').split('/');
                                 setEditingAthlete(atleta); 
                                 setAthleteForm({ 
                                     full_name: atleta.full_name || '', 
                                     email: atleta.email || '', 
                                     team_id: atleta.team_id || '', 
-                                    license_number: atleta.license_number || '', 
+                                    license_fitri: fit || '', 
+                                    license_fci: fc || '', 
                                     medical_certificate_expiry: atleta.medical_certificate_expiry || '', 
                                     birth_year: atleta.birth_year || '', 
                                     birth_date: atleta.birth_date || '', 
@@ -526,16 +561,21 @@ const AdminPage: React.FC = () => {
     };
 
     const handleExportAthletesExcel = () => {
-        const data = profiles.map(p => ({
-            'Nome Completo': p.full_name || 'N/A',
-            'Team': teams.find(t => t.id === p.team_id)?.name || 'Nessuno',
-            'Anno Nascita': p.birth_year || '',
-            'Categoria': getFitriCategory(p.birth_year),
-            'Tesserato': p.is_licensed ? 'Sì' : 'No',
-            'Socio': p.is_member ? 'Sì' : 'No',
-            'Scadenza Certificato': p.medical_certificate_expiry || 'N/D',
-            'Gare Pianificate': plansCount[p.id] || 0
-        }));
+        const data = profiles.map(p => {
+            const [fitri, fci] = (p.license_number || '').split('/');
+            return {
+                'Nome Completo': p.full_name || 'N/A',
+                'Team': teams.find(t => t.id === p.team_id)?.name || 'Nessuno',
+                'Tessera FITRI': fitri || '',
+                'Tessera FCI': fci || '',
+                'Anno Nascita': p.birth_year || '',
+                'Categoria': getFitriCategory(p.birth_year),
+                'Tesserato': p.is_licensed ? 'Sì' : 'No',
+                'Socio': p.is_member ? 'Sì' : 'No',
+                'Scadenza Certificato': p.medical_certificate_expiry || 'N/D',
+                'Gare Pianificate': plansCount[p.id] || 0
+            };
+        });
         
         const ws = XLSX.utils.json_to_sheet(data);
         const wb = XLSX.utils.book_new();
@@ -587,7 +627,18 @@ const AdminPage: React.FC = () => {
         alert("Codice copiato!");
     };
 
-    const filteredProfiles = profiles.filter(p => (p.full_name || '').toLowerCase().includes(searchTerm.toLowerCase()));
+    const filteredProfiles = profiles
+        .filter(p => (p.full_name || '').toLowerCase().includes(searchTerm.toLowerCase()))
+        .sort((a, b) => {
+            const getSortableName = (name: string) => {
+                const parts = name.trim().split(/\s+/);
+                if (parts.length <= 1) return name.toLowerCase();
+                const surname = parts.pop()?.toLowerCase() || '';
+                const rest = parts.join(' ').toLowerCase();
+                return `${surname} ${rest}`;
+            };
+            return getSortableName(a.full_name || '').localeCompare(getSortableName(b.full_name || ''));
+        });
     const filteredTeams = teams.filter(t => (t.name || '').toLowerCase().includes(teamSearchTerm.toLowerCase()) || (t.join_code || '').toLowerCase().includes(teamSearchTerm.toLowerCase()));
 
     if (!loading && !isSuperAdmin && !myProfile?.is_team_admin) return <Navigate to="/" replace />;
@@ -610,7 +661,7 @@ const AdminPage: React.FC = () => {
                         <div className="relative group max-w-md w-full"><Mail className="absolute left-4 top-3.5 w-5 h-5 text-slate-500" /><input type="text" placeholder="Cerca atleta..." className="w-full pl-12 pr-4 py-3.5 bg-white border-2 border-slate-200 rounded-2xl outline-none text-sm font-medium" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} /></div>
                         <div className="flex flex-wrap gap-2">
                             <input type="file" accept=".xlsx, .xls, .csv" className="hidden" ref={fileInputRef} onChange={handleFileImport} />
-                            <button onClick={() => { setEditingAthlete(null); setAthleteForm({ full_name: '', email: '', team_id: isSuperAdmin ? '' : (myProfile?.team_id || ''), license_number: '', medical_certificate_expiry: '', birth_year: '', birth_date: '', gender: '', shirt_size: '', is_licensed: false, is_member: false, is_team_admin: false }); setIsAthleteModalOpen(true); }} className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg hover:bg-slate-800 transition-all"><Plus className="w-4 h-4" /> Nuovo Atleta</button>
+                            <button onClick={() => { setEditingAthlete(null); setAthleteForm({ full_name: '', email: '', team_id: isSuperAdmin ? '' : (myProfile?.team_id || ''), license_fitri: '', license_fci: '', medical_certificate_expiry: '', birth_year: '', birth_date: '', gender: '', shirt_size: '', is_licensed: false, is_member: false, is_team_admin: false }); setIsAthleteModalOpen(true); }} className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg hover:bg-slate-800 transition-all"><Plus className="w-4 h-4" /> Nuovo Atleta</button>
                             <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-blue-200"><FileSpreadsheet className="w-4 h-4" /> Importa</button>
                             <button onClick={handleExportAthletesExcel} className="flex items-center gap-2 px-6 py-3 bg-white border-2 border-slate-200 text-slate-600 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 transition-all"><Download className="w-4 h-4" /> Esporta Atleti</button>
                             <button onClick={handleExportExcel} className="flex items-center gap-2 px-6 py-3 bg-emerald-50 text-emerald-700 rounded-2xl text-[10px] font-black uppercase tracking-widest border-2 border-emerald-100"><FileText className="w-4 h-4" /> Esporta Gare</button>

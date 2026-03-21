@@ -74,6 +74,29 @@ const TeamCalendarPage: React.FC = () => {
         }
       });
 
+      // Ordina i partecipanti per cognome
+      const getSortableName = (name: string) => {
+        const parts = name.trim().split(/\s+/);
+        if (parts.length <= 1) return name.toLowerCase();
+        const surname = parts.pop()?.toLowerCase() || '';
+        const rest = parts.join(' ').toLowerCase();
+        return `${surname} ${rest}`;
+      };
+
+      const formatDisplayName = (name: string) => {
+        const parts = name.trim().split(/\s+/);
+        if (parts.length <= 1) return name;
+        const surname = parts.pop()?.toUpperCase() || '';
+        const rest = parts.join(' ');
+        return `${surname} ${rest}`;
+      };
+
+      Object.values(raceGroups).forEach(race => {
+        race.participants = race.participants
+          .sort((a, b) => getSortableName(a).localeCompare(getSortableName(b)))
+          .map(name => formatDisplayName(name));
+      });
+
       // 4. Raggruppa per mese
       const months: Record<string, TeamRace[]> = {};
       Object.values(raceGroups).forEach(race => {
