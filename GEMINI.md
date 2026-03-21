@@ -1,10 +1,12 @@
 # Race Planner SaaS - State of the Art
 **Lead Architect**: Stefano Bonfanti
-**Version**: 6.3.2 - Enterprise Cloud Ready
+**Version**: 6.3.3 - Pro Federal Standards
 
 ## Core SaaS Features
 - **Hierarchical Admin**: Global control for Stefano (Super Admin), Local control for Team Leaders.
 - **Admin Password Bypass**: New manual password management for athlete onboarding (no SMTP dependency).
+- **Dual License Support**: Split fields for "Tessera FITRI" and "Tessera FCI" with dedicated visual labels.
+- **Professional Registry**: Automated "SURNAME Name" formatting and alphabetical sorting by surname across the app.
 - **Data Integrity 2.0**: Unique email constraints and automated profile-to-auth syncing.
 - **Membership & Licensing**: Dedicated flags for "Tesserato FITRI" and "Socio Associazione" with split-view management.
 - **Telegram Multi-Team**: Dedicated Telegram Group IDs for each team with granular real-time notifications.
@@ -26,6 +28,7 @@
 
 ## Quick Admin Guide
 - **Super Admin Dashboard**: Navigate to `/admin` to manage all teams and promote users.
+- **License Management**: Enter FITRI and FCI licenses in separate fields for each athlete.
 - **Telegram Setup**: Enter the "Telegram Group ID" in the Team settings to enable instant notifications for the specific team.
 - **Promote to Team Admin**: Click the Shield icon in the Athletes list to grant local admin rights.
 - **Sync Status**: The system automatically watches the FITRI calendar and alerts on changes.

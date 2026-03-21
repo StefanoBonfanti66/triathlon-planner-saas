@@ -2,6 +2,16 @@
 
 Tutti i cambiamenti significativi a questo progetto saranno documentati in questo file.
 
+## [6.3.3] - 2026-03-21
+### Aggiunto
+- **Dual License Management**: Sdoppiamento del campo tessera in FITRI e FCI nella Dashboard Admin con gestione separata nel modulo di inserimento/modifica.
+- **Surname-First Sorting**: Implementato l'ordinamento alfabetico basato sul cognome (ultima parola del nome completo) in tutta l'applicazione.
+- **Standardized Display**: Formattazione universale degli atleti come "COGNOME Nome" (es. BONFANTI Stefano) per un look professionale stile federale.
+- **Enhanced Excel Export**: L'esportazione anagrafica ora include colonne distinte per le tessere FITRI e FCI.
+
+### Corretto
+- **TypeScript Build Fix**: Risolti errori di tipizzazione in `Layout.tsx` che bloccavano il deployment su Vercel (riassegnazione costanti e mismatch campi profilo).
+
 ## [6.3.2] - 2026-03-19
 ### Aggiunto
 - **Admin Password Management**: Possibilità per l'amministratore di impostare una password temporanea durante la creazione di un nuovo atleta, bypassando l'invito email se SMTP non è configurato.
