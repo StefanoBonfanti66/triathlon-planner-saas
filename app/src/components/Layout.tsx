@@ -54,7 +54,7 @@ const Layout: React.FC = () => {
         // Se non lo trova per ID, proviamo per email (caso di mismatch post-invito)
         const { data: profileByEmail } = await supabase
           .from('profiles')
-          .select('id, full_name, team_id, is_team_admin')
+          .select('id, full_name, team_id, is_team_admin, email')
           .eq('email', session?.user?.email)
           .single();
         
