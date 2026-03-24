@@ -141,9 +141,16 @@ const GuidePage: React.FC = () => {
                   <Shield className="w-5 h-5 text-blue-400" />
                   <h4 className="font-black uppercase text-xs text-blue-400">Super Admin</h4>
                 </div>
-                <p className="text-xs text-slate-300 font-bold leading-relaxed">
+                <p className="text-xs text-slate-300 font-bold leading-relaxed mb-6">
                   Controllo globale su tutti i team del sistema e gestione permessi avanzata per i leader.
                 </p>
+                <a 
+                  href="/GUIDA_ADMIN.pdf" 
+                  download 
+                  className="flex items-center justify-center gap-2 px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border border-white/10 w-fit"
+                >
+                  <Download className="w-3.5 h-3.5" /> Scarica Guida Admin (PDF)
+                </a>
               </div>
             </div>
           </div>
