@@ -27,6 +27,7 @@ interface AthleteFormState {
     gender: string; 
     shirt_size: string;
     is_licensed: boolean; 
+    is_licensed_fci: boolean;
     is_member: boolean; 
     is_team_admin: boolean;
 }
@@ -79,8 +80,9 @@ const AthleteModal: React.FC<AthleteModalProps> = ({
                     </div>
                 </div>
                 <div className="p-6 bg-slate-50 rounded-[2rem] space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="flex items-center justify-between"><span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Tesserato FITRI</span><button type="button" onClick={() => setAthleteForm({...athleteForm, is_licensed: !athleteForm.is_licensed})} className={`w-12 h-6 rounded-full transition-all relative ${athleteForm.is_licensed ? 'bg-emerald-500' : 'bg-slate-300'}`}><div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${athleteForm.is_licensed ? 'left-7' : 'left-1'}`}></div></button></div>
+                        <div className="flex items-center justify-between"><span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Tesserato FCI</span><button type="button" onClick={() => setAthleteForm({...athleteForm, is_licensed_fci: !athleteForm.is_licensed_fci})} className={`w-12 h-6 rounded-full transition-all relative ${athleteForm.is_licensed_fci ? 'bg-blue-500' : 'bg-slate-300'}`}><div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${athleteForm.is_licensed_fci ? 'left-7' : 'left-1'}`}></div></button></div>
                         <div className="flex items-center justify-between"><span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Socio Associazione</span><button type="button" onClick={() => setAthleteForm({...athleteForm, is_member: !athleteForm.is_member})} className={`w-12 h-6 rounded-full transition-all relative ${athleteForm.is_member ? 'bg-pink-500' : 'bg-slate-300'}`}><div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${athleteForm.is_member ? 'left-7' : 'left-1'}`}></div></button></div>
                         {isSuperAdmin && <div className="flex items-center justify-between"><span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Team Admin</span><button type="button" onClick={() => setAthleteForm({...athleteForm, is_team_admin: !athleteForm.is_team_admin})} className={`w-12 h-6 rounded-full transition-all relative ${athleteForm.is_team_admin ? 'bg-amber-500' : 'bg-slate-300'}`}><div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${athleteForm.is_team_admin ? 'left-7' : 'left-1'}`}></div></button></div>}
                     </div>
@@ -122,6 +124,7 @@ const AdminPage: React.FC = () => {
         gender: '', 
         shirt_size: '',
         is_licensed: false, 
+        is_licensed_fci: false,
         is_member: false, 
         is_team_admin: false
     });
@@ -321,6 +324,15 @@ const AdminPage: React.FC = () => {
         }
     };
 
+    const handleToggleLicensedFci = async (userId: string, currentStatus: boolean) => {
+        const { error } = await supabase.from('profiles').update({ is_licensed_fci: !currentStatus }).eq('id', userId);
+        if (error) alert("Errore: " + error.message);
+        else {
+            logAdminAction('TOGGLE_LICENSED_FCI', { userId, newStatus: !currentStatus });
+            setProfiles(prev => prev.map(p => p.id === userId ? { ...p, is_licensed_fci: !currentStatus } : p));
+        }
+    };
+
     const handleToggleMember = async (userId: string, currentStatus: boolean) => {
         const { error } = await supabase.from('profiles').update({ is_member: !currentStatus }).eq('id', userId);
         if (error) alert("Errore: " + error.message);
@@ -390,6 +402,7 @@ const AdminPage: React.FC = () => {
                 gender: athleteForm.gender,
                 shirt_size: athleteForm.shirt_size,
                 is_licensed: athleteForm.is_licensed,
+                is_licensed_fci: athleteForm.is_licensed_fci,
                 is_member: athleteForm.is_member,
                 is_team_admin: athleteForm.is_team_admin
             };
@@ -412,6 +425,7 @@ const AdminPage: React.FC = () => {
                     p_gender: payload.gender,
                     p_shirt_size: payload.shirt_size,
                     p_is_licensed: payload.is_licensed,
+                    p_is_licensed_fci: payload.is_licensed_fci,
                     p_is_member: payload.is_member,
                     p_is_team_admin: payload.is_team_admin
                 });
@@ -505,6 +519,7 @@ const AdminPage: React.FC = () => {
                 <td className="px-4 py-4">
                     <div className="flex items-center gap-1">
                         <button onClick={() => handleToggleLicensed(atleta.id, atleta.is_licensed)} className={`p-1.5 rounded-lg transition-all ${atleta.is_licensed ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-slate-50 text-slate-300'}`} title="Tesserato FITRI"><CheckCircle2 className="w-4 h-4" /></button>
+                        <button onClick={() => handleToggleLicensedFci(atleta.id, atleta.is_licensed_fci)} className={`p-1.5 rounded-lg transition-all ${atleta.is_licensed_fci ? 'bg-blue-50 text-blue-600 border border-blue-100' : 'bg-slate-50 text-slate-300'}`} title="Tesserato FCI"><CheckCircle2 className="w-4 h-4" /></button>
                         <button onClick={() => handleToggleMember(atleta.id, atleta.is_member)} className={`p-1.5 rounded-lg transition-all ${atleta.is_member ? 'bg-pink-50 text-pink-600 border border-pink-100' : 'bg-slate-50 text-slate-300'}`} title="Socio Associazione"><Heart className={`w-4 h-4 ${atleta.is_member ? 'fill-current' : ''}`} /></button>
                     </div>
                 </td>
@@ -527,6 +542,7 @@ const AdminPage: React.FC = () => {
                                     gender: atleta.gender || '', 
                                     shirt_size: atleta.shirt_size || '', 
                                     is_licensed: atleta.is_licensed || false, 
+                                    is_licensed_fci: atleta.is_licensed_fci || false,
                                     is_member: atleta.is_member || false, 
                                     is_team_admin: atleta.is_team_admin || false 
                                 }); 
@@ -680,7 +696,7 @@ const AdminPage: React.FC = () => {
                         </div>
                     )}
                     <div className="space-y-4">
-                        <h3 className="text-sm font-black text-emerald-600 uppercase tracking-widest flex items-center gap-2 pl-4"><CheckCircle2 className="w-4 h-4" /> Atleti Tesserati ({filteredProfiles.filter(p => p.is_licensed).length})</h3>
+                        <h3 className="text-sm font-black text-emerald-600 uppercase tracking-widest flex items-center gap-2 pl-4"><CheckCircle2 className="w-4 h-4" /> Atleti e Soci Attivi ({filteredProfiles.filter(p => p.is_licensed || p.is_licensed_fci || p.is_member).length})</h3>
                         <div className="bg-white rounded-[3rem] shadow-sm border border-emerald-50 overflow-hidden overflow-x-auto">
                             <table className="w-full text-left border-collapse"><thead className="bg-emerald-50/50"><tr className="bg-emerald-50/50 text-[10px] font-black text-emerald-800 uppercase tracking-widest">
                                         <th className="px-4 py-5">Atleta / Team</th>
@@ -689,13 +705,13 @@ const AdminPage: React.FC = () => {
                                         <th className="px-4 py-5">Anno/Cat.</th>
                                         <th className="px-4 py-5">Status</th>
                                         <th className="px-4 py-5 text-right">Gare/Azioni</th>
-                                    </tr></thead><tbody className="divide-y divide-emerald-50/30">{filteredProfiles.filter(p => p.is_licensed).map(atleta => <AthleteRow key={atleta.id} atleta={atleta} />)}</tbody></table>
+                                    </tr></thead><tbody className="divide-y divide-emerald-50/30">{filteredProfiles.filter(p => p.is_licensed || p.is_licensed_fci || p.is_member).map(atleta => <AthleteRow key={atleta.id} atleta={atleta} />)}</tbody></table>
                         </div>
                     </div>
                     <div className="space-y-4">
-                        <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 pl-4"><X className="w-4 h-4" /> Atleti Da Tesserare ({filteredProfiles.filter(p => !p.is_licensed).length})</h3>
+                        <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 pl-4"><X className="w-4 h-4" /> Altre Anagrafiche ({filteredProfiles.filter(p => !p.is_licensed && !p.is_licensed_fci && !p.is_member).length})</h3>
                         <div className="bg-white rounded-[3rem] shadow-sm border border-slate-100 overflow-hidden overflow-x-auto opacity-90 hover:opacity-100 transition-opacity">
-                            <table className="w-full text-left border-collapse"><thead className="bg-slate-50"><tr className="text-[11px] font-black text-slate-600 uppercase tracking-widest"><th className="px-8 py-5">Atleta</th><th className="px-8 py-5">Team</th><th className="px-8 py-5">Tessera</th><th className="px-8 py-5">Anno</th><th className="px-8 py-5">Cat.</th><th className="px-8 py-5 text-center">Tesserato</th><th className="px-8 py-5 text-center">Socio</th><th className="px-8 py-5">Certificato</th><th className="px-8 py-5 text-center">Gare</th><th className="px-8 py-5 text-right">Azioni</th></tr></thead><tbody className="divide-y divide-slate-100">{filteredProfiles.filter(p => !p.is_licensed).map(atleta => <AthleteRow key={atleta.id} atleta={atleta} />)}</tbody></table>
+                            <table className="w-full text-left border-collapse"><thead className="bg-slate-50"><tr className="text-[11px] font-black text-slate-600 uppercase tracking-widest"><th className="px-8 py-5">Atleta</th><th className="px-8 py-5">Team</th><th className="px-8 py-5">Tessera</th><th className="px-8 py-5">Anno</th><th className="px-8 py-5">Cat.</th><th className="px-8 py-5 text-center">Tesserato</th><th className="px-8 py-5 text-center">Socio</th><th className="px-8 py-5">Certificato</th><th className="px-8 py-5 text-center">Gare</th><th className="px-8 py-5 text-right">Azioni</th></tr></thead><tbody className="divide-y divide-slate-100">{filteredProfiles.filter(p => !p.is_licensed && !p.is_licensed_fci && !p.is_member).map(atleta => <AthleteRow key={atleta.id} atleta={atleta} />)}</tbody></table>
                         </div>
                     </div>
                 </div>
