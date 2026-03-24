@@ -1,7 +1,7 @@
 # 🏆 Guida Rapida Admin - Race Planner SaaS 2026
 **Per: Alessandro Sciarrone - CUS Propatria Milano**
 
-Benvenuto Alessandro nel sistema di gestione tecnica della tua squadra. Questa piattaforma è stata progettata per centralizzare la pianificazione delle gare FITRI 2026 e facilitare il coordinamento degli atleti.
+Benvenuto Alessandro nel sistema di gestione tecnica della tua squadra. Questa piattaforma è stata progettata per centralizzare la pianificazione delle gare FITRI/FCI 2026 e facilitare il coordinamento degli atleti.
 
 ---
 
@@ -13,47 +13,39 @@ Benvenuto Alessandro nel sistema di gestione tecnica della tua squadra. Questa p
 ---
 
 ## 2. Gestione Atleti (Il tuo Pannello di Controllo)
-Nella sezione **Admin > Atleti**, puoi monitorare l'intera squadra:
-*   **Visualizzazione**: Vedi in tempo reale chi si è registrato e quante gare ha pianificato.
-*   **Eliminazione**: Se un atleta non fa più parte del club, puoi rimuoverlo (il sistema effettua un "soft delete" per sicurezza).
-*   **Pianificazione**: Cliccando sul nome di un atleta, vedrai il suo calendario personale.
+Nella sezione **Admin > Atleti**, puoi monitorare l'intera squadra con una nuova interfaccia prioritaria:
+*   **Sezione Superiore (Atleti e Soci Attivi)**: Qui trovi chi è già in regola. Include tutti gli atleti con tessera FITRI o FCI attiva e i soci sostenitori (contrassegnati dal ❤️).
+*   **Altre Anagrafiche**: Elenco dei profili da regolarizzare o ex atleti.
+*   **Tesseramento FCI**: Abbiamo aggiunto un tasto rapido (colore blu) per confermare il tesseramento ciclistico (FCI) 2026 con un solo click.
+*   **Certificati Medici**: Il sistema evidenzia in rosso le date scadute. Puoi aggiornarle direttamente dalla tabella.
 
 ---
 
-## 3. Bulk Import: Caricare 100+ Atleti in 5 secondi
-Per evitare l'inserimento manuale, usa la funzione **"Importa Atleti (Excel)"**:
-1.  Prepara un file Excel con due colonne: **"Nome Completo"** ed **"Email"**.
-2.  Trascina il file nel pannello Admin.
-3.  Controlla l'anteprima e clicca su **"Conferma e Importa"**.
-*   *Nota: Gli atleti importati sono "profili segnaposto". Non appena l'atleta si registrerà con la stessa email, il sistema lo collegherà automaticamente al suo profilo CUS già esistente.*
+## 3. Bulk Import e Onboarding Manuale
+Oltre all'importazione Excel, puoi aggiungere atleti singolarmente:
+1.  **Password Manuale**: Se l'atleta ha difficoltà con l'email, puoi impostare tu una password temporanea (es: `Gara2026!`). L'atleta potrà loggarsi subito senza attendere l'email di invito.
+2.  **Import Excel**: Usa colonne "Nome Completo" ed "Email". Il sistema collegherà i profili non appena gli atleti effettueranno il primo login.
 
 ---
 
 ## 4. Esportazione Dati per le Iscrizioni
 Prima della chiusura delle iscrizioni a una gara (es. MilanoTRI):
-1.  Vai su **Admin > Esporta Elenco Gare (Excel)**.
-2.  Il sistema genererà un file pronto per la segreteria con la lista di tutti gli atleti iscritti a ogni gara del calendario.
+1.  Vai su **Admin > Atleti**.
+2.  Usa il tasto **Esporta (Excel)** per generare un file completo con: Licenze (FITRI/FCI), scadenze mediche e dati anagrafici necessari per i portali federali.
 
 ---
 
-## 5. Log Attività e Trasparenza
-Nella scheda **"Log Attività"**, troverai la cronologia di ogni operazione amministrativa (es. chi ha importato l'Excel o chi ha eliminato un profilo). Questo garantisce massima sicurezza e tracciabilità all'interno del direttivo CUS.
+## 5. Social Stats e Auguri Automatici
+*   **Social Cards**: Scarica la card del mese con i top atleti della Propatria pronti per Instagram.
+*   **Compleanni (Novità)**: Il sistema ora invia automaticamente un messaggio di auguri sul tuo gruppo Telegram per ogni atleta nel giorno del suo compleanno. Un ottimo modo per fare community!
 
 ---
 
-## 6. Social Stats Hub
-Vuoi premiare l'atleta più attivo del mese?
-1.  Vai su **Admin > Social**.
-2.  Seleziona il mese.
-3.  Scarica la **Social Card (PNG)** già pronta per essere pubblicata su Instagram o Facebook con i colori CUS Propatria.
-
----
-
-## 7. Notifiche Real-Time (Telegram Multi-Team)
-Per ricevere avvisi immediati su nuovi atleti e nuove iscrizioni della squadra:
+## 6. Notifiche Real-Time (Telegram Multi-Team)
+Per ricevere avvisi su nuovi atleti, cambi programma e compleanni:
 1.  Vai su **Admin > Impostazioni Team**.
-2.  Inserisci l'**ID Gruppo Telegram** dedicato al tuo club.
-3.  Il sistema inizierà a inviare notifiche automatiche direttamente al tuo gruppo, mantenendo separate le comunicazioni tra i diversi team della piattaforma.
+2.  Inserisci l'**ID Gruppo Telegram** del tuo club.
+3.  Inserisci l'**ID Admin Telegram** se vuoi ricevere avvisi tecnici separati (es. scadenze certificati medici).
 
 ---
 
