@@ -577,18 +577,31 @@ const AdminPage: React.FC = () => {
     };
 
     const handleExportAthletesExcel = () => {
+        const formatDate = (dateStr: string) => {
+            if (!dateStr || dateStr === 'N/D') return dateStr;
+            try {
+                const [year, month, day] = dateStr.split('-');
+                if (!year || !month || !day) return dateStr;
+                return `${day}/${month}/${year}`;
+            } catch {
+                return dateStr;
+            }
+        };
+
         const data = profiles.map(p => {
             const [fitri, fci] = (p.license_number || '').split('/');
             return {
                 'Nome Completo': p.full_name || 'N/A',
                 'Team': teams.find(t => t.id === p.team_id)?.name || 'Nessuno',
+                'Sesso': p.gender || '',
+                'Data di Nascita': formatDate(p.birth_date) || '',
                 'Tessera FITRI': fitri || '',
                 'Tessera FCI': fci || '',
                 'Anno Nascita': p.birth_year || '',
                 'Categoria': getFitriCategory(p.birth_year),
                 'Tesserato': p.is_licensed ? 'Sì' : 'No',
                 'Socio': p.is_member ? 'Sì' : 'No',
-                'Scadenza Certificato': p.medical_certificate_expiry || 'N/D',
+                'Scadenza Certificato': formatDate(p.medical_certificate_expiry) || 'N/D',
                 'Gare Pianificate': plansCount[p.id] || 0
             };
         });
@@ -605,7 +618,7 @@ const AdminPage: React.FC = () => {
         const { data: plans } = await supabase.from('user_plans').select('user_id, race_id').in('user_id', userIds).is('deleted_at', null);
         const raceGroups: Record<string, string[]> = {};
         plans?.forEach(p => { if (!raceGroups[p.race_id]) raceGroups[p.race_id] = []; raceGroups[p.race_id].push(profiles.find(prof => prof.id === p.user_id)?.full_name || 'N/A'); });
-        let csv = "Gara;Data;Atleti\n"; (racesData as any[]).forEach(r => { if (raceGroups[r.id]) csv += `"${r.title}";"${r.date}";"${raceGroups[r.id].join(', ')}"\n`; });
+        let csv = "Gara;Data;Atleti\n"; (racesData as any[]).forEach(r => { if (raceGroups[r.id]) csv += `"${r.title}";"${r.date.replace(/-/g, '/')}";"${raceGroups[r.id].join(', ')}"\n`; });
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = `gare-team.csv`; link.click();
     };
