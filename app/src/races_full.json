@@ -469,7 +469,7 @@
   },
   {
     "date": "08-03-2026",
-    "title": "CAMPIONATO ITALIANO DUATHLON CROSS JUNIOR - YOUTH B - YOUTH A",
+    "title": "CAMPIONATO ITALIANO DUATHLON CROSS YOUTH A",
     "event": "CAMPIONATO ITALIANO DUATHLON CROSS",
     "location": "Spresiano (Treviso)",
     "region": "Veneto",
@@ -482,7 +482,7 @@
   },
   {
     "date": "08-03-2026",
-    "title": "CAMPIONATO ITALIANO DUATHLON CROSS",
+    "title": "CAMPIONATO ITALIANO DUATHLON CROSS JUNIOR",
     "event": "CAMPIONATO ITALIANO DUATHLON CROSS",
     "location": "Spresiano (Treviso)",
     "region": "Veneto",
@@ -495,9 +495,35 @@
   },
   {
     "date": "08-03-2026",
+    "title": "CAMPIONATO ITALIANO DUATHLON CROSS YOUTH B",
+    "event": "CAMPIONATO ITALIANO DUATHLON CROSS",
+    "location": "Spresiano (Treviso)",
+    "region": "Veneto",
+    "type": "Duathlon",
+    "distance": "Cross",
+    "rank": "",
+    "category": "Youth",
+    "link": "https://www.myfitri.it/evento/3936",
+    "id": "3936-3"
+  },
+  {
+    "date": "08-03-2026",
+    "title": "CAMPIONATO ITALIANO DUATHLON CROSS",
+    "event": "CAMPIONATO ITALIANO DUATHLON CROSS",
+    "location": "Spresiano (Treviso)",
+    "region": "Veneto",
+    "type": "Duathlon",
+    "distance": "Cross",
+    "rank": "",
+    "category": "",
+    "link": "https://www.myfitri.it/evento/3936",
+    "id": "3936-4"
+  },
+  {
+    "date": "08-03-2026",
     "title": "CIRCUITO LE 5 PROVINCE - PRIMA TAPPA",
     "event": "CIRCUITO LE 5 PROVINCE - PRIMA TAPPA",
-    "location": "Casal Velino (Salerno)",
+    "location": "Cas Velino (Serno)",
     "region": "Campania",
     "type": "Triathlon",
     "distance": "",
@@ -624,8 +650,21 @@
     "id": "3912-2"
   },
   {
+    "date": "21-03-2026",
+    "title": "DUATHLON SPRINT DI IMOLA - L'emozione di correre in pista - 8° EDIZIONE - GARA",
+    "event": "CAMPIONATO ITALIANO DUATHLON SPRINT ASSOLUTO / AGE GROUP / PARADUATHLON / COPPA CRONO",
+    "location": "Imola (Bologna)",
+    "region": "Emilia-Romagna",
+    "type": "Duathlon",
+    "distance": "Sprint",
+    "rank": "Bronze",
+    "category": "",
+    "link": "https://www.myfitri.it/evento/3912",
+    "id": "3912-3"
+  },
+  {
     "date": "22-03-2026",
-    "title": "CAMPIONATO ITALIANO COPPA CRONO DUATHLON - L'emozione di correre in pista",
+    "title": "CAMPIONATO ITALIANO COPPA CRONO FEMMINILE DUATHLON - L'emozione di correre in pista",
     "event": "CAMPIONATO ITALIANO DUATHLON SPRINT ASSOLUTO / AGE GROUP / PARADUATHLON / COPPA CRONO",
     "location": "Imola (Bologna)",
     "region": "Emilia-Romagna",
@@ -634,24 +673,11 @@
     "rank": "",
     "category": "",
     "link": "https://www.myfitri.it/evento/3912",
-    "id": "3912-3"
-  },
-  {
-    "date": "22-03-2026",
-    "title": "CAMPIONATO ITALIANO DUATHLON A STAFFETTA 2+2",
-    "event": "CAMPIONATO ITALIANO DUATHLON SPRINT ASSOLUTO / AGE GROUP / PARADUATHLON / COPPA CRONO",
-    "location": "Imola (Bologna)",
-    "region": "Emilia-Romagna",
-    "type": "Duathlon",
-    "distance": "Staffetta",
-    "rank": "",
-    "category": "",
-    "link": "https://www.myfitri.it/evento/3912",
     "id": "3912-4"
   },
   {
     "date": "22-03-2026",
-    "title": "CAMPIONATO ITALIANO PARADUATHLON - L'emozione di correre in pista",
+    "title": "CAMPIONATO ITALIANO COPPA CRONO MASCHILE DUATHLON - L'emozione di correre in pista",
     "event": "CAMPIONATO ITALIANO DUATHLON SPRINT ASSOLUTO / AGE GROUP / PARADUATHLON / COPPA CRONO",
     "location": "Imola (Bologna)",
     "region": "Emilia-Romagna",
@@ -664,16 +690,42 @@
   },
   {
     "date": "22-03-2026",
-    "title": "DUATHLON SPRINT DI IMOLA - L'emozione di correre in pista - 8° EDIZIONE - GARA",
+    "title": "CAMPIONATO ITALIANO DUATHLON A STAFFETTA 2+2",
     "event": "CAMPIONATO ITALIANO DUATHLON SPRINT ASSOLUTO / AGE GROUP / PARADUATHLON / COPPA CRONO",
     "location": "Imola (Bologna)",
     "region": "Emilia-Romagna",
     "type": "Duathlon",
-    "distance": "Sprint",
-    "rank": "Bronze",
+    "distance": "Staffetta",
+    "rank": "",
     "category": "",
     "link": "https://www.myfitri.it/evento/3912",
     "id": "3912-6"
+  },
+  {
+    "date": "22-03-2026",
+    "title": "CAMPIONATO ITALIANO PARADUATHLON - L'emozione di correre in pista",
+    "event": "CAMPIONATO ITALIANO DUATHLON SPRINT ASSOLUTO / AGE GROUP / PARADUATHLON / COPPA CRONO",
+    "location": "Imola (Bologna)",
+    "region": "Emilia-Romagna",
+    "type": "Duathlon",
+    "distance": "",
+    "rank": "",
+    "category": "",
+    "link": "https://www.myfitri.it/evento/3912",
+    "id": "3912-7"
+  },
+  {
+    "date": "22-03-2026",
+    "title": "Coppa Crono Mixed",
+    "event": "CAMPIONATO ITALIANO DUATHLON SPRINT ASSOLUTO / AGE GROUP / PARADUATHLON / COPPA CRONO",
+    "location": "Imola (Bologna)",
+    "region": "Emilia-Romagna",
+    "type": "Duathlon",
+    "distance": "",
+    "rank": "",
+    "category": "",
+    "link": "https://www.myfitri.it/evento/3912",
+    "id": "3912-8"
   },
   {
     "date": "28-03-2026",
@@ -1002,20 +1054,20 @@
   },
   {
     "date": "18-04-2026",
-    "title": "Duathlon Kids Cuccioli e Minicuccioli",
+    "title": "Duathlon Esordienti-Ragazzi",
     "event": "C.I. Giovani Individuale e Mixed Relay 2+2",
     "location": "Magione (Perugia)",
     "region": "Umbria",
     "type": "Duathlon",
     "distance": "",
     "rank": "",
-    "category": "Kids",
+    "category": "",
     "link": "https://www.myfitri.it/evento/3944",
     "id": "3944-4"
   },
   {
     "date": "18-04-2026",
-    "title": "Duathlon Kids",
+    "title": "Duathlon Kids Cuccioli e Minicuccioli",
     "event": "C.I. Giovani Individuale e Mixed Relay 2+2",
     "location": "Magione (Perugia)",
     "region": "Umbria",
@@ -1119,11 +1171,11 @@
   },
   {
     "date": "19-04-2026",
-    "title": "Circuito U23 Next Generation",
+    "title": "Campionato Italiano Duathlon U23 - Circuito U23 Next Generation",
     "event": "C.I. Giovani Individuale e Mixed Relay 2+2",
     "location": "Magione (Perugia)",
     "region": "Umbria",
-    "type": "Triathlon",
+    "type": "Duathlon",
     "distance": "",
     "rank": "",
     "category": "",
@@ -1301,6 +1353,19 @@
   },
   {
     "date": "26-04-2026",
+    "title": "IRON ISLAND",
+    "event": "IRON ISLAND  Half Triathlon - Triathlon Olimpico NO DRAFT",
+    "location": "Ragusa (Ragusa)",
+    "region": "Sicilia",
+    "type": "Triathlon",
+    "distance": "",
+    "rank": "",
+    "category": "",
+    "link": "https://www.myfitri.it/evento/3971",
+    "id": "3971-4"
+  },
+  {
+    "date": "26-04-2026",
     "title": "ironisland triathlon olimpico no draft",
     "event": "IRON ISLAND  Half Triathlon - Triathlon Olimpico NO DRAFT",
     "location": "Ragusa (Ragusa)",
@@ -1310,7 +1375,7 @@
     "rank": "",
     "category": "",
     "link": "https://www.myfitri.it/evento/3971",
-    "id": "3971-4"
+    "id": "3971-5"
   },
   {
     "date": "26-04-2026",
@@ -1337,6 +1402,19 @@
     "category": "",
     "link": "https://www.myfitri.it/evento/4045",
     "id": "4045-1"
+  },
+  {
+    "date": "01-05-2026",
+    "title": "6° TRIATHLON GRUMELLO DEL MONTE - MEMORIAL NICHOLAS RUGGERI",
+    "event": "6° Triathlon Grumello del Monte - Memorial Nicholas Ruggeri",
+    "location": "Grumello del Monte (Bergamo)",
+    "region": "Lombardia",
+    "type": "Triathlon",
+    "distance": "",
+    "rank": "",
+    "category": "",
+    "link": "https://www.myfitri.it/evento/4088",
+    "id": "4088-1"
   },
   {
     "date": "01-05-2026",
@@ -1415,6 +1493,19 @@
     "category": "",
     "link": "https://www.myfitri.it/evento/4014",
     "id": "4014-2"
+  },
+  {
+    "date": "03-05-2026",
+    "title": "Trofeo Aquathlon Città di Venezia 2026",
+    "event": "Aquathlon Città di Venezia",
+    "location": "Venezia (Venezia)",
+    "region": "Veneto",
+    "type": "Aquathlon",
+    "distance": "",
+    "rank": "",
+    "category": "",
+    "link": "https://www.myfitri.it/evento/4086",
+    "id": "4086-1"
   },
   {
     "date": "03-05-2026",
@@ -1550,7 +1641,7 @@
     "date": "09-05-2026",
     "title": "Aquathlon Mondello Kids",
     "event": "MONDELLO CUP 10",
-    "location": "Palermo (Palermo)",
+    "location": "Permo (Permo)",
     "region": "Sicilia",
     "type": "Aquathlon",
     "distance": "",
@@ -1563,7 +1654,7 @@
     "date": "09-05-2026",
     "title": "Aquathlon Mondello Youth",
     "event": "MONDELLO CUP 10",
-    "location": "Palermo (Palermo)",
+    "location": "Permo (Permo)",
     "region": "Sicilia",
     "type": "Aquathlon",
     "distance": "",
@@ -1680,7 +1771,7 @@
     "date": "10-05-2026",
     "title": "MONDELLO CUP 10",
     "event": "MONDELLO CUP 10",
-    "location": "Palermo (Palermo)",
+    "location": "Permo (Permo)",
     "region": "Sicilia",
     "type": "Triathlon",
     "distance": "",
@@ -1976,6 +2067,58 @@
     "id": "3934-5"
   },
   {
+    "date": "23-05-2026",
+    "title": "11 TRIATHLON YOUTH JUNIOR DIST. YOUTH",
+    "event": "13 TRIATHLON SPRINT PIASCO E GIOVANILI",
+    "location": "Piasco (Cuneo)",
+    "region": "Piemonte",
+    "type": "Triathlon",
+    "distance": "",
+    "rank": "",
+    "category": "Youth",
+    "link": "https://www.myfitri.it/evento/4046",
+    "id": "4046-1"
+  },
+  {
+    "date": "23-05-2026",
+    "title": "TRIATHLON KIDS PIASCO",
+    "event": "13 TRIATHLON SPRINT PIASCO E GIOVANILI",
+    "location": "Piasco (Cuneo)",
+    "region": "Piemonte",
+    "type": "Triathlon",
+    "distance": "",
+    "rank": "",
+    "category": "Kids",
+    "link": "https://www.myfitri.it/evento/4046",
+    "id": "4046-2"
+  },
+  {
+    "date": "24-05-2026",
+    "title": "10° Duathlon Cross Città di Nuoro – Trofeo Luca Dettori “Giovanile",
+    "event": "10° Duathlon Cross Città di Nuoro –  Trofeo Luca Dettori “SPRINT e GIOVANILE",
+    "location": "Nuoro (Nuoro)",
+    "region": "Sardegna",
+    "type": "Duathlon",
+    "distance": "Cross",
+    "rank": "",
+    "category": "Giovanile",
+    "link": "https://www.myfitri.it/evento/4094",
+    "id": "4094-1"
+  },
+  {
+    "date": "24-05-2026",
+    "title": "10° Duathlon Cross Città di Nuoro – Trofeo Luca Dettori “SPRINT MTB",
+    "event": "10° Duathlon Cross Città di Nuoro –  Trofeo Luca Dettori “SPRINT e GIOVANILE",
+    "location": "Nuoro (Nuoro)",
+    "region": "Sardegna",
+    "type": "Duathlon",
+    "distance": "Sprint",
+    "rank": "",
+    "category": "Giovanile",
+    "link": "https://www.myfitri.it/evento/4094",
+    "id": "4094-2"
+  },
+  {
     "date": "24-05-2026",
     "title": "13 TRIATHLON SPRINT PIASCO",
     "event": "13 TRIATHLON SPRINT PIASCO E GIOVANILI",
@@ -1986,7 +2129,7 @@
     "rank": "",
     "category": "",
     "link": "https://www.myfitri.it/evento/4046",
-    "id": "4046-1"
+    "id": "4046-3"
   },
   {
     "date": "24-05-2026",
@@ -2054,6 +2197,71 @@
     "id": "3898-1"
   },
   {
+    "date": "24-05-2026",
+    "title": "AQUATHLON NAPOLI CAPITALE",
+    "event": "AQUATHLON NAPOLI CAPITALE",
+    "location": "Napoli (Napoli)",
+    "region": "Campania",
+    "type": "Aquathlon",
+    "distance": "",
+    "rank": "",
+    "category": "",
+    "link": "https://www.myfitri.it/evento/4093",
+    "id": "4093-1"
+  },
+  {
+    "date": "24-05-2026",
+    "title": "III° Aquathlon del Poggio",
+    "event": "III° AQUATHLON DEL POGGIO",
+    "location": "Piombino (Livorno)",
+    "region": "Toscana",
+    "type": "Aquathlon",
+    "distance": "",
+    "rank": "",
+    "category": "",
+    "link": "https://www.myfitri.it/evento/4097",
+    "id": "4097-1"
+  },
+  {
+    "date": "30-05-2026",
+    "title": "2026 WORLD TRIATHLON CHAMPIONSHIPS SERIES ALGHERO",
+    "event": "2026 WORLD TRIATHLON CHAMPIONSHIPS SERIES ALGHERO",
+    "location": "Alghero (Sassari)",
+    "region": "Sardegna",
+    "type": "Triathlon",
+    "distance": "",
+    "rank": "",
+    "category": "",
+    "link": "https://www.myfitri.it/evento/4098",
+    "id": "4098-1"
+  },
+  {
+    "date": "30-05-2026",
+    "title": "6^ AQUATHLON DI ASTI - Sprint Ju/Yb/Ya",
+    "event": "6^ AQUATHLON DI ASTI",
+    "location": "Asti (Asti)",
+    "region": "Piemonte",
+    "type": "Aquathlon",
+    "distance": "Sprint",
+    "rank": "",
+    "category": "",
+    "link": "https://www.myfitri.it/evento/4096",
+    "id": "4096-1"
+  },
+  {
+    "date": "30-05-2026",
+    "title": "6^ AQUATHLON di Asti - Kids atipico",
+    "event": "6^ AQUATHLON DI ASTI",
+    "location": "Asti (Asti)",
+    "region": "Piemonte",
+    "type": "Aquathlon",
+    "distance": "",
+    "rank": "",
+    "category": "Kids",
+    "link": "https://www.myfitri.it/evento/4096",
+    "id": "4096-2"
+  },
+  {
     "date": "30-05-2026",
     "title": "LYKOS FOR OTHERS 2026 - Memorial Luciano Bertagna",
     "event": "Lykos for Others",
@@ -2091,6 +2299,45 @@
     "category": "",
     "link": "https://www.myfitri.it/evento/3958",
     "id": "3958-2"
+  },
+  {
+    "date": "31-05-2026",
+    "title": "OVERCOME EVENTS: TDF KIDS",
+    "event": "TDF SPRINT",
+    "location": "Faenza (Ravenna)",
+    "region": "Emilia-Romagna",
+    "type": "Triathlon",
+    "distance": "",
+    "rank": "",
+    "category": "Kids",
+    "link": "https://www.myfitri.it/evento/4061",
+    "id": "4061-1"
+  },
+  {
+    "date": "31-05-2026",
+    "title": "OVERCOME EVENTS: TDF MINITRIATHLON",
+    "event": "TDF SPRINT",
+    "location": "Faenza (Ravenna)",
+    "region": "Emilia-Romagna",
+    "type": "Triathlon",
+    "distance": "",
+    "rank": "",
+    "category": "",
+    "link": "https://www.myfitri.it/evento/4061",
+    "id": "4061-2"
+  },
+  {
+    "date": "31-05-2026",
+    "title": "OVERCOME EVENTS: TDF SPRINT",
+    "event": "TDF SPRINT",
+    "location": "Faenza (Ravenna)",
+    "region": "Emilia-Romagna",
+    "type": "Triathlon",
+    "distance": "Sprint",
+    "rank": "",
+    "category": "",
+    "link": "https://www.myfitri.it/evento/4061",
+    "id": "4061-3"
   },
   {
     "date": "31-05-2026",
@@ -2302,6 +2549,19 @@
   },
   {
     "date": "13-06-2026",
+    "title": "41° TRIATHLON INTERNAZIONALE DI BARDOLINO",
+    "event": "41° TRIATHLON INTERNAZIONALE DI BARDOLINO",
+    "location": "Bardolino (Verona)",
+    "region": "Veneto",
+    "type": "Triathlon",
+    "distance": "",
+    "rank": "",
+    "category": "",
+    "link": "https://www.myfitri.it/evento/4089",
+    "id": "4089-1"
+  },
+  {
+    "date": "13-06-2026",
     "title": "seconda edizione Triathlon CROSS",
     "event": "Mandello: triathlon cross + aquathlon",
     "location": "Mandello del Lario (Lecco)",
@@ -2393,6 +2653,19 @@
   },
   {
     "date": "14-06-2026",
+    "title": "TRIATHLON BELVEDERE DA ZERO AL CIELO",
+    "event": "TRIATHLON BELVEDERE DA ZERO AL CIELO",
+    "location": "Belvedere Marittimo (Cosenza)",
+    "region": "Calabria",
+    "type": "Triathlon",
+    "distance": "",
+    "rank": "",
+    "category": "",
+    "link": "https://www.myfitri.it/evento/4091",
+    "id": "4091-1"
+  },
+  {
+    "date": "14-06-2026",
     "title": "TRIATHLON SPRINT NETIUM",
     "event": "TRIATHLON SPRINT NETIUM",
     "location": "Giovinazzo (Bari)",
@@ -2416,19 +2689,6 @@
     "category": "",
     "link": "https://www.myfitri.it/evento/3918",
     "id": "3918-2"
-  },
-  {
-    "date": "20-06-2026",
-    "title": "MILANO DEEJAY TRI - OLIMPICO",
-    "event": "MILANO DEEJAY TRI",
-    "location": "Segrate (Milano)",
-    "region": "Lombardia",
-    "type": "Triathlon",
-    "distance": "Olimpico",
-    "rank": "Gold",
-    "category": "",
-    "link": "https://www.myfitri.it/evento/3939",
-    "id": "3939-1"
   },
   {
     "date": "20-06-2026",
@@ -2523,19 +2783,6 @@
   },
   {
     "date": "21-06-2026",
-    "title": "AQUATHLON DEL CASTELLO Giovanile",
-    "event": "AQUATHLON DEL CASTELLO",
-    "location": "Santa Marinella (Roma)",
-    "region": "Lazio",
-    "type": "Aquathlon",
-    "distance": "",
-    "rank": "",
-    "category": "Giovanile",
-    "link": "https://www.myfitri.it/evento/3923",
-    "id": "3923-3"
-  },
-  {
-    "date": "21-06-2026",
     "title": "DUATHLON SPRINT CESATE 2026",
     "event": "DUATHLON SPRINT - SPORT IN FESTA 2026",
     "location": "Cesate (Milano)",
@@ -2549,42 +2796,29 @@
   },
   {
     "date": "21-06-2026",
-    "title": "MILANO DEEJAY TRI - KIDS",
-    "event": "MILANO DEEJAY TRI",
-    "location": "Segrate (Milano)",
-    "region": "Lombardia",
+    "title": "OVBERCOME EVENTS: 5° TRIATHLON KIDS E GIOVANI SOLAROLO",
+    "event": "OVERCOME EVENTS: 5° TRIATHLON KIDS E GIOVANI SOLAROLO",
+    "location": "Solarolo (Ravenna)",
+    "region": "Emilia-Romagna",
     "type": "Triathlon",
     "distance": "",
     "rank": "",
     "category": "Kids",
-    "link": "https://www.myfitri.it/evento/3939",
-    "id": "3939-2"
+    "link": "https://www.myfitri.it/evento/4080",
+    "id": "4080-1"
   },
   {
     "date": "21-06-2026",
-    "title": "MILANO DEEJAY TRI - SPRINT",
-    "event": "MILANO DEEJAY TRI",
-    "location": "Segrate (Milano)",
-    "region": "Lombardia",
+    "title": "OVERCOME EVENTS: 5° TRIATHLON KIDS E GIOVANI SOLAROLO",
+    "event": "OVERCOME EVENTS: 5° TRIATHLON KIDS E GIOVANI SOLAROLO",
+    "location": "Solarolo (Ravenna)",
+    "region": "Emilia-Romagna",
     "type": "Triathlon",
-    "distance": "Sprint",
-    "rank": "Gold",
-    "category": "",
-    "link": "https://www.myfitri.it/evento/3939",
-    "id": "3939-3"
-  },
-  {
-    "date": "21-06-2026",
-    "title": "MILANO DEEJAY TRI - SUPERSPRINT YOUTH A",
-    "event": "MILANO DEEJAY TRI",
-    "location": "Segrate (Milano)",
-    "region": "Lombardia",
-    "type": "Triathlon",
-    "distance": "Sprint",
+    "distance": "",
     "rank": "",
-    "category": "Youth",
-    "link": "https://www.myfitri.it/evento/3939",
-    "id": "3939-4"
+    "category": "Kids",
+    "link": "https://www.myfitri.it/evento/4080",
+    "id": "4080-2"
   },
   {
     "date": "21-06-2026",
@@ -2679,6 +2913,19 @@
   },
   {
     "date": "28-06-2026",
+    "title": "ESCAPE FROM ASINARA",
+    "event": "ESCAPE FROM ASINARA",
+    "location": "Porto Torres (Sassari)",
+    "region": "Sardegna",
+    "type": "Triathlon",
+    "distance": "",
+    "rank": "",
+    "category": "",
+    "link": "https://www.myfitri.it/evento/4092",
+    "id": "4092-1"
+  },
+  {
+    "date": "28-06-2026",
     "title": "CAMPIONATO ITALIANO AQUATHLON",
     "event": "II° NEAPOLIS AQUATHLON",
     "location": "Napoli (Napoli)",
@@ -2702,6 +2949,19 @@
     "category": "",
     "link": "https://www.myfitri.it/evento/3961",
     "id": "3961-1"
+  },
+  {
+    "date": "28-06-2026",
+    "title": "LovereTRI 37.2 NO DRAFT",
+    "event": "LovereTRI - FollowYourPassion",
+    "location": "Lovere (Bergamo)",
+    "region": "Lombardia",
+    "type": "Triathlon",
+    "distance": "",
+    "rank": "",
+    "category": "",
+    "link": "https://www.myfitri.it/evento/3961",
+    "id": "3961-2"
   },
   {
     "date": "03-07-2026",
@@ -2990,6 +3250,19 @@
     "id": "3925-1"
   },
   {
+    "date": "25-07-2026",
+    "title": "XTERRA LAKE SCANNO",
+    "event": "XTERRA LAKE SCANNO",
+    "location": "Scanno (L'Aquila)",
+    "region": "Abruzzo",
+    "type": "Triathlon",
+    "distance": "",
+    "rank": "",
+    "category": "",
+    "link": "https://www.myfitri.it/evento/3969",
+    "id": "3969-1"
+  },
+  {
     "date": "26-07-2026",
     "title": "16° ARONAMEN KM112.9",
     "event": "16° ARONAMEN KM 112.9",
@@ -3004,6 +3277,19 @@
   },
   {
     "date": "26-07-2026",
+    "title": "AQUATHLON CLASSICO CITTA' DI PAOLA - TROFEO SAN FRANCESCO - CIRCUITO E CAMPIONATO REGIONALE",
+    "event": "AQUATHLON CITTA' DI PAOLA - TROFEO SAN FRANCESCO",
+    "location": "Paola (Cosenza)",
+    "region": "Calabria",
+    "type": "Aquathlon",
+    "distance": "Classico",
+    "rank": "",
+    "category": "",
+    "link": "https://www.myfitri.it/evento/3927",
+    "id": "3927-1"
+  },
+  {
+    "date": "26-07-2026",
     "title": "AQUATHLON KIDS CITTA' DI PAOLA - TROFEO SAN FRANCESCO",
     "event": "AQUATHLON CITTA' DI PAOLA - TROFEO SAN FRANCESCO",
     "location": "Paola (Cosenza)",
@@ -3013,7 +3299,7 @@
     "rank": "",
     "category": "Kids",
     "link": "https://www.myfitri.it/evento/3927",
-    "id": "3927-1"
+    "id": "3927-2"
   },
   {
     "date": "26-07-2026",
@@ -3026,7 +3312,7 @@
     "rank": "",
     "category": "Youth",
     "link": "https://www.myfitri.it/evento/3927",
-    "id": "3927-2"
+    "id": "3927-3"
   },
   {
     "date": "26-07-2026",
@@ -3053,6 +3339,19 @@
     "category": "",
     "link": "https://www.myfitri.it/evento/4018",
     "id": "4018-1"
+  },
+  {
+    "date": "08-08-2026",
+    "title": "XXVI TRIATHLAGO di OSIGLIA",
+    "event": "XXVI Triathlago di Osiglia",
+    "location": "Osiglia (Savona)",
+    "region": "Liguria",
+    "type": "Triathlon",
+    "distance": "",
+    "rank": "",
+    "category": "",
+    "link": "https://www.myfitri.it/evento/4083",
+    "id": "4083-1"
   },
   {
     "date": "23-08-2026",
@@ -3837,7 +4136,7 @@
   {
     "date": "18-10-2026",
     "title": "Triathlon Olimpico Internazionale della Versilia - V Trofeo",
-    "event": "Triathlon Olimpico Internazionale della Versilia - V Trofeo \"Città di Pietrasanta\"",
+    "event": "Triathlon Olimpico Internazionale della Versilia - V Trofeo",
     "location": "Pietrasanta (Lucca)",
     "region": "Toscana",
     "type": "Triathlon",
@@ -3913,7 +4212,20 @@
     "id": "3981-1"
   },
   {
-    "date": "07-11-2026",
+    "date": "08-11-2026",
+    "title": "TRIATHLON OLIMPICO CITTA' DI PALERMO",
+    "event": "TRIATHLON OLIMPICO CITTA' DI PALERMO",
+    "location": "Permo (Permo)",
+    "region": "Sicilia",
+    "type": "Triathlon",
+    "distance": "Olimpico",
+    "rank": "",
+    "category": "",
+    "link": "https://www.myfitri.it/evento/4040",
+    "id": "4040-1"
+  },
+  {
+    "date": "14-11-2026",
     "title": "Aquathlon CARACCIOLO 2026",
     "event": "III° TRI GOLD CARACCIOLO 2026",
     "location": "Napoli (Napoli)",
@@ -3926,7 +4238,7 @@
     "id": "4060-1"
   },
   {
-    "date": "08-11-2026",
+    "date": "15-11-2026",
     "title": "III° TRI CARACCIOLO 2026",
     "event": "III° TRI GOLD CARACCIOLO 2026",
     "location": "Napoli (Napoli)",
@@ -3937,18 +4249,5 @@
     "category": "",
     "link": "https://www.myfitri.it/evento/4060",
     "id": "4060-2"
-  },
-  {
-    "date": "08-11-2026",
-    "title": "TRIATHLON OLIMPICO CITTA' DI PALERMO",
-    "event": "TRIATHLON OLIMPICO CITTA' DI PALERMO",
-    "location": "Palermo (Palermo)",
-    "region": "Sicilia",
-    "type": "Triathlon",
-    "distance": "Olimpico",
-    "rank": "",
-    "category": "",
-    "link": "https://www.myfitri.it/evento/4040",
-    "id": "4040-1"
   }
 ]
