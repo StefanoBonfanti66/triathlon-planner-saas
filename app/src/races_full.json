@@ -2692,6 +2692,19 @@
   },
   {
     "date": "20-06-2026",
+    "title": "MILANO DEEJAY TRI - OLIMPICO",
+    "event": "MILANO DEEJAY TRI",
+    "location": "Segrate (Milano)",
+    "region": "Lombardia",
+    "type": "Triathlon",
+    "distance": "Olimpico",
+    "rank": "Gold",
+    "category": "",
+    "link": "https://www.myfitri.it/evento/3939",
+    "id": "3939-1"
+  },
+  {
+    "date": "20-06-2026",
     "title": "Triathlon Olimpico Lago di Vico",
     "event": "TRIATHLON OLIMPICO LAGO DI VICO",
     "location": "Ronciglione (Viterbo)",
@@ -2745,41 +2758,41 @@
   {
     "date": "21-06-2026",
     "title": "Triathlon Olimpico IDROMAN",
-    "event": "17° Terrible Triathlon IDROMAN",
+    "event": "17 Terrible Triathlon IDROMAN",
     "location": "Idro (Brescia)",
     "region": "Lombardia",
     "type": "Triathlon",
     "distance": "Olimpico",
     "rank": "",
     "category": "",
-    "link": "https://www.myfitri.it/evento/4010",
-    "id": "4010-1"
+    "link": "https://www.myfitri.it/evento/4011",
+    "id": "4011-2"
   },
   {
     "date": "21-06-2026",
     "title": "Triathlon Sprint IDROMAN",
-    "event": "17° Terrible Triathlon IDROMAN",
+    "event": "17 Terrible Triathlon IDROMAN",
     "location": "Idro (Brescia)",
     "region": "Lombardia",
     "type": "Triathlon",
     "distance": "Sprint",
     "rank": "",
     "category": "",
-    "link": "https://www.myfitri.it/evento/4010",
-    "id": "4010-2"
+    "link": "https://www.myfitri.it/evento/4011",
+    "id": "4011-3"
   },
   {
     "date": "21-06-2026",
     "title": "Triathlon Terrible IDROMAN - medio",
-    "event": "17° Terrible Triathlon IDROMAN",
+    "event": "17 Terrible Triathlon IDROMAN",
     "location": "Idro (Brescia)",
     "region": "Lombardia",
     "type": "Triathlon",
     "distance": "Medio",
     "rank": "",
     "category": "",
-    "link": "https://www.myfitri.it/evento/4010",
-    "id": "4010-3"
+    "link": "https://www.myfitri.it/evento/4011",
+    "id": "4011-4"
   },
   {
     "date": "21-06-2026",
@@ -2793,6 +2806,45 @@
     "category": "",
     "link": "https://www.myfitri.it/evento/4066",
     "id": "4066-1"
+  },
+  {
+    "date": "21-06-2026",
+    "title": "MILANO DEEJAY TRI - KIDS",
+    "event": "MILANO DEEJAY TRI",
+    "location": "Segrate (Milano)",
+    "region": "Lombardia",
+    "type": "Triathlon",
+    "distance": "",
+    "rank": "",
+    "category": "Kids",
+    "link": "https://www.myfitri.it/evento/3939",
+    "id": "3939-2"
+  },
+  {
+    "date": "21-06-2026",
+    "title": "MILANO DEEJAY TRI - SPRINT",
+    "event": "MILANO DEEJAY TRI",
+    "location": "Segrate (Milano)",
+    "region": "Lombardia",
+    "type": "Triathlon",
+    "distance": "Sprint",
+    "rank": "Gold",
+    "category": "",
+    "link": "https://www.myfitri.it/evento/3939",
+    "id": "3939-3"
+  },
+  {
+    "date": "21-06-2026",
+    "title": "MILANO DEEJAY TRI - SUPERSPRINT YOUTH A",
+    "event": "MILANO DEEJAY TRI",
+    "location": "Segrate (Milano)",
+    "region": "Lombardia",
+    "type": "Triathlon",
+    "distance": "Sprint",
+    "rank": "",
+    "category": "Youth",
+    "link": "https://www.myfitri.it/evento/3939",
+    "id": "3939-4"
   },
   {
     "date": "21-06-2026",
