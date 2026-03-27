@@ -1,13 +1,13 @@
 # 🏆 Guida Rapida Admin - Race Planner SaaS 2026
-**Per: Alessandro Sciarrone - CUS Propatria Milano**
+
 
 Benvenuto Alessandro nel sistema di gestione tecnica della tua squadra. Questa piattaforma è stata progettata per centralizzare la pianificazione delle gare FITRI/FCI 2026 e facilitare il coordinamento degli atleti.
 
 ---
 
 ## 1. Primo Accesso e Onboarding
-1.  **Registrazione**: Accedi al link fornito e crea un profilo con la tua email (`alessandro.sciarrone@gmail.com`).
-2.  **Join Code**: Durante la registrazione, inserisci il codice di squadra: **`PROPATRIA2026`**.
+1.  **Registrazione**: Accedi al link fornito e crea un profilo con la tua email.
+2.  **Join Code**: Durante la registrazione, inserisci il codice di squadra.
 3.  **Privilegi Admin**: Una volta registrato, il Super Admin (Stefano) attiverà i tuoi permessi. Vedrai apparire una scheda **"Admin"** nel menu principale.
 
 ---
