@@ -563,7 +563,7 @@ const DashboardPage: React.FC = () => {
   const exportToCSV = () => {
     if (myPlan.length === 0) return;
     const headers = ["Data", "Evento", "Specialità", "Località", "Regione", "Sport", "Distanza", "Priorità", "Costo", "Km", "Note"];
-    const rows = myPlan.map(r => [r.date, r.event || "", r.title, r.location, r.region, r.type, r.distance, racePriorities[r.id] || 'C', raceCosts[r.id] || 0, r.distanceFromHome || "", `"${(raceNotes[r.id] || "").replace(/"/g, '""')}"`]);
+    const rows = myPlan.map(r => [r.date.replace(/-/g, '/'), r.event || "", r.title, r.location, r.region, r.type, r.distance, racePriorities[r.id] || 'C', raceCosts[r.id] || 0, r.distanceFromHome || "", `"${(raceNotes[r.id] || "").replace(/"/g, '""')}"`]);
     const csv = [headers, ...rows].map(e => e.join(",")).join("\n");
     const blob = new Blob(["\ufeff" + csv], { type: 'text/csv' });
     const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.setAttribute("download", "piano_2026.csv"); link.click();
