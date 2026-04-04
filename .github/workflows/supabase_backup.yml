@@ -33,13 +33,6 @@ jobs:
         run: |
           python tools/supabase_backup.py
 
-      - name: Trigger Birthday Notifications
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: |
-          python tools/notify_birthdays.py
-
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
