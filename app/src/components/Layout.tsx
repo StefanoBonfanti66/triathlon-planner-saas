@@ -1,3 +1,7 @@
+/**
+ * Race Planner SaaS - Main Layout
+ * Author: Stefano Bonfanti
+ */
 import React, { useState, useEffect } from 'react';
 import { Outlet, Navigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
@@ -18,8 +22,6 @@ const Layout: React.FC = () => {
       const { data: { session: currentSession } } = await supabase.auth.getSession();
       setSession(currentSession);
       
-      // Se abbiamo già una sessione, carichiamo i dati. 
-      // Altrimenti ci penserà onAuthStateChange al primo evento.
       if (currentSession?.user?.id) {
         await fetchTeamData(currentSession.user.id);
       }
@@ -30,7 +32,6 @@ const Layout: React.FC = () => {
     initSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, newSession) => {
-      // Evitiamo di ricaricare tutto se la sessione non è cambiata (es. solo token refresh)
       if (newSession?.user?.id !== session?.user?.id) {
         setSession(newSession);
         if (newSession?.user?.id) fetchTeamData(newSession.user.id);
@@ -42,7 +43,6 @@ const Layout: React.FC = () => {
 
   const fetchTeamData = async (userId: string) => {
     try {
-      // Cerchiamo il profilo dell'utente
       let { data: profile, error: profError } = await supabase
         .from('profiles')
         .select('full_name, team_id, is_team_admin, email')
@@ -50,8 +50,6 @@ const Layout: React.FC = () => {
         .single();
 
       if (profError && profError.code === 'PGRST116') {
-        console.log("⚠️ Profilo non trovato per l'ID attuale, provo via email...");
-        // Se non lo trova per ID, proviamo per email (caso di mismatch post-invito)
         const { data: profileByEmail } = await supabase
           .from('profiles')
           .select('id, full_name, team_id, is_team_admin, email')
@@ -59,10 +57,7 @@ const Layout: React.FC = () => {
           .single();
         
         if (profileByEmail) {
-          // Se lo troviamo per email, aggiorniamo l'ID del profilo con quello di Auth
-          // per "riagganciare" l'utente al profilo creato dall'admin
           await supabase.from('profiles').update({ id: userId }).eq('id', profileByEmail.id);
-          // Usiamo i dati trovati via email
           profile = profileByEmail as any;
         }
       }
@@ -113,7 +108,6 @@ const Layout: React.FC = () => {
     const metaTheme = document.querySelector('meta[name="theme-color"]');
     if (metaTheme) metaTheme.setAttribute('content', themeColor);
 
-    // Dynamic Manifest con URL ASSOLUTI per evitare warning start_url
     const manifest = {
       short_name: team.name?.substring(0, 12) || "Planner",
       name: brandName,
@@ -143,59 +137,6 @@ const Layout: React.FC = () => {
     return () => URL.revokeObjectURL(manifestURL);
   }, [team]);
 
-  // --- DYNAMIC PWA BRANDING ---
-  useEffect(() => {
-    if (!team) return;
-
-    // 1. Update Document Title & Favicons
-    const brandName = team.name && team.name !== 'Super Admin' ? `${team.name} Planner` : 'Race Planner 2026';
-    document.title = brandName;
-
-    const logo = team.logo_url || '/icon.svg';
-    
-    // Update Favicon
-    const favicon = document.querySelector('link[rel="icon"]') as HTMLLinkElement;
-    if (favicon) favicon.href = logo;
-
-    // Update Apple Touch Icon
-    const appleIcon = document.querySelector('link[rel="apple-touch-icon"]') as HTMLLinkElement;
-    if (appleIcon) appleIcon.href = logo;
-
-    // 2. Update Theme Color
-    const themeColor = team.primary_color || '#e11d48';
-    const metaTheme = document.querySelector('meta[name="theme-color"]');
-    if (metaTheme) metaTheme.setAttribute('content', themeColor);
-
-    // 3. Dynamic Manifest
-    const manifest = {
-      short_name: team.name?.substring(0, 12) || "Planner",
-      name: brandName,
-      icons: [
-        {
-          src: logo,
-          sizes: "any",
-          type: logo.endsWith('.svg') ? "image/svg+xml" : "image/png",
-          purpose: "any maskable"
-        }
-      ],
-      start_url: ".",
-      display: "standalone",
-      theme_color: themeColor,
-      background_color: "#ffffff"
-    };
-
-    const stringManifest = JSON.stringify(manifest);
-    const blob = new Blob([stringManifest], {type: 'application/json'});
-    const manifestURL = URL.createObjectURL(blob);
-    
-    const manifestTag = document.querySelector('link[rel="manifest"]') as HTMLLinkElement;
-    if (manifestTag) {
-      manifestTag.href = manifestURL;
-    }
-
-    return () => URL.revokeObjectURL(manifestURL);
-  }, [team]);
-
   if (loading) return <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center font-black uppercase tracking-widest text-slate-600">Caricamento...</div>;
   if (!session) return <Navigate to="/login" replace />;
 
@@ -206,7 +147,6 @@ const Layout: React.FC = () => {
         <Outlet /> 
       </main>
 
-      {/* MODALE ADMIN SPOSTATA QUI PER ACCESSIBILITÀ GLOBALE */}
       {isAdminView && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in" role="dialog" aria-modal="true" aria-labelledby="admin-modal-title">
               <div className="bg-white rounded-[2.5rem] p-8 max-w-3xl w-full shadow-2xl animate-in zoom-in-95">

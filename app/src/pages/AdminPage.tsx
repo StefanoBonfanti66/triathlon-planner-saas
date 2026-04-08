@@ -591,17 +591,29 @@ const AdminPage: React.FC = () => {
         const data = profiles.map(p => {
             const [fitri, fci] = (p.license_number || '').split('/');
             return {
-                'Nome Completo': p.full_name || 'N/A',
-                'Team': teams.find(t => t.id === p.team_id)?.name || 'Nessuno',
+                'Cognome': p.last_name || p.full_name?.split(' ')[0] || '',
+                'Nome': p.first_name || p.full_name?.split(' ').slice(1).join(' ') || '',
                 'Sesso': p.gender || '',
+                'Email': p.email || '',
                 'Data di Nascita': formatDate(p.birth_date) || '',
+                'Nazionalità': p.nationality || 'Italiana',
+                'Indirizzo': p.address || '',
+                'Città': p.city || '',
+                'Provincia': p.province || '',
+                'Stato': p.country || 'Italia',
+                'CAP': p.zip_code || '',
+                'Telefono': p.phone || '',
                 'Tessera FITRI': fitri || '',
                 'Tessera FCI': fci || '',
+                'Squadra Esterna': p.external_team_name || '',
+                'Codice Squadra Esterna': p.external_team_code || '',
+                'Team Corrente': teams.find(t => t.id === p.team_id)?.name || 'Nessuno',
                 'Anno Nascita': p.birth_year || '',
                 'Categoria': getFitriCategory(p.birth_year),
                 'Tesserato': p.is_licensed ? 'Sì' : 'No',
                 'Socio': p.is_member ? 'Sì' : 'No',
                 'Scadenza Certificato': formatDate(p.medical_certificate_expiry) || 'N/D',
+                'Taglia Maglia': p.shirt_size || '',
                 'Gare Pianificate': plansCount[p.id] || 0
             };
         });
