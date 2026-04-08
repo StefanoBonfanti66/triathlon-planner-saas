@@ -62,7 +62,8 @@ const Layout: React.FC = () => {
           // Se lo troviamo per email, aggiorniamo l'ID del profilo con quello di Auth
           // per "riagganciare" l'utente al profilo creato dall'admin
           await supabase.from('profiles').update({ id: userId }).eq('id', profileByEmail.id);
-          profile = profileByEmail;
+          // Usiamo i dati trovati via email
+          profile = profileByEmail as any;
         }
       }
 
