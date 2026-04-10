@@ -25,14 +25,14 @@ const GuidePage: React.FC = () => {
             download 
             className="flex items-center justify-center gap-2 px-6 py-3 bg-white border-2 border-slate-200 text-slate-700 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 transition-all shadow-sm"
             >
-            <Download className="w-4 h-4" /> PDF Utente
+            <Download className="w-4 h-4" /> Template Utente
             </a>
             <a 
             href="/GUIDA_ADMIN.pdf" 
             download 
             className="flex items-center justify-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 transition-all shadow-xl"
             >
-            <Download className="w-4 h-4" /> PDF Admin
+            <Download className="w-4 h-4" /> Template Admin
             </a>
         </div>
       </div>
