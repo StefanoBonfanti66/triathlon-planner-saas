@@ -8,14 +8,44 @@ const Auth: React.FC = () => {
     const [session, setSession] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     
+    // V6.3.3 - Rilevazione ultra-robusta dello stato di recovery
+    const [isRecovery, setIsRecovery] = useState(() => {
+        const hasRecoveryToken = window.location.hash.includes('type=recovery') || 
+                               window.location.href.includes('type=recovery') ||
+                               window.location.hash.includes('access_token=') ||
+                               window.location.href.includes('access_token=');
+        const hasError = window.location.hash.includes('error_code=otp_expired') ||
+                         window.location.href.includes('error_code=otp_expired');
+        return hasRecoveryToken || hasError;
+    });
+    
     useEffect(() => {
+        // Forza il controllo dell'URL all'avvio
+        if (window.location.hash.includes('type=recovery') || window.location.href.includes('type=recovery')) {
+            setIsRecovery(true);
+        }
+
         supabase.auth.getSession().then(({ data: { session } }) => {
             setSession(session);
             setLoading(false);
         });
 
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-            setSession(session);
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+            console.log("Auth Event Details:", event, session?.user?.email);
+            
+            if (event === 'PASSWORD_RECOVERY') {
+                console.log("Recovery Mode Activated");
+                setIsRecovery(true);
+                setSession(session);
+            } else if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
+                setSession(session);
+                // Se siamo entrati con un token di recovery, non resettare isRecovery
+                if (window.location.hash.includes('recovery') || window.location.href.includes('recovery')) {
+                    setIsRecovery(true);
+                }
+            } else if (event === 'SIGNED_OUT') {
+                setSession(null);
+            }
         });
         return () => subscription.unsubscribe();
     }, []);
@@ -26,6 +56,24 @@ const Auth: React.FC = () => {
     const [teamCode, setTeamCode] = useState(''); // Nuovo stato per il codice team
     const [isSignUp, setIsSignUp] = useState(false);
     const [authLoading, setAuthLoading] = useState(false);
+
+    const handleUpdatePassword = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setAuthLoading(true);
+        try {
+            const { error } = await supabase.auth.updateUser({ password });
+            if (error) throw error;
+            alert("Password aggiornata con successo! Ora puoi accedere.");
+            setIsRecovery(false);
+            setSession(null);
+            await supabase.auth.signOut();
+            window.location.href = '/login'; // Reset pulito
+        } catch (error: any) {
+            alert(error.message);
+        } finally {
+            setAuthLoading(false);
+        }
+    };
 
     const handleAuth = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -51,6 +99,7 @@ const Auth: React.FC = () => {
                     email, 
                     password,
                     options: { 
+                        emailRedirectTo: window.location.origin + '/login',
                         data: { 
                             full_name: fullName,
                             team_code: teamCode.trim().toUpperCase() // Letto dal Trigger SQL
@@ -82,8 +131,9 @@ const Auth: React.FC = () => {
             return;
         }
         setAuthLoading(true);
+        // Forza il redirect verso /login per gestire il ritorno
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
-            redirectTo: window.location.origin,
+            redirectTo: window.location.origin + '/login',
         });
         if (error) alert(error.message);
         else alert("Email di ripristino inviata! Controlla la tua posta.");
@@ -94,7 +144,47 @@ const Auth: React.FC = () => {
         return <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center font-black uppercase tracking-widest text-slate-600">Caricamento...</div>;
     }
 
-    if (session) {
+    if (isRecovery) {
+        return (
+            <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center p-4">
+                <div className="bg-white p-8 rounded-[2.5rem] shadow-xl border border-slate-100 max-w-md w-full">
+                    <div className="flex flex-col items-center mb-8">
+                        <div className="mb-4 bg-blue-600 p-4 rounded-3xl shadow-lg">
+                            <Lock className="h-10 w-10 text-white" />
+                        </div>
+                        <h1 className="text-2xl font-black text-slate-800 uppercase tracking-tight">Nuova Password</h1>
+                        <p className="text-slate-600 font-bold text-[10px] uppercase tracking-[0.2em] mt-2 text-center">Imposta le tue nuove credenziali di accesso</p>
+                    </div>
+                    
+                    <form onSubmit={handleUpdatePassword} className="space-y-4">
+                        <div className="relative">
+                            <label htmlFor="recovery-password" className="sr-only">Nuova Password</label>
+                            <Lock className="absolute left-4 top-3.5 w-5 h-5 text-slate-400" />
+                            <input 
+                                id="recovery-password"
+                                type="password" 
+                                placeholder="Inserisci la nuova password" 
+                                className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-medium"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                required
+                                minLength={6}
+                            />
+                        </div>
+                        <button 
+                            type="submit" 
+                            disabled={authLoading}
+                            className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-lg transition-all disabled:opacity-50"
+                        >
+                            {authLoading ? 'Salvataggio...' : 'Aggiorna Password'}
+                        </button>
+                    </form>
+                </div>
+            </div>
+        );
+    }
+
+    if (session && !isRecovery) {
         return <Navigate to="/" replace />;
     }
 
