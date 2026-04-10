@@ -413,48 +413,19 @@ const AdminPage: React.FC = () => {
                 const { password, email, ...updatePayload } = payload;
                 error = (await supabase.from('profiles').update(updatePayload).eq('id', editingAthlete.id)).error;
             } else {
-                // Nuova logica: Crea l'atleta via RPC per la parte anagrafica
-                const { data: rpcRes, error: rpcErr } = await supabase.rpc('invite_athlete', {
-                    p_full_name: payload.full_name,
-                    p_email: payload.email,
-                    p_team_id: payload.team_id,
-                    p_license_number: payload.license_number,
-                    p_medical_expiry: payload.medical_certificate_expiry,
-                    p_birth_year: payload.birth_year,
-                    p_birth_date: payload.birth_date,
-                    p_gender: payload.gender,
-                    p_shirt_size: payload.shirt_size,
-                    p_is_licensed: payload.is_licensed,
-                    p_is_licensed_fci: payload.is_licensed_fci,
-                    p_is_member: payload.is_member,
-                    p_is_team_admin: payload.is_team_admin
+                // Nuova logica: Usa la Edge Function per gestire Auth (Service Role) e Profilo in un'unica transazione sicura
+                const { data: edgeRes, error: edgeErr } = await supabase.functions.invoke('invite-athlete', {
+                    body: {
+                        ...payload,
+                        medical_expiry: payload.medical_certificate_expiry, // Mappa i nomi per la function
+                        password: athleteForm.password,
+                        redirectTo: window.location.origin + '/login'
+                    }
                 });
                 
-                if (rpcErr) throw rpcErr;
-                if (rpcRes && !rpcRes.success) throw new Error(rpcRes.message);
+                if (edgeErr) throw edgeErr;
+                if (edgeRes && !edgeRes.success) throw new Error(edgeRes.error || "Errore sconosciuto nella Edge Function");
 
-                // Gestione Auth: Se c'è una password, creiamo l'utente direttamente
-                if (athleteForm.password && athleteForm.password.trim().length >= 6) {
-                    const { error: authError } = await supabase.auth.admin.createUser({
-                        email: payload.email,
-                        password: athleteForm.password,
-                        email_confirm: true,
-                        user_metadata: { full_name: payload.full_name, team_id: payload.team_id }
-                    });
-                    if (authError) {
-                        console.warn("Creazione Auth diretta fallita: ", authError.message);
-                        alert("Profilo creato, ma errore creazione account (password): " + authError.message);
-                    }
-                } else {
-                    // Altrimenti mandiamo il classico invito
-                    const { error: inviteError } = await supabase.auth.admin.inviteUserByEmail(payload.email, {
-                        data: { full_name: payload.full_name, team_id: payload.team_id }
-                    });
-                    if (inviteError) {
-                        console.warn("Invito email fallito (Auth API): ", inviteError.message);
-                    }
-                }
-                
                 error = null;
             }
             if (error) throw error;
@@ -466,7 +437,7 @@ const AdminPage: React.FC = () => {
                 if (athleteForm.password) {
                     alert(`Atleta creato con successo! Può loggarsi subito con:\nEmail: ${payload.email}\nPassword: ${athleteForm.password}`);
                 } else {
-                    alert("Atleta creato con successo. Riceverà l'email di invito se SMTP è attivo.");
+                    alert("Atleta creato con successo. L'invito email è stato inviato via Edge Function.");
                 }
             }
         } catch (err: any) { alert("Errore: " + err.message); }

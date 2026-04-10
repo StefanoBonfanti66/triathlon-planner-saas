@@ -32,6 +32,11 @@ const Layout: React.FC = () => {
     initSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, newSession) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        // V6.3.3 - Preserviamo l'hash/token nel redirect
+        window.location.href = '/login' + window.location.hash;
+        return;
+      }
       if (newSession?.user?.id !== session?.user?.id) {
         setSession(newSession);
         if (newSession?.user?.id) fetchTeamData(newSession.user.id);
