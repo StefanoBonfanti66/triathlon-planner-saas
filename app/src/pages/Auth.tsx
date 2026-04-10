@@ -10,20 +10,29 @@ const Auth: React.FC = () => {
     
     // V6.3.3 - Rilevazione ultra-robusta dello stato di recovery
     const [isRecovery, setIsRecovery] = useState(() => {
-        const hasRecoveryToken = window.location.hash.includes('type=recovery') || 
-                               window.location.href.includes('type=recovery') ||
-                               window.location.hash.includes('access_token=') ||
-                               window.location.href.includes('access_token=');
-        const hasError = window.location.hash.includes('error_code=otp_expired') ||
-                         window.location.href.includes('error_code=otp_expired');
-        return hasRecoveryToken || hasError;
+        const url = window.location.href;
+        const hash = window.location.hash;
+        return url.includes('type=recovery') || 
+               hash.includes('type=recovery') ||
+               url.includes('access_token=') ||
+               hash.includes('access_token=') ||
+               url.includes('error_code=otp_expired') ||
+               hash.includes('error_code=otp_expired');
     });
     
     useEffect(() => {
-        // Forza il controllo dell'URL all'avvio
-        if (window.location.hash.includes('type=recovery') || window.location.href.includes('type=recovery')) {
-            setIsRecovery(true);
-        }
+        // Controllo periodico per i primi secondi (nel caso in cui l'URL cambi durante il caricamento)
+        const checkUrl = () => {
+            const url = window.location.href;
+            const hash = window.location.hash;
+            if (url.includes('recovery') || hash.includes('recovery') || url.includes('access_token') || hash.includes('access_token')) {
+                console.log("Recovery token detected in URL");
+                setIsRecovery(true);
+            }
+        };
+
+        const interval = setInterval(checkUrl, 500);
+        setTimeout(() => clearInterval(interval), 5000);
 
         supabase.auth.getSession().then(({ data: { session } }) => {
             setSession(session);
@@ -34,20 +43,22 @@ const Auth: React.FC = () => {
             console.log("Auth Event Details:", event, session?.user?.email);
             
             if (event === 'PASSWORD_RECOVERY') {
-                console.log("Recovery Mode Activated");
                 setIsRecovery(true);
                 setSession(session);
             } else if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
                 setSession(session);
-                // Se siamo entrati con un token di recovery, non resettare isRecovery
-                if (window.location.hash.includes('recovery') || window.location.href.includes('recovery')) {
+                // Non resettare mai isRecovery se nell'URL c'è traccia di recovery
+                if (window.location.href.includes('recovery') || window.location.hash.includes('recovery')) {
                     setIsRecovery(true);
                 }
             } else if (event === 'SIGNED_OUT') {
                 setSession(null);
             }
         });
-        return () => subscription.unsubscribe();
+        return () => {
+            subscription.unsubscribe();
+            clearInterval(interval);
+        };
     }, []);
 
     const [email, setEmail] = useState('');
