@@ -2,10 +2,44 @@
  * Race Planner 2026 - User & Admin Guide (v6.3.3)
  * Author: Stefano Bonfanti
  */
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { BookOpen, Download, ChevronRight, CheckCircle, Map as MapIcon, Users, LayoutDashboard, RefreshCw, Lock, Shield, Share2, Smartphone, Database, Mail, Key } from 'lucide-react';
+import { supabase } from '../supabaseClient'; // Assicurati che supabase sia importato correttamente
 
 const GuidePage: React.FC = () => {
+  const [isAthlete, setIsAthlete] = useState(true); // Default to athlete view
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    const checkUserRole = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        // Fetch profile to check admin status
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('is_team_admin, is_super_admin, email')
+          .eq('id', session.user.id)
+          .single();
+
+        if (error) {
+          console.error("Error fetching user profile:", error);
+          setIsAthlete(true); // Assume athlete if role cannot be determined
+          setIsAdmin(false);
+        } else {
+          const isAdminUser = profile?.is_team_admin || profile?.is_super_admin || profile?.email === 'bonfantistefano4@gmail.com'; // Add Super Admin check
+          setIsAdmin(isAdminUser);
+          setIsAthlete(!isAdminUser);
+        }
+      } else {
+        // No session, assume athlete or not logged in, default to athlete view for guide
+        setIsAthlete(true);
+        setIsAdmin(false);
+      }
+    };
+
+    checkUserRole();
+  }, []);
+
   return (
     <div className="max-w-4xl mx-auto px-4 py-12">
       {/* HEADER GUIDA */}
@@ -27,13 +61,24 @@ const GuidePage: React.FC = () => {
             >
             <Download className="w-4 h-4" /> Template Utente
             </a>
-            <a 
-            href="/GUIDA_ADMIN.pdf" 
-            download 
-            className="flex items-center justify-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 transition-all shadow-xl"
-            >
-            <Download className="w-4 h-4" /> Template Admin
-            </a>
+            {isAdmin && ( // Conditionally render Admin and Onboarding guides for Admins
+              <>
+                <a 
+                href="/GUIDA_ADMIN.pdf" 
+                download 
+                className="flex items-center justify-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 transition-all shadow-xl"
+                >
+                <Download className="w-4 h-4" /> Template Admin
+                </a>
+                <a 
+                href="/GUIDA_ONBOARDING.pdf" 
+                download 
+                className="flex items-center justify-center gap-2 px-6 py-3 bg-emerald-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 transition-all shadow-xl"
+                >
+                <Download className="w-4 h-4" /> Template Onboarding
+                </a>
+              </>
+            )}
         </div>
       </div>
 
