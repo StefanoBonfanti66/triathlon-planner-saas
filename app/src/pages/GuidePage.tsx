@@ -26,7 +26,8 @@ const GuidePage: React.FC = () => {
           setIsAthlete(true); // Assume athlete if role cannot be determined
           setIsAdmin(false);
         } else {
-          const isAdminUser = profile?.is_team_admin || profile?.is_super_admin || profile?.email === 'bonfantistefano4@gmail.com'; // Add Super Admin check
+          // Check for team admin, super admin, or specific admin email
+          const isAdminUser = profile?.is_team_admin || profile?.is_super_admin || profile?.email === 'bonfantistefano4@gmail.com';
           setIsAdmin(isAdminUser);
           setIsAthlete(!isAdminUser);
         }
