@@ -28,8 +28,7 @@ BEGIN
     
     msg := '🎂 *AUGURI DI BUON COMPLEANNO!*' || nl ||
            '🎈 Oggi festeggiamo: *' || birthday_record.full_name || '*' || nl ||
-           '👥 Team: ' || COALESCE(birthday_record.team_name, 'No Team') || nl ||
-           '✨ Compe oggi ben *' || age || '* anni! 🎉' || nl || nl ||
+           '👥 Team: ' || COALESCE(birthday_record.team_name, 'No Team') || nl || 
            'Tanti auguri da tutto il team! 🏊‍♂️🚴‍♂️🏃‍♂️';
 
     -- 1. Invia al gruppo Telegram del Team (se configurato)
