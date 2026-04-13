@@ -28,7 +28,7 @@ jobs:
 
     - name: Scrape & Parse Data
       run: |
-        python mtt_api_scraper.py
+        # `mtt_api_scraper.py` was removed from the repo; run the parser only
         python parse_gare_file.py
 
     - name: Upload Data to Supabase
