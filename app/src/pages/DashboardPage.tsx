@@ -50,11 +50,10 @@ const getRankColor = (rank: string) => {
   if (rank === 'Silver') return 'text-slate-600 bg-slate-50 border-slate-200';
   return 'text-orange-800 bg-orange-50 border-orange-200';
 };
-
 const RaceCard = React.memo(({ 
-    race, isSelected, priority, cost, note, participants, team, onToggle, onPriority, onCost, onSingleCard, onChecklist, onNote 
+    race, isSelected, priority, cost, note, participants, team, onToggle, onPriority, onCost, onSingleCard, onChecklist, onNote, status
 }: { 
-    race: Race, isSelected: boolean, priority: string, cost: number, note: string, participants: string[], team?: any, onToggle: (id: string) => void, onPriority: (id: string, p: string) => void, onCost: (id: string, c: number) => void, onSingleCard: (race: Race) => void, onChecklist: (race: Race) => void, onNote: (race: Race) => void, getRankColor?: (r: string) => string
+    race: Race, isSelected: boolean, priority: string, cost: number, note: string, participants: string[], team?: any, onToggle: (id: string) => void, onPriority: (id: string, p: string) => void, onCost: (id: string, c: number) => void, onSingleCard: (race: Race) => void, onChecklist: (race: Race) => void, onNote: (race: Race) => void, getRankColor?: (r: string) => string, status?: string
 }) => {
     const openInMaps = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -64,6 +63,13 @@ const RaceCard = React.memo(({
 
     return (
         <div className={`group bg-white p-6 rounded-[2.5rem] border-2 transition-all duration-300 hover:shadow-xl hover:shadow-slate-200/50 flex flex-col ${isSelected ? 'border-blue-500 ring-4 ring-blue-50 shadow-lg shadow-blue-100/50' : 'border-white hover:border-blue-100 shadow-sm'} ${priority === 'A' ? 'bg-yellow-50/20 border-yellow-100' : ''}`}>
+            {status === 'hidden' && (
+                <div className="mb-4 bg-red-600 text-white p-3 rounded-2xl flex items-center gap-2 animate-pulse shadow-md border border-red-700">
+                    <AlertTriangle className="w-4 h-4 shrink-0" />
+                    <span className="text-[10px] font-black uppercase tracking-tighter">Gara Rimossa dal Calendario Ufficiale</span>
+                </div>
+            )}
+            
             <div className="flex justify-between items-start mb-5">
                 <div className="flex flex-col gap-1">
                     <div className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-full w-fit" title="Data dell'evento">
@@ -253,6 +259,7 @@ const DashboardPage: React.FC = () => {
   const [racePriorities, setRacePriorities] = useState<Record<string, string>>({});
   const [raceCosts, setRaceCosts] = useState<Record<string, number>>({});
   const [raceNotes, setRaceNotes] = useState<Record<string, string>>({});
+  const [raceStatuses, setRaceStatuses] = useState<Record<string, string>>({});
   const [pendingConfirmId, setPendingConfirmId] = useState<string | null>(null);
   const [session, setSession] = useState<any>(null);
   const [team, setTeam] = useState<any>(null);
@@ -294,6 +301,12 @@ const DashboardPage: React.FC = () => {
       setRacePriorities(priorities);
       setRaceCosts(costs);
       setRaceNotes(notes);
+
+      // 1b. Fetch statuses from DB
+      const { data: dbRaces } = await supabase.from('races').select('id, status').in('id', selected);
+      const statuses: Record<string, string> = {};
+      dbRaces?.forEach(r => { statuses[r.id] = r.status; });
+      setRaceStatuses(statuses);
     }
 
     // 2. Get user profile for team context
@@ -630,6 +643,7 @@ const DashboardPage: React.FC = () => {
                     onSingleCard={generateSingleRaceCard} 
                     onChecklist={setActiveChecklistRace} 
                     onNote={setActiveNoteRace} 
+                    status={raceStatuses[race.id]}
                 />
             ))}
         </div>
@@ -741,9 +755,16 @@ const DashboardPage: React.FC = () => {
                 </div></div>
                 <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                     {myPlan.map((race) => (
-                    <div key={race.id} className={`p-4 rounded-2xl border transition-all ${racePriorities[race.id] === 'A' ? 'border-yellow-200 bg-yellow-50/30' : 'border-slate-100 bg-white shadow-sm'}`}>
+                    <div key={race.id} className={`p-4 rounded-2xl border transition-all ${raceStatuses[race.id] === 'hidden' ? 'border-red-200 bg-red-50/50' : (racePriorities[race.id] === 'A' ? 'border-yellow-200 bg-yellow-50/30' : 'border-slate-100 bg-white shadow-sm')}`}>
                         <div className="flex justify-between items-start">
-                            <div className="space-y-1"><div className="flex items-center gap-2"><span className="text-[10px] font-black" style={{ color: team?.primary_color || '#1d4ed8' }}>{race.date}</span>{racePriorities[race.id] && <span className="text-[8px] font-black px-1.5 py-0.5 rounded bg-slate-800 text-white">{racePriorities[race.id]}</span>}</div><h3 className="text-xs font-bold text-slate-700 leading-tight">{race.title}</h3></div>
+                            <div className="space-y-1">
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <span className="text-[10px] font-black" style={{ color: team?.primary_color || '#1d4ed8' }}>{race.date}</span>
+                                    {racePriorities[race.id] && <span className="text-[8px] font-black px-1.5 py-0.5 rounded bg-slate-800 text-white">{racePriorities[race.id]}</span>}
+                                    {raceStatuses[race.id] === 'hidden' && <span className="text-[8px] font-black px-1.5 py-0.5 rounded bg-red-600 text-white animate-pulse">⚠️ GARA RIMOSSA</span>}
+                                </div>
+                                <h3 className="text-xs font-bold text-slate-700 leading-tight">{race.title}</h3>
+                            </div>
                             <button onClick={() => toggleRace(race.id)} className="text-slate-500 hover:text-red-600" aria-label={`Rimuovi ${race.title} dal mio piano`}><Trash2 className="w-4 h-4" /></button>
                         </div>
                     </div>))}

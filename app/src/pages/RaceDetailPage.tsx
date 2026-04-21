@@ -141,7 +141,22 @@ const RaceDetailPage: React.FC = () => {
       };
       
       const baseRace = (racesData as Race[]).find(r => r.id === id);
-      if (baseRace) setRace(baseRace);
+      
+      // Carica i dati base dal JSON o dal DB se mancano
+      try {
+        const { data: dbRace } = await supabase.from('races').select('*').eq('id', id).single();
+        
+        if (dbRace) {
+          // Unisce i dati: prevale il DB per lo status e i campi dinamici
+          setRace({ ...(baseRace || {}), ...dbRace } as Race);
+          if (!baseRace) console.log("ℹ️ Gara recuperata interamente dal database.");
+        } else if (baseRace) {
+          setRace(baseRace);
+        }
+      } catch (err) {
+        if (baseRace) setRace(baseRace);
+        console.warn("Impossibile sincronizzare lo status dal database, uso dati locali.");
+      }
 
       let foundApiData = false;
 
@@ -263,6 +278,19 @@ const RaceDetailPage: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
+          {/* Allerta Gara Rimossa */}
+          {(race as any).status === 'hidden' && (
+            <div className="bg-amber-50 border-2 border-amber-200 p-6 rounded-[2.5rem] flex items-start gap-4 mb-2">
+              <div className="bg-amber-100 p-3 rounded-2xl text-amber-600">
+                <Info className="w-6 h-6" />
+              </div>
+              <div>
+                <h4 className="text-amber-800 font-black uppercase text-sm mb-1">Gara non più ufficiale</h4>
+                <p className="text-amber-700 text-xs font-medium">Questa gara non è più presente nel calendario ufficiale FITRI. Potrebbe essere stata annullata o spostata. Verifica con l'organizzatore prima di pianificare trasferte.</p>
+              </div>
+            </div>
+          )}
+
           <div className="bg-white p-8 rounded-[3rem] shadow-sm border border-slate-100 relative overflow-hidden">
             <div className="absolute top-0 right-0 p-8 opacity-5"><Trophy className="w-48 h-48 text-slate-900" /></div>
             <div className="relative z-10">

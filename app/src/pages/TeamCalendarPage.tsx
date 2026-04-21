@@ -14,6 +14,7 @@ interface TeamRace {
   race_date: string;
   race_link?: string;
   participants: string[];
+  status?: string;
 }
 
 interface TeamMonth {
@@ -51,9 +52,16 @@ const TeamCalendarPage: React.FC = () => {
       const userIds = profiles.map(p => p.id);
 
       // 2. Prendi tutti i piani di questi utenti
-      const { data: plans } = await supabase.from('user_plans').select('race_id, user_id').in('user_id', userIds).is('deleted_at', null);      if (!plans) return;
+      const { data: plans } = await supabase.from('user_plans').select('race_id, user_id').in('user_id', userIds).is('deleted_at', null);
+      if (!plans) return;
 
-      // 3. Raggruppa per gara e aggiungi info gara dal JSON locale (più veloce)
+      // 3. Recupera gli status delle gare dal database
+      const uniqueRaceIds = Array.from(new Set(plans.map(p => p.race_id)));
+      const { data: dbRaces } = await supabase.from('races').select('id, status').in('id', uniqueRaceIds);
+      const statusMap: Record<string, string> = {};
+      dbRaces?.forEach(r => { statusMap[r.id] = r.status; });
+
+      // 4. Raggruppa per gara e aggiungi info gara dal JSON locale (più veloce)
       const raceGroups: Record<string, TeamRace> = {};
       
       plans.forEach(plan => {
@@ -65,7 +73,8 @@ const TeamCalendarPage: React.FC = () => {
               race_title: baseRace.title,
               race_date: baseRace.date,
               race_link: baseRace.link,
-              participants: []
+              participants: [],
+              status: statusMap[plan.race_id] || 'active'
             };
           }
         }
@@ -219,6 +228,11 @@ const TeamCalendarPage: React.FC = () => {
                           <span className="text-[11px] font-black text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">
                             {race.race_date}
                           </span>
+                          {race.status === 'hidden' && (
+                            <span className="text-[10px] font-black text-white bg-red-600 px-3 py-1 rounded-full shadow-sm animate-pulse flex items-center gap-1 border border-red-700">
+                              ⚠️ RIMOSSA
+                            </span>
+                          )}
                         </div>
                       </div>
                       <div className="flex gap-2">

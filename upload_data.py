@@ -73,12 +73,40 @@ def main():
             msg = f"⚠️ *Gara FITRI Rimossa!*\n\n❌ {r['title']}\n📅 {r['date']}\n📍 {r['location']}\n\n_Il calendario FITRI è stato aggiornato._"
             send_telegram_notification(msg)
 
-    # 3. Procedi con l'aggiornamento
-    print("Pulizia e inserimento nuovi dati...")
+    # 3. Procedi con l'aggiornamento (Soft Sync)
+    print("Sincronizzazione non distruttiva (UPSERT)...")
+    
+    # Aggiunge lo status 'active' a tutte le gare in arrivo da FITRI
+    for r in new_races_data:
+        r['status'] = 'active'
+
     try:
-        supabase.from_("races").delete().neq("id", "none").execute()
-        supabase.from_("races").insert(new_races_data).execute()
-        print(f"✅ Sync completato. {len(new_races_data)} gare totali.")
+        # 3a. Upsert delle nuove gare / aggiornamenti
+        # L'upsert sovrascrive i dati esistenti se l'ID coincide, altrimenti inserisce
+        supabase.from_("races").upsert(new_races_data).execute()
+        
+        # 3b. Gestione gare rimosse (Soft Delete)
+        if removed:
+            removed_ids = [r['id'] for r in removed]
+            
+            # Controlla se ci sono atleti iscritti per queste gare rimosse
+            plans_res = supabase.from_("user_plans").select("race_id").in_("race_id", removed_ids).execute()
+            plans_data = plans_res.data if hasattr(plans_res, 'data') else []
+            
+            # race_id in user_plans che hanno iscritti tra quelle rimosse
+            ids_with_plans = {p['race_id'] for p in plans_data}
+            
+            # Invece di cancellare, impostiamo lo status a 'hidden'
+            supabase.from_("races").update({"status": "hidden"}).in_("id", removed_ids).execute()
+            
+            # Notifica specifica per ogni gara rimossa che ha iscritti
+            for r in removed:
+                if r['id'] in ids_with_plans:
+                    count = sum(1 for p in plans_data if p['race_id'] == r['id'])
+                    msg = f"⚠️ *ALLERTA GARA RIMOSSA CON ISCRITTI!*\n\nLa gara *{r['title']}* ({r['date']}) è stata rimossa dal calendario ufficiale FITRI, ma ci sono *{count} atleti* iscritti nel Planner!\n\n_Verificare se la gara è stata annullata o spostata._"
+                    send_telegram_notification(msg)
+
+        print(f"✅ Sync completato. {len(new_races_data)} gare aggiornate/inserite.")
     except Exception as e:
         print(f"Errore durante l'aggiornamento: {e}")
 
