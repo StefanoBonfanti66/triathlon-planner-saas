@@ -260,7 +260,7 @@ const DashboardPage: React.FC = () => {
   const [racePriorities, setRacePriorities] = useState<Record<string, string>>({});
   const [raceCosts, setRaceCosts] = useState<Record<string, number>>({});
   const [raceNotes, setRaceNotes] = useState<Record<string, string>>({});
-  const [raceStatuses, setRaceStatuses] = useState<Record<string, string>>({});
+  const [raceStatuses, setRaceStatuses] = useState<Record<string, boolean>>({});
   const [pendingConfirmId, setPendingConfirmId] = useState<string | null>(null);
   const [session, setSession] = useState<any>(null);
   const [team, setTeam] = useState<any>(null);
@@ -306,8 +306,8 @@ const DashboardPage: React.FC = () => {
       // 1b. Fetch statuses from DB
       const { data: dbRaces } = await supabase.from('races').select('id, is_removed').in('id', selected);
       const statuses: Record<string, boolean> = {};
-      dbRaces?.forEach(r => { statuses[r.id] = r.is_removed; });
-      setRaceStatuses(statuses as any);
+      dbRaces?.forEach(r => { statuses[r.id] = !!r.is_removed; });
+      setRaceStatuses(statuses);
     }
 
     // 2. Get user profile for team context
@@ -588,6 +588,7 @@ const DashboardPage: React.FC = () => {
     const nowTs = now.getTime();
 
     return races.filter((race) => {
+        if (race.is_removed) return false;
         if ((race as any).timestamp < nowTs) return false;
         
         const matchesSearch = (race.title?.toLowerCase() || "").includes(deferredSearchTerm.toLowerCase()) || (race.location?.toLowerCase() || "").includes(deferredSearchTerm.toLowerCase());
@@ -644,12 +645,12 @@ const DashboardPage: React.FC = () => {
                     onSingleCard={generateSingleRaceCard} 
                     onChecklist={setActiveChecklistRace} 
                     onNote={setActiveNoteRace} 
-                    status={raceStatuses[race.id]}
+                    isRemoved={!!raceStatuses[race.id]}
                 />
             ))}
         </div>
     );
-  }, [filteredRaces, selectedRaces, racePriorities, raceCosts, raceNotes, participantsMap, team, toggleRace, setPriority, updateCost, generateSingleRaceCard, setActiveChecklistRace, setActiveNoteRace]);
+  }, [filteredRaces, selectedRaces, racePriorities, raceCosts, raceNotes, participantsMap, team, toggleRace, setPriority, updateCost, generateSingleRaceCard, setActiveChecklistRace, setActiveNoteRace, raceStatuses]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 px-4">
@@ -756,13 +757,13 @@ const DashboardPage: React.FC = () => {
                 </div></div>
                 <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                     {myPlan.map((race) => (
-                    <div key={race.id} className={`p-4 rounded-2xl border transition-all ${raceStatuses[race.id] === 'hidden' ? 'border-red-200 bg-red-50/50' : (racePriorities[race.id] === 'A' ? 'border-yellow-200 bg-yellow-50/30' : 'border-slate-100 bg-white shadow-sm')}`}>
+                    <div key={race.id} className={`p-4 rounded-2xl border transition-all ${raceStatuses[race.id] ? 'border-red-200 bg-red-50/50' : (racePriorities[race.id] === 'A' ? 'border-yellow-200 bg-yellow-50/30' : 'border-slate-100 bg-white shadow-sm')}`}>
                         <div className="flex justify-between items-start">
                             <div className="space-y-1">
                                 <div className="flex flex-wrap items-center gap-2">
                                     <span className="text-[10px] font-black" style={{ color: team?.primary_color || '#1d4ed8' }}>{race.date}</span>
                                     {racePriorities[race.id] && <span className="text-[8px] font-black px-1.5 py-0.5 rounded bg-slate-800 text-white">{racePriorities[race.id]}</span>}
-                                    {raceStatuses[race.id] === 'hidden' && <span className="text-[8px] font-black px-1.5 py-0.5 rounded bg-red-600 text-white animate-pulse">⚠️ GARA RIMOSSA</span>}
+                                    {raceStatuses[race.id] && <span className="text-[8px] font-black px-1.5 py-0.5 rounded bg-red-600 text-white animate-pulse">⚠️ GARA RIMOSSA</span>}
                                 </div>
                                 <h3 className="text-xs font-bold text-slate-700 leading-tight">{race.title}</h3>
                             </div>
@@ -1008,4 +1009,3 @@ const DashboardPage: React.FC = () => {
 };
 
 export default DashboardPage;
-hboardPage;
