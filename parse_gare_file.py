@@ -102,7 +102,50 @@ def save_clean(final_list, output_json):
 if __name__ == "__main__":
     import sys
     input_file = sys.argv[1] if len(sys.argv) > 1 else 'gare_2026.txt'
-    # TABULA RASA: Non carichiamo più i vecchi dati, leggiamo solo il file nuovo
-    races = parse_gare_file(input_file)
-    total = save_clean(races, 'app/src/races_full.json')
-    print(f"✅ Database RIGENERATO DA ZERO ({input_file}): {total} gare.")
+    output_json = 'app/src/races_full.json'
+    
+    # 1. Carica vecchi dati per il merge
+    old_races = {}
+    if os.path.exists(output_json):
+        try:
+            with open(output_json, 'r', encoding='utf-8') as f:
+                old_data = json.load(f)
+                # Crea dizionario per ID per accesso rapido
+                for r in old_data:
+                    r['is_removed'] = True # Segna come rimosso per default
+                    old_races[r['id']] = r
+        except: pass
+
+    # 2. Parse nuovo file
+    new_scraped_races = parse_gare_file(input_file)
+    
+    # 3. Assegnazione ID temporanei per il merge (stessa logica di save_clean)
+    counts = {}
+    merged_races = []
+    
+    for r in new_scraped_races:
+        link = r.get('link', '')
+        match = re.search(r'/(\d+)$', link)
+        base_id = match.group(1) if match else "9999"
+        current_count = counts.get(base_id, 0) + 1
+        counts[base_id] = current_count
+        rid = f"{base_id}-{current_count}"
+        
+        r['id'] = rid
+        r['is_removed'] = False
+        
+        # Sostituisce o aggiunge nel dizionario
+        old_races[rid] = r
+    
+    # 4. Salva il merge finale (lista di tutti i valori nel dizionario)
+    final_list = list(old_races.values())
+    
+    # Ordinamento per data
+    final_list = sorted(final_list, key=lambda x: x['date'].split('-')[::-1])
+    
+    with open(output_json, 'w', encoding='utf-8') as f:
+        json.dump(final_list, f, ensure_ascii=False, indent=2)
+    
+    total = len(final_list)
+    removed = sum(1 for r in final_list if r.get('is_removed'))
+    print(f"✅ Database AGGIORNATO ({input_file}): {total} gare totali ({removed} segnate come rimosse).")

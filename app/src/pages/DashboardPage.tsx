@@ -34,6 +34,7 @@ interface Race {
   link?: string;
   mapCoords?: [number, number];
   distanceFromHome?: number | null;
+  is_removed?: boolean;
 }
 
 const getEquipment = (type: string) => {
@@ -51,9 +52,9 @@ const getRankColor = (rank: string) => {
   return 'text-orange-800 bg-orange-50 border-orange-200';
 };
 const RaceCard = React.memo(({ 
-    race, isSelected, priority, cost, note, participants, team, onToggle, onPriority, onCost, onSingleCard, onChecklist, onNote, status
+    race, isSelected, priority, cost, note, participants, team, onToggle, onPriority, onCost, onSingleCard, onChecklist, onNote, isRemoved
 }: { 
-    race: Race, isSelected: boolean, priority: string, cost: number, note: string, participants: string[], team?: any, onToggle: (id: string) => void, onPriority: (id: string, p: string) => void, onCost: (id: string, c: number) => void, onSingleCard: (race: Race) => void, onChecklist: (race: Race) => void, onNote: (race: Race) => void, getRankColor?: (r: string) => string, status?: string
+    race: Race, isSelected: boolean, priority: string, cost: number, note: string, participants: string[], team?: any, onToggle: (id: string) => void, onPriority: (id: string, p: string) => void, onCost: (id: string, c: number) => void, onSingleCard: (race: Race) => void, onChecklist: (race: Race) => void, onNote: (race: Race) => void, getRankColor?: (r: string) => string, isRemoved?: boolean
 }) => {
     const openInMaps = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -63,7 +64,7 @@ const RaceCard = React.memo(({
 
     return (
         <div className={`group bg-white p-6 rounded-[2.5rem] border-2 transition-all duration-300 hover:shadow-xl hover:shadow-slate-200/50 flex flex-col ${isSelected ? 'border-blue-500 ring-4 ring-blue-50 shadow-lg shadow-blue-100/50' : 'border-white hover:border-blue-100 shadow-sm'} ${priority === 'A' ? 'bg-yellow-50/20 border-yellow-100' : ''}`}>
-            {status === 'hidden' && (
+            {isRemoved && (
                 <div className="mb-4 bg-red-600 text-white p-3 rounded-2xl flex items-center gap-2 animate-pulse shadow-md border border-red-700">
                     <AlertTriangle className="w-4 h-4 shrink-0" />
                     <span className="text-[10px] font-black uppercase tracking-tighter">Gara Rimossa dal Calendario Ufficiale</span>
@@ -303,10 +304,10 @@ const DashboardPage: React.FC = () => {
       setRaceNotes(notes);
 
       // 1b. Fetch statuses from DB
-      const { data: dbRaces } = await supabase.from('races').select('id, status').in('id', selected);
-      const statuses: Record<string, string> = {};
-      dbRaces?.forEach(r => { statuses[r.id] = r.status; });
-      setRaceStatuses(statuses);
+      const { data: dbRaces } = await supabase.from('races').select('id, is_removed').in('id', selected);
+      const statuses: Record<string, boolean> = {};
+      dbRaces?.forEach(r => { statuses[r.id] = r.is_removed; });
+      setRaceStatuses(statuses as any);
     }
 
     // 2. Get user profile for team context
@@ -1007,3 +1008,4 @@ const DashboardPage: React.FC = () => {
 };
 
 export default DashboardPage;
+hboardPage;
