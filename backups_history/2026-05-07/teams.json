@@ -1,0 +1,67 @@
+[
+  {
+    "id": "8a942666-090e-4167-a43e-a1783e3b79db",
+    "name": "VALDIGNE TRIATHLON",
+    "logo_url": "https://bwzzvdwiimvdwkiytknc.supabase.co/storage/v1/object/public/team-logos/0.6834642357819013.png",
+    "primary_color": "#3b82f6",
+    "website_url": "https://www.valdignetriathlon.it/",
+    "created_at": "2026-03-02T17:34:32.251716+00:00",
+    "join_code": "VALDIGNE2026",
+    "secondary_color": "#f4d32f",
+    "telegram_chat_id": null,
+    "admin_telegram_chat_id": null,
+    "federation_code": ""
+  },
+  {
+    "id": "fb3d4c6a-9f68-4227-a558-fd6a186e683a",
+    "name": "CUS Propatria",
+    "logo_url": "https://bwzzvdwiimvdwkiytknc.supabase.co/storage/v1/object/public/team-logos/propatria-website-header-new-logo_428x90.png",
+    "primary_color": "#0047AB",
+    "website_url": "https://propatriatriathlon.it/",
+    "created_at": "2026-03-01T15:21:25+00:00",
+    "join_code": "PROPATRIA2026",
+    "secondary_color": "#f50f1b",
+    "telegram_chat_id": null,
+    "admin_telegram_chat_id": null,
+    "federation_code": ""
+  },
+  {
+    "id": "c98aeaf8-86c9-4635-86f7-eadf1f1b5ce5",
+    "name": "VTT Valxer Triathlon Team asd ",
+    "logo_url": "https://bwzzvdwiimvdwkiytknc.supabase.co/storage/v1/object/public/team-logos/0.45070054995592757.jpg",
+    "primary_color": "#f37712",
+    "website_url": "https://www.valxertriteam.com/",
+    "created_at": "2026-03-05T16:45:53.133452+00:00",
+    "join_code": "VTT2026",
+    "secondary_color": "#1e293b",
+    "telegram_chat_id": null,
+    "admin_telegram_chat_id": null,
+    "federation_code": ""
+  },
+  {
+    "id": "mtt",
+    "name": "MTT Milano Triathlon Team",
+    "logo_url": "https://bwzzvdwiimvdwkiytknc.supabase.co/storage/v1/object/public/team-logos/team-logos/0.6454596166693968.png",
+    "primary_color": "#dc2626",
+    "website_url": "https://www.milanotriathlonteam.com/",
+    "created_at": "2026-03-02T09:46:51.839505+00:00",
+    "join_code": "MTT2026",
+    "secondary_color": "#f8f7f7",
+    "telegram_chat_id": "-5117971075",
+    "admin_telegram_chat_id": "-1003768497074",
+    "federation_code": ""
+  },
+  {
+    "id": "a5556173-1482-4aa6-9ad4-686fc995584f",
+    "name": "Rho Triathlon Team ",
+    "logo_url": "",
+    "primary_color": "#ffff00",
+    "website_url": "",
+    "created_at": "2026-04-19T19:22:24.46715+00:00",
+    "join_code": "RHO2026!",
+    "secondary_color": "#1e293b",
+    "telegram_chat_id": "",
+    "admin_telegram_chat_id": "",
+    "federation_code": ""
+  }
+]
