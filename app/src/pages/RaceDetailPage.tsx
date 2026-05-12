@@ -10,7 +10,7 @@ import racesData from "../races_full.json";
 import { 
   Calendar, MapPin, Bike, Trophy, Info, ExternalLink, 
   ChevronLeft, Users, Clock, FileText, Share2, Star,
-  Wind, Thermometer, CloudRain
+  Thermometer, CloudRain
 } from 'lucide-react';
 import { getWeatherData } from "../weatherData";
 import { provinceCoordinates } from "../coords";
@@ -42,7 +42,7 @@ const RaceDetailPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [isRegistered, setIsRegistered] = useState(false);
   const [team, setTeam] = useState<any>(null);
-  const [myProfile, setMyProfile] = useState<any>(null);
+  const [, setMyProfile] = useState<any>(null);
   const [apiCoords, setApiCoords] = useState<[number, number] | null>(null);
 
   const ADMIN_EMAIL = "bonfantistefano4@gmail.com";

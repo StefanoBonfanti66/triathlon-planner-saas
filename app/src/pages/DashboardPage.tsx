@@ -5,9 +5,8 @@
  */
 import React, { useState, useEffect, useMemo, useTransition, useCallback, useDeferredValue } from "react";
 import { 
-  Search, Plus, Calendar, MapPin, Trash2, CheckCircle, Trophy, Filter, 
-  Info, Download, Upload, Bike, Map as MapIcon, ChevronRight, Star, ExternalLink, Activity, Navigation, List, AlertTriangle, X, Camera, Image, ShoppingBag, Cloud, Sun, Edit3, MapPin as MapPinIcon,
-  LogOut, Mail, Lock, User, Shield, Heart
+  Search, Plus, Calendar, MapPin, Trash2, CheckCircle, Filter, 
+  Bike, Star, ExternalLink, Activity, Navigation, AlertTriangle, X, Cloud, Sun, Edit3, Heart, User, ShoppingBag, Download, Camera, Image
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toPng } from 'html-to-image';

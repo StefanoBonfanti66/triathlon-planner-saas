@@ -109,7 +109,7 @@ const TeamCalendarPage: React.FC = () => {
       // 4. Raggruppa per mese
       const months: Record<string, TeamRace[]> = {};
       Object.values(raceGroups).forEach(race => {
-        const [d, m, y] = race.race_date.split("-");
+        const [, m, y] = race.race_date.split("-");
         const monthKey = `${y}-${m}`;
         if (!months[monthKey]) months[monthKey] = [];
         months[monthKey].push(race);

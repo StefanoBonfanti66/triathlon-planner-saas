@@ -1,7 +1,7 @@
 import React, { memo } from 'react';
-import { Link, NavLink } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
-import { Trophy, LogOut, Shield, Users, LayoutDashboard, Heart, BookOpen } from 'lucide-react';
+import { LogOut, Shield, Users, LayoutDashboard, Heart, BookOpen } from 'lucide-react';
 
 const ADMIN_EMAIL = "bonfantistefano4@gmail.com";
 

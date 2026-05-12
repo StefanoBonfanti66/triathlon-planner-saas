@@ -3,11 +3,11 @@
  * Author: Stefano Bonfanti
  */
 import React, { useState, useEffect } from 'react';
-import { BookOpen, Download, ChevronRight, CheckCircle, Map as MapIcon, Users, LayoutDashboard, RefreshCw, Lock, Shield, Share2, Smartphone, Database, Mail, Key } from 'lucide-react';
+import { BookOpen, Download, ChevronRight, CheckCircle, Users, LayoutDashboard, RefreshCw, Lock, Shield, Share2, Smartphone, Database, Mail, Key } from 'lucide-react';
 import { supabase } from '../supabaseClient'; // Assicurati che supabase sia importato correttamente
 
 const GuidePage: React.FC = () => {
-  const [isAthlete, setIsAthlete] = useState(true); // Default to athlete view
+  const [, setIsAthlete] = useState(true); // Default to athlete view
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {

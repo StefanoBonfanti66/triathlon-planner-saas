@@ -12,7 +12,7 @@ const Layout: React.FC = () => {
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isAdminView, setIsAdminView] = useState(false);
-  const [adminData, setAdminData] = useState<any[]>([]);
+  const [adminData] = useState<any[]>([]);
   const [team, setTeam] = useState<any>(null);
 
   const ADMIN_EMAIL = "bonfantistefano4@gmail.com";
