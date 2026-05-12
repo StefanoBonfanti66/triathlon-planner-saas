@@ -243,7 +243,7 @@ const DashboardPage: React.FC = () => {
   const [activeSingleRace, setActiveSingleRace] = useState<Race | null>(null);
   const [activeChecklistRace, setActiveChecklistRace] = useState<Race | null>(null);
   const [activeNoteRace, setActiveNoteRace] = useState<Race | null>(null);
-  const [racesState, setRacesState] = useState<Race[]>([]);
+  const [racesState] = useState<Race[]>([]);
   const [selectedRaces, setSelectedRaces] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const deferredSearchTerm = useDeferredValue(searchTerm);
