@@ -185,7 +185,6 @@ const RaceDetailPage: React.FC = () => {
             const listJson = await listRes.json();
             if (listJson.data && listJson.data.length > 0) {
               updateApiData(listJson.data[0]);
-              foundApiData = true;
               console.log("✅ Gara trovata con fallback città!");
             }
           }

@@ -237,7 +237,7 @@ const RaceCard = React.memo(({
 const EMPTY_ARRAY: any[] = [];
 
 const DashboardPage: React.FC = () => {
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
   const cardRef = React.useRef<HTMLDivElement>(null);
   const singleCardRef = React.useRef<HTMLDivElement>(null);
   const [activeSingleRace, setActiveSingleRace] = useState<Race | null>(null);
@@ -458,11 +458,6 @@ const DashboardPage: React.FC = () => {
 
   const handleViewChange = (mode: 'list' | 'map') => { startTransition(() => setViewMode(mode)); };
 
-  const regions = useMemo(() => {
-    const r = new Set(races.map(race => race.region).filter(Boolean));
-    return ["Tutte", ...Array.from(r).sort()];
-  }, [races]);
-
   const setPriority = useCallback(async (id: string, p: string) => {
     setRacePriorities(prev => ({ ...prev, [id]: p }));
     if (session?.user) {
@@ -545,20 +540,6 @@ const DashboardPage: React.FC = () => {
       addRaceFinal(id);
     }
   }, [session, selectedRaces, races, myPlan, addRaceFinal]);
-
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        try {
-          const imported = JSON.parse(event.target?.result as string);
-          if (Array.isArray(imported)) { setRacesState(imported); }
-        } catch (err) { alert("Errore JSON."); }
-      };
-      reader.readAsText(file);
-    }
-  };
 
   const exportToICS = () => {
     if (myPlan.length === 0) return;

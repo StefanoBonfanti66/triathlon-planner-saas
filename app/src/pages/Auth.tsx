@@ -195,7 +195,7 @@ const Auth: React.FC = () => {
         );
     }
 
-    if (session && !isRecovery) {
+    if (session) {
         return <Navigate to="/" replace />;
     }
 

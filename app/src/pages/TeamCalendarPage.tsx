@@ -173,7 +173,7 @@ const TeamCalendarPage: React.FC = () => {
     return <div className="text-center p-10 font-bold text-slate-500">Caricamento calendario team...</div>;
   }
 
-  if (!team && !loading) {
+  if (!team) {
     return (
         <div className="max-w-4xl mx-auto px-4 py-20 text-center">
             <div className="bg-amber-50 border border-amber-200 p-8 rounded-[2.5rem] inline-block shadow-sm">
