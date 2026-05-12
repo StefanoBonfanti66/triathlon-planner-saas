@@ -95,6 +95,13 @@ WITH CHECK (
 );
 
 --------------------------------------------------------------------------------
+-- 4b. Block direct anonymous inserts on profiles
+--     (the handle_new_user trigger runs as SECURITY DEFINER and bypasses RLS,
+--      so this only blocks direct API calls that try to insert into profiles)
+DROP POLICY IF EXISTS "Profiles: block direct anon insert" ON public.profiles;
+CREATE POLICY "Profiles: block direct anon insert" ON public.profiles
+FOR INSERT WITH CHECK (auth.role() <> 'anon');
+
 -- 5. USER PLANS POLICIES
 --------------------------------------------------------------------------------
 
