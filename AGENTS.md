@@ -19,6 +19,7 @@
 - [x] Git config globale corretto a `sbonfanti@hotmail.com`
 - [x] **Nuovo ruolo `is_viewer`** — colonna `profiles.is_viewer` aggiunta, policy RLS riscritte per bloccare write a viewer, frontend adattato
 - [x] Utente demo **Jesse** (`support-reply@stripe.com`, team `demo-view`) settato come viewer — vede tutto, non modifica nulla
+- [x] **Bug fix login** — `recovery_token` NULL in `auth.users` bloccava il login (errore GoTrue: "Database error querying schema"). Fixate 26 righe con valori NULL su 7 colonne token
 
 ### Still open
 - [ ] Monitorare le prossime registrazioni per verificare che il trigger blocchi correttamente i tentativi senza team_code
