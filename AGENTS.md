@@ -6,7 +6,7 @@
 - Follow existing code style.
 - Update PROJECT_AI_NOTES.md at meaningful checkpoints.
 
-## Current Focus — 2026-05-12
+## Current Focus — 2026-05-13
 
 ### Session completed
 - [x] Security fix: NOT NULL constraint on `profiles.team_id` + trigger `handle_new_user` rewrite + RLS policy (`tools/fix_team_id_not_null.sql`)
@@ -17,9 +17,11 @@
 - [x] Template repository creato: `StefanoBonfanti66/triathlon-starter`
 - [x] Global AGENTS.md aggiornato: sezione Security best practices + comando `/new-project`
 - [x] Git config globale corretto a `sbonfanti@hotmail.com`
+- [x] **Nuovo ruolo `is_viewer`** — colonna `profiles.is_viewer` aggiunta, policy RLS riscritte per bloccare write a viewer, frontend adattato
+- [x] Utente demo **Jesse** (`support-reply@stripe.com`, team `demo-view`) settato come viewer — vede tutto, non modifica nulla
 
 ### Still open
 - [ ] Monitorare le prossime registrazioni per verificare che il trigger blocchi correttamente i tentativi senza team_code
 
 ### Next step
-- Avviare una nuova funzionalità o testare registrazioni live direttamente su Supabase
+- Fare deploy su Vercel per rendere operativo il profilo viewer di Jesse, oppure creare altri utenti demo/viewer per altri team

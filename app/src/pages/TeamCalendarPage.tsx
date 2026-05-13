@@ -28,10 +28,12 @@ const TeamCalendarPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [session, setSession] = useState<any>(null);
   const [team, setTeam] = useState<any>(null);
+  const [isViewer, setIsViewer] = useState(false);
 
   const fetchTeamData = async (userId: string) => {
-    const { data: profile } = await supabase.from('profiles').select('team_id').eq('id', userId).single();
+    const { data: profile } = await supabase.from('profiles').select('team_id, is_viewer').eq('id', userId).single();
     if (profile?.team_id) {
+      setIsViewer(!!profile.is_viewer);
       const { data: teamData } = await supabase.from('teams').select('*').eq('id', profile.team_id).single();
       setTeam(teamData);
       return profile.team_id;
@@ -251,7 +253,7 @@ const TeamCalendarPage: React.FC = () => {
                           <span className="flex items-center gap-1 text-[10px] font-black text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-100 uppercase tracking-widest">
                             <Check className="w-3 h-3" /> Iscritto
                           </span>
-                        ) : (
+                        ) : !isViewer && (
                           <button 
                             onClick={() => handleJoinRace(race.race_id)}
                             className="flex items-center gap-1.5 text-[10px] font-black text-white bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-xl shadow-md hover:shadow-blue-200 transition-all uppercase tracking-widest"

@@ -45,6 +45,9 @@
 - `app/src/pages/Auth.tsx` (solo letto — non modificato)
 - `tools/fix_team_id_not_null.sql` (creato)
 - `tools/security_v6.3_hardening.sql` (modificato)
+- `app/src/pages/DashboardPage.tsx` (modificato — is_viewer guards)
+- `app/src/pages/TeamCalendarPage.tsx` (modificato — is_viewer guards)
+- Migration: `add_is_viewer_role` (profiles.is_viewer + RLS rewrite)
 
 ## Prossimo step suggerito
-- Eseguire il SQL fix su Supabase, poi testare registrazione con/without team_code via REST API.
+- Fare deploy su Vercel per rendere operativo il profilo viewer di Jesse

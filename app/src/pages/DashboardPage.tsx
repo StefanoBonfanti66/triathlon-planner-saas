@@ -51,9 +51,9 @@ const getRankColor = (rank: string) => {
   return 'text-orange-800 bg-orange-50 border-orange-200';
 };
 const RaceCard = React.memo(({ 
-    race, isSelected, priority, cost, note, participants, team, onToggle, onPriority, onCost, onSingleCard, onChecklist, onNote, isRemoved
+    race, isSelected, priority, cost, note, participants, team, onToggle, onPriority, onCost, onSingleCard, onChecklist, onNote, isRemoved, isViewer
 }: { 
-    race: Race, isSelected: boolean, priority: string, cost: number, note: string, participants: string[], team?: any, onToggle: (id: string) => void, onPriority: (id: string, p: string) => void, onCost: (id: string, c: number) => void, onSingleCard: (race: Race) => void, onChecklist: (race: Race) => void, onNote: (race: Race) => void, getRankColor?: (r: string) => string, isRemoved?: boolean
+    race: Race, isSelected: boolean, priority: string, cost: number, note: string, participants: string[], team?: any, onToggle: (id: string) => void, onPriority: (id: string, p: string) => void, onCost: (id: string, c: number) => void, onSingleCard: (race: Race) => void, onChecklist: (race: Race) => void, onNote: (race: Race) => void, getRankColor?: (r: string) => string, isRemoved?: boolean, isViewer?: boolean
 }) => {
     const openInMaps = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -151,9 +151,11 @@ const RaceCard = React.memo(({
                     
                     {isSelected && (
                         <div className="flex items-center gap-2">
-                            <button onClick={(e) => { e.stopPropagation(); onNote(race); }} className={`p-2 rounded-lg transition-all ${note ? 'text-blue-600 bg-blue-50' : 'text-slate-400 hover:text-blue-600 hover:bg-slate-50'}`} title="Diario di Gara (Note personali)" aria-label="Modifica diario di gara">
-                                <Edit3 className="w-4 h-4" />
-                            </button>
+                            {!isViewer && (
+                                <button onClick={(e) => { e.stopPropagation(); onNote(race); }} className={`p-2 rounded-lg transition-all ${note ? 'text-blue-600 bg-blue-50' : 'text-slate-400 hover:text-blue-600 hover:bg-slate-50'}`} title="Diario di Gara (Note personali)" aria-label="Modifica diario di gara">
+                                    <Edit3 className="w-4 h-4" />
+                                </button>
+                            )}
                             <button onClick={(e) => { e.stopPropagation(); onSingleCard(race); }} className="p-2 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-slate-50 transition-all" title="Instagram Post" aria-label="Genera card Instagram">
                                 <Image className="w-4 h-4" />
                             </button>
@@ -164,7 +166,7 @@ const RaceCard = React.memo(({
                     )}
                 </div>
                 
-                {isSelected && (
+                {isSelected && !isViewer && (
                     <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-50 p-3 rounded-2xl border border-slate-100">
                         <div className="flex items-center gap-1 relative group/legend" title="Priorità Stagione">
                             {['A', 'B', 'C'].map(p => (
@@ -217,17 +219,19 @@ const RaceCard = React.memo(({
                             <span>Scheda</span>
                         </a>
                     )}
-                    <button
-                        onClick={() => onToggle(race.id)}
-                        className={`flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-[1.25rem] text-xs font-black uppercase tracking-widest transition-all duration-300 ${
-                            isSelected
-                            ? 'bg-red-50 text-red-800 hover:bg-red-100 border border-red-100'
-                            : 'text-white hover:brightness-110 shadow-lg'
-                        }`}
-                        style={!isSelected ? { backgroundColor: team?.primary_color || '#2563eb' } : {}}
-                    >
-                        {isSelected ? <><Trash2 className="w-3.5 h-3.5" /> Rimuovi</> : <><Plus className="w-3.5 h-3.5" /> Aggiungi</>}
-                    </button>
+                    {!isViewer && (
+                        <button
+                            onClick={() => onToggle(race.id)}
+                            className={`flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-[1.25rem] text-xs font-black uppercase tracking-widest transition-all duration-300 ${
+                                isSelected
+                                ? 'bg-red-50 text-red-800 hover:bg-red-100 border border-red-100'
+                                : 'text-white hover:brightness-110 shadow-lg'
+                            }`}
+                            style={!isSelected ? { backgroundColor: team?.primary_color || '#2563eb' } : {}}
+                        >
+                            {isSelected ? <><Trash2 className="w-3.5 h-3.5" /> Rimuovi</> : <><Plus className="w-3.5 h-3.5" /> Aggiungi</>}
+                        </button>
+                    )}
                 </div>
             </div>
         </div>
@@ -265,6 +269,7 @@ const DashboardPage: React.FC = () => {
   const [team, setTeam] = useState<any>(null);
   const [allPlans, setAllPlans] = useState<any[]>([]);
   const [allProfiles, setAllProfiles] = useState<any[]>([]);
+  const [isViewer, setIsViewer] = useState(false);
 
   const ADMIN_EMAIL = "bonfantistefano4@gmail.com";
 
@@ -310,8 +315,9 @@ const DashboardPage: React.FC = () => {
     }
 
     // 2. Get user profile for team context
-    const { data: profile } = await supabase.from('profiles').select('team_id').eq('id', session.user.id).is('deleted_at', null).single();
+    const { data: profile } = await supabase.from('profiles').select('team_id, is_viewer').eq('id', session.user.id).is('deleted_at', null).single();
     if (!profile?.team_id) return;
+    setIsViewer(!!profile.is_viewer);
 
     // 3. Get team info and teammate plans
     const { data: teamData } = await supabase.from('teams').select('*, secondary_color').eq('id', profile.team_id).single();
@@ -626,11 +632,12 @@ const DashboardPage: React.FC = () => {
                     onChecklist={setActiveChecklistRace} 
                     onNote={setActiveNoteRace} 
                     isRemoved={!!raceStatuses[race.id]}
+                    isViewer={isViewer}
                 />
             ))}
         </div>
     );
-  }, [filteredRaces, selectedRaces, racePriorities, raceCosts, raceNotes, participantsMap, team, toggleRace, setPriority, updateCost, generateSingleRaceCard, setActiveChecklistRace, setActiveNoteRace, raceStatuses]);
+  }, [filteredRaces, selectedRaces, racePriorities, raceCosts, raceNotes, participantsMap, team, toggleRace, setPriority, updateCost, generateSingleRaceCard, setActiveChecklistRace, setActiveNoteRace, raceStatuses, isViewer]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 px-4">
@@ -868,13 +875,15 @@ const DashboardPage: React.FC = () => {
                                             )}
                                         </div>
                                         <div className="grid grid-cols-2 gap-2 mt-3">
-                                            <button 
-                                                onClick={() => toggleRace(race.id)} 
-                                                className={`py-2 rounded-xl text-[10px] font-black uppercase transition-all ${selectedRaces.includes(race.id) ? 'bg-red-50 text-red-600 border border-red-100' : 'text-white shadow-lg'}`}
-                                                style={!selectedRaces.includes(race.id) ? { backgroundColor: team?.primary_color || '#2563eb' } : {}}
-                                            >
-                                                {selectedRaces.includes(race.id) ? 'Rimuovi' : 'Aggiungi'}
-                                            </button>
+                                            {!isViewer && (
+                                                <button 
+                                                    onClick={() => toggleRace(race.id)} 
+                                                    className={`py-2 rounded-xl text-[10px] font-black uppercase transition-all ${selectedRaces.includes(race.id) ? 'bg-red-50 text-red-600 border border-red-100' : 'text-white shadow-lg'}`}
+                                                    style={!selectedRaces.includes(race.id) ? { backgroundColor: team?.primary_color || '#2563eb' } : {}}
+                                                >
+                                                    {selectedRaces.includes(race.id) ? 'Rimuovi' : 'Aggiungi'}
+                                                </button>
+                                            )}
                                             {race.link && (
                                                 <a 
                                                     href={race.link} 
@@ -904,14 +913,18 @@ const DashboardPage: React.FC = () => {
                     <label htmlFor="race-notes-textarea" className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-6 block">{activeNoteRace.title}</label>
                     <textarea 
                         id="race-notes-textarea"
-                        autoFocus 
+                        readOnly={isViewer}
                         className="w-full h-40 p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl outline-none focus:bg-white transition-all text-sm font-bold text-slate-700 placeholder:text-slate-500" 
                         style={{ '--tw-focus-border-color': team?.primary_color || '#3b82f6' } as any}
                         placeholder="Esempio: Obiettivo stare sotto le 2h15, gel ogni 45 min..." 
                         value={raceNotes[activeNoteRace.id] || ""} 
                         onChange={(e) => updateNote(activeNoteRace.id, e.target.value)} 
                     />
-                    <button onClick={() => setActiveNoteRace(null)} className="w-full mt-8 py-4 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-lg transition-all hover:brightness-110" style={{ backgroundColor: team?.primary_color || '#0f172a' }}>Salva Note</button>
+                    {isViewer ? (
+                        <button onClick={() => setActiveNoteRace(null)} className="w-full mt-8 py-4 bg-slate-300 text-white rounded-2xl text-xs font-black uppercase tracking-widest transition-all cursor-not-allowed">Sola Lettura</button>
+                    ) : (
+                        <button onClick={() => setActiveNoteRace(null)} className="w-full mt-8 py-4 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-lg transition-all hover:brightness-110" style={{ backgroundColor: team?.primary_color || '#0f172a' }}>Salva Note</button>
+                    )}
                 </div>
             </div>
         )}
