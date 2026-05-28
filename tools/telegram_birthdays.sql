@@ -21,6 +21,7 @@ BEGIN
     LEFT JOIN public.teams t ON p.team_id = t.id
     WHERE p.deleted_at IS NULL
       AND p.birth_date IS NOT NULL
+      AND (p.is_licensed OR p.is_licensed_fci OR p.is_member)
       AND to_char(p.birth_date, 'MM-DD') = to_char(CURRENT_DATE, 'MM-DD')
   LOOP
     -- Calcolo età (opzionale, ma carino)
@@ -28,11 +29,7 @@ BEGIN
     
     msg := '🎂 *AUGURI DI BUON COMPLEANNO!*' || nl ||
            '🎈 Oggi festeggiamo: *' || birthday_record.full_name || '*' || nl ||
-<<<<<<< HEAD
            '👥 Team: ' || COALESCE(birthday_record.team_name, 'No Team') || nl ||
-=======
-           '👥 Team: ' || COALESCE(birthday_record.team_name, 'No Team') || nl || 
->>>>>>> develop
            'Tanti auguri da tutto il team! 🏊‍♂️🚴‍♂️🏃‍♂️';
 
     -- 1. Invia al gruppo Telegram del Team (se configurato)
