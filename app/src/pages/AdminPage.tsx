@@ -54,7 +54,7 @@ const AthleteModal: React.FC<AthleteModalProps> = ({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-4">
                         <div><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Nome Completo</label><input type="text" className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-bold" value={athleteForm.full_name} onChange={e => setAthleteForm({...athleteForm, full_name: e.target.value})} required /></div>
-                        <div><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Email (Per Onboarding)</label><input type="email" className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-bold" value={athleteForm.email} onChange={e => setAthleteForm({...athleteForm, email: e.target.value})} placeholder="atleta@esempio.it" /></div>
+                        <div><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Email (Per Onboarding)</label><input type="email" className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-bold" value={athleteForm.email} onChange={e => setAthleteForm({...athleteForm, email: e.target.value})} placeholder="atleta@esempio.it" required /></div>
                         {!editingAthlete && (
                             <div>
                                 <label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Password Temporanea (Opzionale)</label>
@@ -414,7 +414,9 @@ const AdminPage: React.FC = () => {
                 const { password, email, ...updatePayload } = payload;
                 error = (await supabase.from('profiles').update(updatePayload).eq('id', editingAthlete.id)).error;
             } else {
-                // Nuova logica: Usa la Edge Function per gestire Auth (Service Role) e Profilo in un'unica transazione sicura
+                if (!payload.full_name?.trim() || !payload.email?.trim()) {
+                    throw new Error("Nome completo ed email sono obbligatori per creare un atleta.");
+                }
                 const { data: edgeRes, error: edgeErr } = await supabase.functions.invoke('invite-athlete', {
                     body: {
                         ...payload,
