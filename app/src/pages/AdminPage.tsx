@@ -11,6 +11,7 @@ import {
 import { Navigate } from 'react-router-dom';
 import racesData from "../races_full.json";
 import * as XLSX from 'xlsx';
+import pkg from '../../package.json';
 
 const ADMIN_EMAIL = "bonfantistefano4@gmail.com";
 
@@ -662,7 +663,7 @@ const AdminPage: React.FC = () => {
         <div className="max-w-6xl mx-auto px-4 py-10">
             {/* HEADER */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
-                <div className="flex items-center gap-4"><div className="bg-amber-500 p-4 rounded-[2rem] text-white shadow-xl rotate-3"><Shield className="w-8 h-8" /></div><div><h1 className="text-3xl font-black text-slate-800 uppercase tracking-tight">{isSuperAdmin ? 'SaaS Command Center' : `Gestione ${teams[0]?.name}`}</h1><p className="text-slate-500 font-bold text-sm">Benvenuto Stefano.</p></div></div>
+                <div className="flex items-center gap-4"><div className="bg-amber-500 p-4 rounded-[2rem] text-white shadow-xl rotate-3"><Shield className="w-8 h-8" /></div><div><h1 className="text-3xl font-black text-slate-800 uppercase tracking-tight">{isSuperAdmin ? 'SaaS Command Center' : `Gestione ${teams[0]?.name}`} <span className="text-xs text-slate-400 font-mono font-normal normal-case">v{pkg.version}</span></h1><p className="text-slate-500 font-bold text-sm">Benvenuto Stefano.</p></div></div>
                 <div className="flex bg-slate-100 p-1.5 rounded-[1.5rem] overflow-x-auto no-scrollbar">
                     {['atleti', 'stats', 'social', 'logs'].map(tab => (<button key={tab} onClick={() => setActiveTab(tab as any)} className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === tab ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}>{tab}</button>))}
                     {isSuperAdmin && <button onClick={() => setActiveTab('team')} className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'team' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}>Team</button>}
