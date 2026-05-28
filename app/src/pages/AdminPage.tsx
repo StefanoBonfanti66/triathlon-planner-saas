@@ -423,7 +423,9 @@ const AdminPage: React.FC = () => {
                     }
                 });
                 
-                if (edgeErr) throw edgeErr;
+                if (edgeErr) {
+                    throw new Error(edgeRes?.error || edgeErr.message);
+                }
                 if (edgeRes && !edgeRes.success) throw new Error(edgeRes.error || "Errore sconosciuto nella Edge Function");
 
                 error = null;

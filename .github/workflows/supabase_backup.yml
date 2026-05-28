@@ -43,7 +43,7 @@ jobs:
       - name: Commit Backups to Branch
         run: |
           git config --global user.name "Backup Bot"
-          git config --global user.email "backup-bot@mtt.it"
+          git config --global user.email "sbonfanti@hotmail.com"
           
           # 1. Sincronizza con il remoto (pulisce eventuali stati locali inconsistenti)
           git fetch origin main
