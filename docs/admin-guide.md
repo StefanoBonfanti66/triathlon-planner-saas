@@ -52,6 +52,12 @@ Per ricevere notifiche su un gruppo Telegram:
 3. Ottieni l'ID del gruppo
 4. Inseriscilo in **Admin > Impostazioni Team** > Telegram Chat ID
 
+Il bot invia automaticamente:
+- Notifiche nuovo atleta / iscrizione gara / cambio programma
+- Compleanni del giorno (solo atleti con tessera o socio attivo)
+- **Promemoria gare imminenti**: 10 giorni prima di ogni gara con iscritti del team
+- Scadenze certificati medici imminenti
+
 ## Gestione viewer
 
 Per creare un utente con accesso sola lettura:

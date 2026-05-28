@@ -25,6 +25,7 @@ Se il Team Admin ha configurato il gruppo Telegram:
 - Un compagno pianifica una gara
 - Compleanni del giorno
 - Scadenze certificati medici imminenti
+- Promemoria gare in programma tra 10 giorni
 
 ## 5. Ruolo Viewer
 

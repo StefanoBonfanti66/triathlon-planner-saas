@@ -2,6 +2,14 @@
 
 Tutti i cambiamenti significativi sono documentati in questo file.
 
+## [6.3.4] — 2026-05-28
+
+### Aggiunto
+- **Promemoria gare Telegram**: nuova funzione `notify_upcoming_races()` che controlla ogni giorno le gare tra 10 giorni e notifica i team con l'elenco degli iscritti
+
+### Modificato
+- **Birthday notifications**: filtrate per soli atleti attivi (`is_licensed` / `is_licensed_fci` / `is_member`) — non arrivano più per anagrafiche senza tessera
+
 ## [6.3.3] — 2026-05-28
 
 ### Aggiunto

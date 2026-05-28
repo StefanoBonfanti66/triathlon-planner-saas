@@ -16,7 +16,7 @@ Piattaforma SaaS multi-tenancy per la gestione del calendario gare FITRI 2026. P
 - Branding automatico per squadra (logo, colori, icona PWA)
 - Export Excel per iscrizioni di massa sui portali federali
 - Social card automatica "Athlete of the Month" per Instagram
-- Notifiche Telegram real-time (nuovi atleti, cambi programma, compleanni)
+- Notifiche Telegram real-time (nuovi atleti, cambi programma, compleanni, promemoria gare imminenti)
 
 ## Target utenti
 
