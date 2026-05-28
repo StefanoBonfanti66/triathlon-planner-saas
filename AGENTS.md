@@ -12,7 +12,7 @@
 - [x] **Sessione di recupero contesto** — git pull, analisi stato repo, inventario documentazione
 - [x] **Verifica deploy Vercel** — il codice viewer (`is_viewer`/`isViewer`) è già in produzione (6 riferimenti nel bundle JS). Jesse funzionante a `https://triathlon-planner-saas.vercel.app`
 - [x] **Test Jesse confermato** — utente viewer `support-reply@stripe.com` vede tutto, non modifica nulla
-- [x] **Bug creazione atleta** — `email` field mancante di `required` nel form + aggiunta validazione client-side in `handleSaveAthlete` prima di chiamare la Edge Function. Ora l'admin non può più inviare email vuota.
+- [x] **Bug creazione atleta** — email field reso opzionale: se presente → Edge Function (auth + invito); se assente → insert diretto in profiles (sola anagrafica). Label aggiornata a "Email (Opzionale, per invito)". Messaggi alert più chiari.
 
 ### Sessioni precedenti (13 maggio)
 - [x] Security fix: NOT NULL constraint on `profiles.team_id` + trigger `handle_new_user` rewrite + RLS policy (`tools/fix_team_id_not_null.sql`)
