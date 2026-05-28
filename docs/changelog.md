@@ -56,7 +56,7 @@ Tutti i cambiamenti significativi sono documentati in questo file.
 
 ### Aggiunto
 - Security Hardening: RLS su tutte le tabelle, protezione API Key Telegram in schema internal
-- Dashboard Statistiche: metriche atleti, categorie FITRI, attivita' mensile
+- Dashboard Statistiche: metriche atleti, categorie FITRI, attività mensile
 - Secure Join Code: verifica tramite RPC Postgres
 
 ### Corretto
