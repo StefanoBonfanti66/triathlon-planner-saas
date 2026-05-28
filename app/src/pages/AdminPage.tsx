@@ -54,7 +54,7 @@ const AthleteModal: React.FC<AthleteModalProps> = ({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-4">
                         <div><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Nome Completo</label><input type="text" className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-bold" value={athleteForm.full_name} onChange={e => setAthleteForm({...athleteForm, full_name: e.target.value})} required /></div>
-                        <div><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Email (Per Onboarding)</label><input type="email" className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-bold" value={athleteForm.email} onChange={e => setAthleteForm({...athleteForm, email: e.target.value})} placeholder="atleta@esempio.it" required /></div>
+                        <div><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Email (Opzionale, per invito)</label><input type="email" className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-bold" value={athleteForm.email} onChange={e => setAthleteForm({...athleteForm, email: e.target.value})} placeholder="atleta@esempio.it" /></div>
                         {!editingAthlete && (
                             <div>
                                 <label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Password Temporanea (Opzionale)</label>
@@ -414,22 +414,44 @@ const AdminPage: React.FC = () => {
                 const { password, email, ...updatePayload } = payload;
                 error = (await supabase.from('profiles').update(updatePayload).eq('id', editingAthlete.id)).error;
             } else {
-                if (!payload.full_name?.trim() || !payload.email?.trim()) {
-                    throw new Error("Nome completo ed email sono obbligatori per creare un atleta.");
+                if (!payload.full_name?.trim()) {
+                    throw new Error("Il nome completo è obbligatorio per creare un atleta.");
                 }
-                const { data: edgeRes, error: edgeErr } = await supabase.functions.invoke('invite-athlete', {
-                    body: {
-                        ...payload,
-                        medical_expiry: payload.medical_certificate_expiry, // Mappa i nomi per la function
-                        password: athleteForm.password,
-                        redirectTo: window.location.origin + '/login'
+
+                if (payload.email?.trim()) {
+                    const { data: edgeRes, error: edgeErr } = await supabase.functions.invoke('invite-athlete', {
+                        body: {
+                            ...payload,
+                            medical_expiry: payload.medical_certificate_expiry,
+                            password: athleteForm.password,
+                            redirectTo: window.location.origin + '/login'
+                        }
+                    });
+                    
+                    if (edgeErr) {
+                        throw new Error(edgeRes?.error || edgeErr.message);
                     }
-                });
-                
-                if (edgeErr) {
-                    throw new Error(edgeRes?.error || edgeErr.message);
+                    if (edgeRes && !edgeRes.success) throw new Error(edgeRes.error || "Errore sconosciuto nella Edge Function");
+                } else {
+                    const insertPayload: any = {
+                        full_name: payload.full_name,
+                        team_id: payload.team_id,
+                        license_number: combinedLicense,
+                        medical_certificate_expiry: payload.medical_certificate_expiry,
+                        birth_year: payload.birth_year,
+                        birth_date: payload.birth_date,
+                        gender: payload.gender,
+                        shirt_size: payload.shirt_size,
+                        is_licensed: payload.is_licensed,
+                        is_licensed_fci: payload.is_licensed_fci,
+                        is_member: payload.is_member,
+                        is_team_admin: payload.is_team_admin
+                    };
+                    Object.keys(insertPayload).forEach(k => insertPayload[k] === undefined && delete insertPayload[k]);
+
+                    const { error: insertErr } = await supabase.from('profiles').insert([insertPayload]);
+                    if (insertErr) throw insertErr;
                 }
-                if (edgeRes && !edgeRes.success) throw new Error(edgeRes.error || "Errore sconosciuto nella Edge Function");
 
                 error = null;
             }
@@ -441,8 +463,10 @@ const AdminPage: React.FC = () => {
             if (!editingAthlete) {
                 if (athleteForm.password) {
                     alert(`Atleta creato con successo! Può loggarsi subito con:\nEmail: ${payload.email}\nPassword: ${athleteForm.password}`);
-                } else {
+                } else if (payload.email?.trim()) {
                     alert("Atleta creato con successo. L'invito email è stato inviato via Edge Function.");
+                } else {
+                    alert("Anagrafica atleta creata senza account (nessuna email inserita).");
                 }
             }
         } catch (err: any) { alert("Errore: " + err.message); }
