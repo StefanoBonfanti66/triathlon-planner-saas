@@ -35,26 +35,11 @@
 - Test funzionale Jesse: utente `support-reply@stripe.com` (viewer) vede tutto, non modifica nulla
 - Bug fix creazione atleta: email resa opzionale — se presente chiama Edge Function (auth + invito), se assente insert diretto in profiles (sola anagrafica). Label aggiornata a "Email (Opzionale, per invito)". Messaggi alert più chiari.
 - Aggiornati `AGENTS.md` e `PROJECT_AI_NOTES.md` con stato corrente
+- Bug creazione atleta verificato funzionante in produzione dall'utente ✅
 
-## TODO aperti
-1. [Risolto] Eseguire `tools/fix_team_id_not_null.sql` nel Supabase SQL Editor → fatto
-2. [Risolto] Utente `roacoy200@gmail.com` gestito → profili orfani puliti
-3. Monitorare le prossime registrazioni per verificare che il trigger blocchi correttamente i tentativi senza team_code
-4. [Risolto] Bug creazione atleta: frontend inviava email vuota alla Edge Function → risolto rendendo email opzionale (due flussi: Edge Function se presente, insert diretto se assente)
-
-## Problemi aperti
-- [Risolto] Utente `roacoy200@gmail.com` con `team_id = NULL` — risolto nella sessione 13 maggio
-- [Risolto] Vercel auto-deploy: repo reso pubblico, deploy funzionanti. Ultimo deploy: 7ce7cf3 (messaggi alert chiari).
+### Sessione 28 maggio (2)
+- Implementata `notify_upcoming_races()` — notifica Telegram 10 giorni prima di ogni gara per gli atleti iscritti via `user_plans`. Script in `tools/telegram_race_reminders.sql`. Deployata su Supabase.
+- Birthday notifications: filtro per soli atleti attivi (`is_licensed OR is_licensed_fci OR is_member`) già deployato in sessione precedente.
 
 ## File toccati
-- `app/src/pages/Auth.tsx` (solo letto — non modificato)
-- `tools/fix_team_id_not_null.sql` (creato)
-- `tools/security_v6.3_hardening.sql` (modificato)
-- `app/src/pages/DashboardPage.tsx` (modificato — is_viewer guards)
-- `app/src/pages/TeamCalendarPage.tsx` (modificato — is_viewer guards)
-- Migration: `add_is_viewer_role` (profiles.is_viewer + RLS rewrite)
-- `app/src/pages/AdminPage.tsx` (modificato — email opzionale, split flow Edge Function vs insert diretto, messaggi alert chiari)
-
-## Prossimo step suggerito
-- Verificare con l'utente se il bug creazione atleta è risolto in produzione
-- Eventualmente creare altri utenti demo/viewer per altri team
+- `tools/telegram_race_reminders.sql` (creato)

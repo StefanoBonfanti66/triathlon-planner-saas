@@ -8,28 +8,24 @@
 
 ## Current Focus — 2026-05-28
 
-### Session completed (14-28 maggio)
+### Session completed (28 maggio)
+- [x] **Bug creazione atleta** — verificato funzionante in produzione dall'utente ✅
+- [x] **Promemoria gare Telegram** — nuova funzione `notify_upcoming_races()` che notifica 10 giorni prima ogni gara con iscritti del team. Script `tools/telegram_race_reminders.sql` deployato su Supabase.
+- [x] **Birthday notifications** — filtro per soli atleti attivi (`is_licensed OR is_licensed_fci OR is_member`) deployato su Supabase.
+
+### Sessioni precedenti (14-28 maggio)
 - [x] **Sessione di recupero contesto** — git pull, analisi stato repo, inventario documentazione
 - [x] **Verifica deploy Vercel** — il codice viewer (`is_viewer`/`isViewer`) è già in produzione (6 riferimenti nel bundle JS). Jesse funzionante a `https://triathlon-planner-saas.vercel.app`
 - [x] **Test Jesse confermato** — utente viewer `support-reply@stripe.com` vede tutto, non modifica nulla
 - [x] **Bug creazione atleta** — email field reso opzionale: se presente → Edge Function (auth + invito); se assente → insert diretto in profiles (sola anagrafica). Label aggiornata a "Email (Opzionale, per invito)". Messaggi alert più chiari.
-
-### Sessioni precedenti (13 maggio)
-- [x] Security fix: NOT NULL constraint on `profiles.team_id` + trigger `handle_new_user` rewrite + RLS policy (`tools/fix_team_id_not_null.sql`)
-- [x] SQL deployato su Supabase con successo
-- [x] Utente `roacoy200@gmail.com` gestito (profili orfani puliti)
-- [x] Tutti i 9 warning CodeQL rimossi (import e variabili inutilizzati)
-- [x] Dependabot config creato (`.github/dependabot.yml`)
-- [x] Template repository creato: `StefanoBonfanti66/triathlon-starter`
-- [x] Global AGENTS.md aggiornato: sezione Security best practices + comando `/new-project`
-- [x] Git config globale corretto a `sbonfanti@hotmail.com`
-- [x] **Nuovo ruolo `is_viewer`** — colonna `profiles.is_viewer` aggiunta, policy RLS riscritte per bloccare write a viewer, frontend adattato
-- [x] Utente demo **Jesse** (`support-reply@stripe.com`, team `demo-view`) settato come viewer — vede tutto, non modifica nulla
-- [x] **Bug fix login** — `recovery_token` NULL in `auth.users` bloccava il login (errore GoTrue: "Database error querying schema"). Fixate 26 righe con valori NULL su 7 colonne token
-
-### Observability note
-- I deploy Vercel risultano `BLOCKED` dal 22 maggio (ultimo READY: 21 maggio). Le uniche differenze nei commit sono backup JSON — il codice app non è cambiato. Da investigare se blocca futuri deploy.
+- [x] Security fix: NOT NULL constraint on `profiles.team_id` + trigger `handle_new_user` rewrite + RLS policy
+- [x] **Nuovo ruolo `is_viewer`** — viewer vede tutto, non modifica nulla
+- [x] **Bug fix login** — `recovery_token` NULL fix (26 righe)
 
 ### Next step
-- Sbloccare Vercel auto-deploy (BLOCKED dal 22/5) oppure creare altri utenti demo/viewer per altri team
-- Dopo la versione 6.3.3, verificare con l'utente se il bug creazione atleta è risolto in produzione
+- Sbloccare Vercel auto-deploy (se serve ancora)
+- Attivare il cron giornaliero per i promemoria gare (esegui su Supabase SQL Editor):
+  ```sql
+  SELECT cron.schedule('notify-races-daily', '0 9 * * *', 'SELECT public.notify_upcoming_races()');
+  ```
+- Altre idee?
