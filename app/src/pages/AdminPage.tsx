@@ -464,9 +464,9 @@ const AdminPage: React.FC = () => {
                 if (athleteForm.password) {
                     alert(`Atleta creato con successo! Può loggarsi subito con:\nEmail: ${payload.email}\nPassword: ${athleteForm.password}`);
                 } else if (payload.email?.trim()) {
-                    alert("Atleta creato con successo. L'invito email è stato inviato via Edge Function.");
+                    alert("Atleta creato con successo. L'invito email è stato inviato.");
                 } else {
-                    alert("Anagrafica atleta creata senza account (nessuna email inserita).");
+                    alert("Anagrafica atleta creata senza account (nessuna email inserita, non potrà effettuare il login all'applicazione).");
                 }
             }
         } catch (err: any) { alert("Errore: " + err.message); }
