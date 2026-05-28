@@ -8,10 +8,7 @@
 - Versione 6.3.3, React 19 + TypeScript + Supabase + Vite + TailwindCSS.
 - Deploy su Vercel con daily backup JSON su GitHub.
 - Registrazione funzionante con trigger `handle_new_user` su `auth.users`.
-
-## Risultato atteso della sessione
-- Chiudere la falla di sicurezza che permetteva registrazione senza `team_id` valido.
-- Aggiungere NOT NULL su `profiles.team_id`, riscrivere il trigger per rigettare registrazioni senza `team_code`, aggiungere RLS policy anti-anon-insert.
+- Ruolo `is_viewer` implementato e in produzione: 6 riferimenti nel bundle JS.
 
 ## Stack e vincoli
 - Frontend: React 19 + TypeScript + Vite + TailwindCSS
@@ -27,19 +24,24 @@
 - [2026-05-12] Il trigger `handle_new_user` **non era presente nel repository** (solo su Supabase dashboard) → ora definito in `tools/fix_team_id_not_null.sql`.
 
 ## Lavoro svolto
+### Sessione 13 maggio
 - File creati: `tools/fix_team_id_not_null.sql`
 - File modificati: `tools/security_v6.3_hardening.sql` (aggiunta RLS policy per bloccare insert anonimo diretto)
 - Test eseguiti: `npm run build` — compilazione TypeScript + Vite build OK
 
+### Sessione 28 maggio
+- Verificato deploy Vercel: codice `is_viewer` già in produzione (bundle JS confermato)
+- Test funzionale Jesse: utente `support-reply@stripe.com` (viewer) vede tutto, non modifica nulla
+- Aggiornati `AGENTS.md` e `PROJECT_AI_NOTES.md` con stato corrente
+
 ## TODO aperti
-1. Eseguire `tools/fix_team_id_not_null.sql` nel Supabase SQL Editor (produzione)
-2. Trovare e correggere l'utente `roacoy200@gmail.com` (team_id = NULL) — assegnargli una squadra o eliminarlo
+1. [Risolto] Eseguire `tools/fix_team_id_not_null.sql` nel Supabase SQL Editor → fatto
+2. [Risolto] Utente `roacoy200@gmail.com` gestito → profili orfani puliti
 3. Monitorare le prossime registrazioni per verificare che il trigger blocchi correttamente i tentativi senza team_code
 
 ## Problemi aperti
-- Problema: utente `roacoy200@gmail.com` registrato con `team_id = NULL`
-- Ipotesi: chiamata diretta a `supabase.auth.signUp()` (browser console o REST API) saltando la validazione client-side di `Auth.tsx`
-- Blocco attuale: il trigger `handle_new_user` su Supabase non era definito in chiaro, potrebbe essere stato creato male o non esistere più
+- [Risolto] Utente `roacoy200@gmail.com` con `team_id = NULL` — risolto nella sessione 13 maggio
+- Vercel auto-deploy: tutti i deploy dal 22 maggio risultano `BLOCKED` (ultimo READY: 21 maggio). Le uniche differenze nei commit sono backup JSON — il codice app non è cambiato. Da investigare se blocca futuri deploy.
 
 ## File toccati
 - `app/src/pages/Auth.tsx` (solo letto — non modificato)
@@ -50,4 +52,4 @@
 - Migration: `add_is_viewer_role` (profiles.is_viewer + RLS rewrite)
 
 ## Prossimo step suggerito
-- Fare deploy su Vercel per rendere operativo il profilo viewer di Jesse
+- Sbloccare Vercel auto-deploy (BLOCKED dal 22/5) oppure creare altri utenti demo/viewer per altri team
