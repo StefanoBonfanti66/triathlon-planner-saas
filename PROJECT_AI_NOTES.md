@@ -41,5 +41,13 @@
 - Implementata `notify_upcoming_races()` — notifica Telegram 10 giorni prima di ogni gara per gli atleti iscritti via `user_plans`. Script in `tools/telegram_race_reminders.sql`. Deployata su Supabase.
 - Birthday notifications: filtro per soli atleti attivi (`is_licensed OR is_licensed_fci OR is_member`) già deployato in sessione precedente.
 
+### Sessione 10 giugno
+- Standardizzazione documentale: migrati file sparsi in `docs/` secondo standard ZBN (`leads/`, `proposals/`, `project/`, `admin/`, `invoices/`).
+- Creata stima economica di sviluppo: `docs/admin/stima-sviluppo.md` (valore stimato 20k, produzione 10k grazie a AI).
+- Validazione tecnica: configurato Playwright con browser di sistema per test locale.
+
 ## File toccati
-- `tools/telegram_race_reminders.sql` (creato)
+- `docs/admin/stima-sviluppo.md` (creato)
+- `AGENTS.md` (aggiornato)
+- `playwright.config.ts` (creato)
+- `e2e/auth.spec.ts` (creato)
