@@ -8,30 +8,33 @@ Triathlon Planner SaaS è una piattaforma web centralizzata per la gestione di a
 | Componente     | Specifica                                                         |
 | :------------- | :---------------------------------------------------------------- |
 | **Prodotto**   | Piattaforma SaaS di gestione triathlon                           |
+| **ID**         | PRJ-001                                                          |
+| **Stato**      | running                                                          |
 | **Frontend**   | React, TypeScript, Vite, Tailwind CSS (versione esatta da confermare) |
 | **Backend**    | Supabase (Auth, PostgreSQL)                                      |
 | **Hosting**    | Vercel (produzione/anteprima – configurazione prevista)          |
 | **Doc. chiave**| `technical-spec.md`, `runbook.md`, `org-chart.md`               |
+| **Next action**| Follow-up proposta CUS Propatria Milano                          |
 
 ## 🧩 Architettura ad alto livello
 
 ```mermaid
 flowchart LR
-    User["Browser / Utente"] --> FE["Frontend React/Vite"]
+    User[\"Browser / Utente\"] --> FE[\"Frontend React/Vite\"]
     
-    subgraph "Supabase"
-      AUTH["Auth (JWT)"]
-      DB[("PostgreSQL")]
+    subgraph \"Supabase\"
+      AUTH[\"Auth (JWT)\"]
+      DB[(\"PostgreSQL\")]
     end
     
-    FE -- "API/Auth" --> AUTH
-    FE -- "CRUD" --> DB
+    FE -- \"API/Auth\" --> AUTH
+    FE -- \"CRUD\" --> DB
     
-    subgraph "Moduli UI"
-      DASH["Dashboard"]
-      CAL["Team Calendar"]
-      ADM["Admin"]
-      RACE["Race Detail"]
+    subgraph \"Moduli UI\"
+      DASH[\"Dashboard\"]
+      CAL[\"Team Calendar\"]
+      ADM[\"Admin\"]
+      RACE[\"Race Detail\"]
     end
     
     FE --> DASH
@@ -72,9 +75,9 @@ L’utente accede tramite autenticazione gestita da Supabase; il frontend interr
 
 ```mermaid
 flowchart TB
-    U["Utente"] --> AUTH["Supabase Auth (JWT)"]
-    AUTH --> RLS["RLS (Row Level Security)\nper isolamento per team (da verificare/rafforzare)"]
-    RLS --> DB[("PostgreSQL")]
+    U[\"Utente\"] --> AUTH[\"Supabase Auth (JWT)\"]
+    AUTH --> RLS[\"RLS (Row Level Security)\\nper isolamento per team (da verificare/rafforzare)\"]
+    RLS --> DB[(\"PostgreSQL\")]
 ```
 
 - Autenticazione gestita da Supabase Auth.  
@@ -86,8 +89,8 @@ Dettagli e checklist sono descritti in `docs/project/technical-spec.md` e `docs/
 
 ```mermaid
 flowchart LR
-    DEV["Sviluppo locale"] --> BUILD["Build & Test"]
-    BUILD --> REL["Release su Vercel (prevista)"]
+    DEV[\"Sviluppo locale\"] --> BUILD[\"Build & Test\"]
+    BUILD --> REL[\"Release su Vercel (live)\"]
 ```
 
 - **Sviluppo locale**: da `app/`, `npm install` e `npm run dev`.  
@@ -100,11 +103,14 @@ Per procedure dettagliate vedere `docs/project/runbook.md`.
 
 ```mermaid
 graph TD
-    PO["Product Owner\n(Stefano)"] --> TL["Tech Lead\n(Stefano)"]
-    TL --> DEV["Developer/Ops\n(Stefano)"]
+    PO[\"Product Owner\\n(Stefano)\"] --> TL[\"Tech Lead\\n(Stefano)\"]
+    TL --> DEV[\"Developer/Ops\\n(Stefano)\"]
 ```
 
 L’ownership è attualmente centralizzata su Stefano per le aree Product, Tech e Delivery, in linea con quanto descritto in `docs/project/org-chart.md`.
+
+## Utenti attivi
+- **Milano Triathlon Team (MTT)** — atleti in produzione
 
 ## 📎 Dove andare in profondità
 
