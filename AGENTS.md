@@ -6,24 +6,18 @@
 - Follow existing code style.
 - Update PROJECT_AI_NOTES.md at meaningful checkpoints.
 
-## Current Focus — 2026-06-10 (sessione 3)
+## Current Focus — 2026-06-24
+
+### Chiuso
+- [x] **Progetto chiuso** — proposta CUS Propatria inviata, mai accettata. Progetto sospeso in data 24/06/2026.
 
 ### Session completed (10 giugno — sessione 3)
-- [x] **Bonifica struttura docs** — allineata a standard ZBN (`leads/`, `proposals/`, `project/`, `admin/`, `invoices/`)
-- [x] **Stima economica** — creata `docs/admin/stima-sviluppo.md` con valutazione "AI-Augmented"
-- [x] **Validazione tecnica** — test di base con Playwright (configurato per chromium locale)
+- [x] **Bonifica struttura docs** — allineata a standard ZBN
+- [x] **Stima economica** — creata `docs/admin/stima-sviluppo.md`
+- [x] **Validazione tecnica** — Playwright configurato
 
 ### Sessioni precedenti (14-28 maggio)
-- [x] **Audit repository** — analizzato contesto, docs, automazioni, tool, rischi di duplicazione
-- [x] **Root doc cleanup** — `GUIDA_ADMIN.md`, `GUIDA_UTENTE.md`, `CHANGELOG.md` sostituiti con stub che puntano a `docs/`
-- [x] **Documentation impact** — aggiornati 4 file docs (`overview`, `user-guide`, `admin-guide`, `changelog`) per coprire `notify_upcoming_races()` e filtro compleanni
-- [x] **Promemoria gare Telegram** — deployato `notify_upcoming_races()` su Supabase + attivato cron giornaliero
-- [x] **Birthday notifications** — filtro per soli atleti attivi deployato su Supabase
-- [x] Bug creazione atleta — verificato funzionante in produzione ✅
-- [x] Security fix: NOT NULL on `profiles.team_id` + trigger `handle_new_user` + RLS
-- [x] **Nuovo ruolo `is_viewer`** — viewer vede tutto, non modifica nulla
-- [x] **Bug fix login** — `recovery_token` NULL fix (26 righe)
+- [x] Tutti i task sprint precedenti completati (vedi PROJECT_AI_NOTES.md)
 
 ### Next step
-- Validazione approfondita flussi atleti (onboarding/persistenza)
-- Compilare `SECURITY.md` con le policy reali del progetto (repo pubblico dal 22/5)
+- Nessuno — progetto chiuso. Il codice e la documentazione restano disponibili per eventuale riattivazione futura.

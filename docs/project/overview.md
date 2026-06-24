@@ -1,5 +1,7 @@
 # Triathlon Planner SaaS – Project Overview
 
+> **Status: closed** — 24/06/2026. Proposta commerciale CUS Propatria inviata, mai approvata dal cliente. Progetto sospeso.
+
 📌 **Summary**  
 Triathlon Planner SaaS è una piattaforma web centralizzata per la gestione di atleti, calendari gare e attività operative per società di triathlon. Il sistema supporta atleti e amministratori nella pianificazione tecnica e nel monitoraggio delle attività di team.
 

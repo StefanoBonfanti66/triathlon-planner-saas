@@ -24,6 +24,15 @@
 - [2026-05-12] Scelta di non modificare `Auth.tsx` (la validazione client-side esiste già e funge da UX), ma di blindare il DB con NOT NULL + trigger SECURITY DEFINER con RAISE EXCEPTION espliciti.
 - [2026-05-12] Il trigger `handle_new_user` **non era presente nel repository** (solo su Supabase dashboard) → ora definito in `tools/fix_team_id_not_null.sql`.
 
+## Chiusura progetto
+
+### 24 giugno 2026
+- **Decisione:** Progetto chiuso per mancata attivazione cliente.
+- **Causale:** Proposta commerciale CUS Propatria Milano inviata (free 2026 season), mai accettata né contrattualizzata. Il cliente non ha mai formalmente deciso di partire.
+- **Stato:** `closed`. Il codice rimane su GitHub (repo pubblico). La piattaforma SaaS è funzionante ma senza utenti attivi.
+- **Infrastruttura:** Deploy Vercel e Supabase ancora attivi (free tier), da valutare se disattivare per evitare costi.
+- **Documentazione:** Status aggiornato in `docs/project/overview.md` e `AGENTS.md`.
+
 ## Lavoro svolto
 ### Sessione 13 maggio
 - File creati: `tools/fix_team_id_not_null.sql`
