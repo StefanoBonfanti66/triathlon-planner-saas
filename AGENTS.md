@@ -6,10 +6,10 @@
 - Follow existing code style.
 - Update PROJECT_AI_NOTES.md at meaningful checkpoints.
 
-## Current Focus — 2026-06-24
+## Current Focus — 2026-08-05
 
-### Chiuso
-- [x] **Progetto chiuso** — proposta CUS Propatria inviata, mai accettata. Progetto sospeso in data 24/06/2026.
+### Attivo
+- [ ] **Promozione gratuita** — app live per MTT, spinta commerciale attiva verso le società di triathlon italiane.
 
 ### Session completed (10 giugno — sessione 3)
 - [x] **Bonifica struttura docs** — allineata a standard ZBN
@@ -20,4 +20,4 @@
 - [x] Tutti i task sprint precedenti completati (vedi PROJECT_AI_NOTES.md)
 
 ### Next step
-- Nessuno — progetto chiuso. Il codice e la documentazione restano disponibili per eventuale riattivazione futura.
+- Promuovere gratuitamente la app alle società di triathlon italiane.
