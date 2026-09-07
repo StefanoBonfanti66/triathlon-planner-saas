@@ -9,7 +9,7 @@
 ## Current Focus — 2026-08-05
 
 ### Attivo
-- [ ] **Promozione gratuita** — app live per MTT, spinta commerciale attiva verso le società di triathlon italiane.
+- [ ] **Rilascio gratuito MTT** — app live per Milano Triathlon Team, uso gratuito permanente per MTT.
 
 ### Session completed (10 giugno — sessione 3)
 - [x] **Bonifica struttura docs** — allineata a standard ZBN
@@ -20,4 +20,4 @@
 - [x] Tutti i task sprint precedenti completati (vedi PROJECT_AI_NOTES.md)
 
 ### Next step
-- Promuovere gratuitamente la app alle società di triathlon italiane.
+- Lanciare una campagna pubblicitaria verso le società di triathlon italiane per acquisire nuovi utenti.

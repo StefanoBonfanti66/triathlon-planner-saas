@@ -1,8 +1,10 @@
 # Cashflow Progetto: triathlon-planner-saas
 
 > Vista sintetica di fatture, emissioni e incassi del progetto.
-> Importi NETTI e sempre positivi; la natura del movimento è definita da `Tipo`.
-> Questo file vive nel repo progetto in `docs/admin/triathlon-planner-saas-cashflow.md`.
+> Importi netti e sempre positivi.
 
 | Data | Data Scadenza | Tipo | Categoria | Descrizione | Importo Netto (€) | Stato | Riferimento | Note |
 | :--- | :--- | :--- | :--- | :--- | ---: | :--- | :--- | :--- |
+
+Nessun movimento finanziario (stato amministrativo: inactive).
+Le eventuali future fatture verranno registrate qui e collegate a docs/invoices/.

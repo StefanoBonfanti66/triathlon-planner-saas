@@ -1,3 +1,10 @@
+---
+stato:
+  commerciale: active
+  operativo: production
+  amministrativo: inactive
+---
+
 # Race Planner SaaS — Overview
 
 **Versione**: 6.3.3  

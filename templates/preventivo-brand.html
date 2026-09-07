@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Template Preventivo Brandizzato - ZetaByteNexus</title>
+  <style>
+    :root {
+      --brand-green: #2a8c74;
+      --brand-dark: #222;
+      --brand-muted: #555;
+      --line: #2f2f2f;
+      --page-width: 210mm;
+      --page-height: 297mm;
+      --content-max: 180mm;
+    }
+
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #f3f4f6;
+      color: var(--brand-dark);
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    body {
+      padding: 24px;
+    }
+
+    .page {
+      width: var(--page-width);
+      min-height: var(--page-height);
+      margin: 0 auto;
+      background: #fff;
+      position: relative;
+      box-shadow: 0 12px 40px rgba(0,0,0,.12);
+      padding: 18mm 14mm 18mm 14mm;
+    }
+
+    .header {
+      display: grid;
+      grid-template-columns: 120px 1fr;
+      align-items: center;
+      column-gap: 18px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid var(--line);
+    }
+
+    .logo-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .logo-wrap img {
+      width: 92px;
+      height: auto;
+      object-fit: contain;
+      display: block;
+    }
+
+    .logo-fallback {
+      width: 92px;
+      height: 92px;
+      border: 2px solid var(--brand-green);
+      border-radius: 16px;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      color: var(--brand-green);
+      font-weight: 700;
+      font-size: 14px;
+      letter-spacing: .04em;
+      text-align: center;
+      padding: 10px;
+    }
+
+    .company {
+      text-align: right;
+    }
+
+    .company h1 {
+      margin: 0 0 4px 0;
+      font-size: 28px;
+      line-height: 1.1;
+      font-weight: 800;
+      color: var(--brand-green);
+    }
+
+    .company p {
+      margin: 0;
+      font-size: 14px;
+      color: var(--brand-dark);
+      font-weight: 600;
+    }
+
+    .document-meta {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: flex-start;
+    }
+
+    .document-meta h2 {
+      margin: 0;
+      font-size: 26px;
+      color: var(--brand-dark);
+    }
+
+    .meta-box {
+      min-width: 240px;
+      border: 1px solid #d8d8d8;
+      border-radius: 8px;
+      padding: 10px 12px;
+      background: #fafafa;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .content {
+      margin-top: 20px;
+      padding-bottom: 26mm;
+    }
+
+    .section {
+      margin-bottom: 20px;
+      page-break-inside: avoid;
+    }
+
+    .section h3 {
+      margin: 0 0 10px 0;
+      font-size: 18px;
+      color: var(--brand-green);
+      border-left: 4px solid var(--brand-green);
+      padding-left: 10px;
+    }
+
+    .section p,
+    .section li {
+      font-size: 14px;
+      line-height: 1.6;
+      color: #222;
+    }
+
+    .section ul {
+      margin: 8px 0 0 20px;
+      padding: 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+      font-size: 13px;
+      page-break-inside: avoid;
+    }
+
+    th, td {
+      border: 1px solid #d7d7d7;
+      padding: 10px 8px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: #f2f7f5;
+      color: #1d5f4f;
+      font-weight: 700;
+    }
+
+    .footer {
+      position: absolute;
+      left: 14mm;
+      right: 14mm;
+      bottom: 10mm;
+      border-top: 1.5px solid var(--line);
+      padding-top: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      font-size: 11px;
+      color: #222;
+    }
+
+    .footer .confidential {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .page-number::after {
+      content: "1";
+    }
+
+    .signature {
+      margin-top: 30px;
+      font-size: 13px;
+      color: var(--brand-muted);
+      font-style: italic;
+    }
+
+    @media print {
+      @page {
+        size: A4;
+        margin: 20mm 15mm;
+      }
+
+      body {
+        padding: 0;
+        background: #fff;
+      }
+
+      .page {
+        margin: 0;
+        box-shadow: none;
+        padding: 0 15mm;
+        width: auto;
+        min-height: auto;
+        position: static;
+      }
+
+      .header {
+        padding: 0 0 6px 0;
+      }
+
+      .content {
+        margin-top: 12px;
+        padding-bottom: 14mm;
+      }
+
+      .footer {
+        position: fixed;
+        bottom: 0;
+        left: 15mm;
+        right: 15mm;
+        margin: 0;
+        padding: 4px 0;
+        background: #fff;
+      }
+
+      .footer .confidential {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="header">
+      <div class="logo-wrap">
+        <img src="../assets/logo-azienda.png" alt="Logo ZetaByteNexus" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+        <div class="logo-fallback">Zeta<br>Byte<br>Nexus</div>
+      </div>
+
+      <div class="company">
+        <h1>ZetaByteNexus</h1>
+        <p>P.IVA / C.F.: BNFSFN66B13F704A &nbsp;|&nbsp; Email: info@zetabytenexus.it</p>
+      </div>
+    </header>
+
+    <section class="content">
+      <section class="document-meta">
+        <div>
+          <h2>Preventivo</h2>
+        </div>
+        <div class="meta-box">
+          <div><strong>N.</strong> 001</div>
+          <div><strong>Cliente:</strong> Ragione sociale cliente</div>
+          <div><strong>Referente:</strong> Nome referente</div>
+          <div><strong>Data:</strong> 27/05/2026</div>
+          <div><strong>Validità:</strong> 30 giorni</div>
+        </div>
+      </section>
+      <section class="section">
+        <h3>1. Contesto e obiettivi</h3>
+        <p>
+          Questo template HTML brandizzato riprende l'impostazione del PDF allegato: logo a sinistra, dati aziendali in testata,
+          linea orizzontale sotto l'header e footer riservato con numero pagina.[file:200]
+        </p>
+        <p>
+          Il file serve come layout master per preventivi e documenti commerciali della tua mini software house, mantenendo il contenuto
+          separato dal design, come già stai facendo con il template markdown in <code>preventivo.md</code>.[file:200]
+        </p>
+      </section>
+
+      <section class="section">
+        <h3>2. Ambito del progetto</h3>
+        <ul>
+          <li>Header aziendale fisso con logo e identità visiva.</li>
+          <li>Meta-box laterale per numero documento, cliente, data e validità.</li>
+          <li>Sezioni testuali leggibili per contesto, scope, condizioni e prossimi passi.</li>
+          <li>Tabella milestone pronta per ore, importi e descrizioni.</li>
+          <li>Footer confidenziale coerente con l'esempio fornito.</li>
+        </ul>
+      </section>
+
+      <section class="section">
+        <h3>3. Articolazione per milestone</h3>
+        <table style="page-break-inside: avoid;">
+          <thead>
+            <tr>
+              <th>Milestone</th>
+              <th>Descrizione</th>
+              <th>Ore</th>
+              <th>Importo</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="page-break-inside: avoid;">
+              <td>M1 – Analisi</td>
+              <td>Discovery, requisiti, specifiche e setup iniziale.</td>
+              <td>40h</td>
+              <td>2.200 €</td>
+            </tr>
+            <tr style="page-break-inside: avoid;">
+              <td>M2 – Sviluppo</td>
+              <td>Implementazione funzionalità principali.</td>
+              <td>120h</td>
+              <td>6.600 €</td>
+            </tr>
+            <tr style="page-break-inside: avoid;">
+              <td>M3 – Test e handover</td>
+              <td>QA, deploy, documentazione e passaggio operativo.</td>
+              <td>24h</td>
+              <td>1.320 €</td>
+            </tr>
+            <tr style="page-break-inside: avoid;">
+              <td><strong>Totale</strong></td>
+              <td></td>
+              <td><strong>184h</strong></td>
+              <td><strong>10.120 €</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="section">
+        <h3>4. Condizioni economiche</h3>
+        <ul>
+          <li>Pagamento: 30% avvio, 40% milestone centrale, 30% collaudo.</li>
+          <li>Validità offerta: 30 giorni.</li>
+          <li>Eventuali variazioni di scope oltre la soglia concordata richiedono change order scritto.</li>
+        </ul>
+      </section>
+
+      <p class="signature">Firmato digitalmente da ZetaByteNexus di Stefano Bonfanti</p>
+    </section>
+
+    <footer class="footer">
+      <div class="confidential">Documento Riservato ZetaByteNexus - Le informazioni contenute sono strettamente confidenziali.</div>
+      <div class="page-number"></div>
+    </footer>
+  </main>
+  <script>
+    // Nota: per il piè di pagina su ogni foglio in stampa,
+    // la classe .footer usa position: fixed nel @media print.
+    // I numeri di pagina via CSS (counter(page)) NON sono affidabili
+    // cross-browser. Se servono, vanno generati con JS o dal browser
+    // tramite "Intestazioni e piè di pagina" nelle impostazioni di stampa.
+  </script>
+</body>
+</html>
