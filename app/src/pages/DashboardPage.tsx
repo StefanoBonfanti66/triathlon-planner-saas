@@ -9,7 +9,6 @@ import {
   Bike, Star, ExternalLink, Activity, Navigation, AlertTriangle, X, Cloud, Sun, Edit3, Heart, User, ShoppingBag, Download, Camera, Image
 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { toPng } from 'html-to-image';
 import racesData from "../races_full.json";
 import { provinceCoordinates } from "../coords";
 import { getWeatherData } from "../weatherData";
@@ -18,6 +17,8 @@ import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import '../map.css';
+import FitriResultBadge from '../FitriResultBadge';
+import { fetchFitriResults, parseFitriId, plannerDateToKey, todayKey, findFitriResult, FitriResultsByDate } from '../fitri';
 
 interface Race {
   id: string;
@@ -270,6 +271,7 @@ const DashboardPage: React.FC = () => {
   const [allPlans, setAllPlans] = useState<any[]>([]);
   const [allProfiles, setAllProfiles] = useState<any[]>([]);
   const [isViewer, setIsViewer] = useState(false);
+  const [myFitriIndex, setMyFitriIndex] = useState<FitriResultsByDate | null>(null);
 
   const ADMIN_EMAIL = "bonfantistefano4@gmail.com";
 
@@ -291,6 +293,7 @@ const DashboardPage: React.FC = () => {
 
     // 1. Fetch personal plans
     const { data: myData } = await supabase.from('user_plans').select('*').eq('user_id', session.user.id).is('deleted_at', null);
+    const myYears: string[] = [];
     if (myData) {
       const selected: string[] = [];
       const priorities: Record<string, string> = {};
@@ -301,6 +304,9 @@ const DashboardPage: React.FC = () => {
         priorities[item.race_id] = item.priority;
         costs[item.race_id] = item.cost;
         notes[item.race_id] = item.note;
+        const race = (racesData as Race[]).find(r => r.id === item.race_id);
+        const y = race?.date.slice(-4);
+        if (y && !myYears.includes(y)) myYears.push(y);
       });
       setSelectedRaces(selected);
       setRacePriorities(priorities);
@@ -315,9 +321,25 @@ const DashboardPage: React.FC = () => {
     }
 
     // 2. Get user profile for team context
-    const { data: profile } = await supabase.from('profiles').select('team_id, is_viewer').eq('id', session.user.id).is('deleted_at', null).single();
+    const { data: profile } = await supabase.from('profiles').select('team_id, is_viewer, license_number').eq('id', session.user.id).is('deleted_at', null).single();
     if (!profile?.team_id) return;
     setIsViewer(!!profile.is_viewer);
+
+    // 2b. Risultati FITRI personali per le stagioni delle gare in piano
+    const apiId = parseFitriId(profile.license_number);
+    if (apiId && myYears.length > 0) {
+      const byDate: FitriResultsByDate = new Map();
+      for (const year of myYears) {
+        const results = await fetchFitriResults(apiId, year);
+        results.forEach(r => {
+          const key = r.data.slice(0, 10);
+          const arr = byDate.get(key) || [];
+          arr.push(r);
+          byDate.set(key, arr);
+        });
+      }
+      setMyFitriIndex(byDate);
+    }
 
     // 3. Get team info and teammate plans
     const { data: teamData } = await supabase.from('teams').select('*, secondary_color').eq('id', profile.team_id).single();
@@ -596,6 +618,7 @@ const DashboardPage: React.FC = () => {
 
   const generateRaceCard = async () => {
     if (cardRef.current) {
+        const { toPng } = await import('html-to-image');
         const dataUrl = await toPng(cardRef.current, { backgroundColor: '#0f172a' });
         const link = document.createElement('a'); link.download = `stagione-${team?.name || 'team'}-2026.png`; link.href = dataUrl; link.click();
     }
@@ -605,6 +628,7 @@ const DashboardPage: React.FC = () => {
     setActiveSingleRace(race);
     setTimeout(async () => {
         if (singleCardRef.current) {
+            const { toPng } = await import('html-to-image');
             const dataUrl = await toPng(singleCardRef.current, { backgroundColor: '#0f172a', width: 1080, height: 1080 });
             const link = document.createElement('a'); link.download = `${team?.name || 'team'}-challenge-${race.id}.png`; link.href = dataUrl; link.click();
             setActiveSingleRace(null);
@@ -756,6 +780,10 @@ const DashboardPage: React.FC = () => {
                             </div>
                             <button onClick={() => toggleRace(race.id)} className="text-slate-500 hover:text-red-600" aria-label={`Rimuovi ${race.title} dal mio piano`}><Trash2 className="w-4 h-4" /></button>
                         </div>
+                        {myFitriIndex && plannerDateToKey(race.date) < todayKey() && (() => {
+                            const result = findFitriResult(myFitriIndex, race.date, race.location);
+                            return result ? <FitriResultBadge result={result} accentColor={team?.primary_color || '#1d4ed8'} className="mt-2" /> : null;
+                        })()}
                     </div>))}
                 </div>
                 {myPlan.length > 0 && (<div className="mt-6 pt-6 border-t border-slate-100 space-y-2 text-xs font-bold"><div className="flex justify-between text-slate-600"><span>Iscrizioni</span><span>€ {budgetTotals.registration.toFixed(2)}</span></div><div className="flex justify-between text-emerald-700 text-sm font-black"><span>TOTALE STIMATO</span><span>€ {budgetTotals.total.toFixed(2)}</span></div></div>)}

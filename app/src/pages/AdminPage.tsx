@@ -10,10 +10,12 @@ import {
 } from 'lucide-react';
 import { Navigate } from 'react-router-dom';
 import racesData from "../races_full.json";
-import * as XLSX from 'xlsx';
 import pkg from '../../package.json';
 
 const ADMIN_EMAIL = "bonfantistefano4@gmail.com";
+
+let xlsxPromise: Promise<typeof import('xlsx')> | null = null;
+const getXLSX = () => (xlsxPromise ||= import('xlsx'));
 
 interface AthleteFormState {
     full_name: string; 
@@ -557,10 +559,12 @@ const AdminPage: React.FC = () => {
         );
     };
 
-    const handleFileImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]; if (!file) return;
-        const reader = new FileReader(); reader.onload = (event) => {
+        const reader = new FileReader();
+        reader.onload = async (event) => {
             const data = new Uint8Array(event.target?.result as ArrayBuffer);
+            const XLSX = await getXLSX();
             const workbook = XLSX.read(data, { type: 'array' });
             const json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
             setImportData(json.map((row: any) => ({ full_name: row['Nome Completo'] || row['Nome'] || row['atleta'], email: row['Email'] || row['email'] })).filter(item => item.full_name));
@@ -576,7 +580,7 @@ const AdminPage: React.FC = () => {
         setImporting(false);
     };
 
-    const handleExportAthletesExcel = () => {
+    const handleExportAthletesExcel = async () => {
         const formatDate = (dateStr: string) => {
             if (!dateStr || dateStr === 'N/D') return dateStr;
             try {
@@ -618,6 +622,7 @@ const AdminPage: React.FC = () => {
             };
         });
         
+        const XLSX = await getXLSX();
         const ws = XLSX.utils.json_to_sheet(data);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Atleti");
