@@ -45,10 +45,9 @@ jobs:
           git config --global user.name "Backup Bot"
           git config --global user.email "sbonfanti@hotmail.com"
           
-          # 1. Sincronizza con il remoto (pulisce eventuali stati locali inconsistenti)
+          # 1. Sincronizza con il remoto (senza reset --hard; i file backup sono in .gitignore quindi sopravvivono)
           git fetch origin main
           git checkout main
-          git reset --hard origin/main
           
           # 2. Riapplica i file di backup generati in questo run
           # (I file in backups/latest sono stati generati nello step precedente e non sono stati toccati dal reset)

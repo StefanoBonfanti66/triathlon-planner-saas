@@ -7,13 +7,21 @@ import { supabase } from '../supabaseClient';
 import { User, Calendar, Users, Plus, Check, ExternalLink } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import racesData from "../races_full.json";
+import FitriResultBadge from '../FitriResultBadge';
+import { fetchFitriResults, indexResultsByDate, findFitriResult, parseFitriId, plannerDateToKey, todayKey, FitriResultsByDate } from '../fitri';
+
+interface TeamParticipant {
+  name: string;
+  apiId: string | null;
+}
 
 interface TeamRace {
   race_id: string;
   race_title: string;
   race_date: string;
   race_link?: string;
-  participants: string[];
+  race_location?: string;
+  participants: TeamParticipant[];
   status?: string;
 }
 
@@ -29,6 +37,7 @@ const TeamCalendarPage: React.FC = () => {
   const [session, setSession] = useState<any>(null);
   const [team, setTeam] = useState<any>(null);
   const [isViewer, setIsViewer] = useState(false);
+  const [fitriIndex, setFitriIndex] = useState<Record<string, FitriResultsByDate>>({});
 
   const fetchTeamData = async (userId: string) => {
     const { data: profile } = await supabase.from('profiles').select('team_id, is_viewer').eq('id', userId).single();
@@ -46,11 +55,11 @@ const TeamCalendarPage: React.FC = () => {
       console.log("Fetching team plans for team:", teamId);
       
       // 1. Prendi tutti i profili del team
-      const { data: profiles } = await supabase.from('profiles').select('id, full_name').eq('team_id', teamId).is('deleted_at', null);
+      const { data: profiles } = await supabase.from('profiles').select('id, full_name, license_number').eq('team_id', teamId).is('deleted_at', null);
       if (!profiles) return;
 
-      const profileMap: Record<string, string> = {};
-      profiles.forEach(p => { profileMap[p.id] = p.full_name; });
+      const profileMap: Record<string, { name: string; apiId: string | null }> = {};
+      profiles.forEach(p => { profileMap[p.id] = { name: p.full_name, apiId: parseFitriId(p.license_number) }; });
       const userIds = profiles.map(p => p.id);
 
       // 2. Prendi tutti i piani di questi utenti
@@ -75,13 +84,14 @@ const TeamCalendarPage: React.FC = () => {
               race_title: baseRace.title,
               race_date: baseRace.date,
               race_link: baseRace.link,
+              race_location: baseRace.location,
               participants: [],
               status: statusMap[plan.race_id] || 'active'
             };
           }
         }
         if (raceGroups[plan.race_id] && profileMap[plan.user_id]) {
-          raceGroups[plan.race_id].participants.push(profileMap[plan.user_id]);
+          raceGroups[plan.race_id].participants.push({ ...profileMap[plan.user_id] });
         }
       });
 
@@ -104,9 +114,30 @@ const TeamCalendarPage: React.FC = () => {
 
       Object.values(raceGroups).forEach(race => {
         race.participants = race.participants
-          .sort((a, b) => getSortableName(a).localeCompare(getSortableName(b)))
-          .map(name => formatDisplayName(name));
+          .sort((a, b) => getSortableName(a.name).localeCompare(getSortableName(b.name)))
+          .map(p => ({ ...p, name: formatDisplayName(p.name) }));
       });
+
+      // 4b. Risultati FITRI per gli atleti del team (gare passate)
+      const apiIds = Array.from(new Set(profiles.map(p => parseFitriId(p.license_number)).filter((v): v is string => !!v)));
+      const years = Array.from(new Set(Object.values(raceGroups).map(r => r.race_date.slice(-4))));
+      if (apiIds.length > 0 && years.length > 0) {
+        const index: Record<string, FitriResultsByDate> = {};
+        await Promise.all(apiIds.map(async apiId => {
+          const byDate: FitriResultsByDate = new Map();
+          for (const year of years) {
+            const results = await fetchFitriResults(apiId, year);
+            results.forEach(r => {
+              const key = r.data.slice(0, 10);
+              const arr = byDate.get(key) || [];
+              arr.push(r);
+              byDate.set(key, arr);
+            });
+          }
+          index[apiId] = byDate;
+        }));
+        setFitriIndex(index);
+      }
 
       // 4. Raggruppa per mese
       const months: Record<string, TeamRace[]> = {};
@@ -263,13 +294,19 @@ const TeamCalendarPage: React.FC = () => {
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 pt-3 border-t border-slate-50">
-                      <User className="w-4 h-4 text-slate-500" />
+                    <div className="flex items-start gap-2 pt-3 border-t border-slate-50">
+                      <User className="w-4 h-4 text-slate-500 mt-1" />
                       <div className="flex flex-wrap gap-2">
-                        {race.participants.map((name, i) => (
-                          <span key={i} className="text-xs font-bold bg-slate-100 text-slate-700 px-2 py-1 rounded-md border border-slate-200">
-                            {name}
-                          </span>
+                        {race.participants.map((p, i) => (
+                          <div key={i} className="flex flex-col items-start">
+                            <span className="text-xs font-bold bg-slate-100 text-slate-700 px-2 py-1 rounded-md border border-slate-200">
+                              {p.name}
+                            </span>
+                            {p.apiId && fitriIndex[p.apiId] && plannerDateToKey(race.race_date) < todayKey() && (() => {
+                              const result = findFitriResult(fitriIndex[p.apiId], race.race_date, race.race_location || '');
+                              return result ? <FitriResultBadge result={result} accentColor={team?.primary_color || '#3b82f6'} className="mb-1" /> : null;
+                            })()}
+                          </div>
                         ))}
                       </div>
                     </div>
