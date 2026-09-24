@@ -494,6 +494,13 @@ const AdminPage: React.FC = () => {
         return `${surname} ${rest}`;
     };
 
+    const formatAthleteName = (atleta: { first_name?: string; last_name?: string; full_name?: string }) => {
+        const first = (atleta.first_name || '').trim();
+        const last = (atleta.last_name || '').trim();
+        if (first || last) return [last.toUpperCase(), first].filter(Boolean).join(' ');
+        return formatDisplayName(atleta.full_name || '');
+    };
+
     const AthleteRow = ({ atleta }: { atleta: any }) => {
         const isExpired = atleta.medical_certificate_expiry && new Date(atleta.medical_certificate_expiry) < new Date();
         const [fitri, fci] = (atleta.license_number || '').split('/');
@@ -503,7 +510,7 @@ const AdminPage: React.FC = () => {
                 <td className="px-4 py-4">
                     <div className="flex flex-col">
                         <span className="font-black text-slate-800 flex items-center gap-2 text-sm">
-                            {formatDisplayName(atleta.full_name)}
+                            {formatAthleteName(atleta)}
                             {atleta.is_team_admin && <Shield className="w-3 h-3 text-amber-500 fill-current" />}
                         </span>
                         <div className="flex flex-col gap-0.5">

@@ -55,11 +55,11 @@ const TeamCalendarPage: React.FC = () => {
       console.log("Fetching team plans for team:", teamId);
       
       // 1. Prendi tutti i profili del team
-      const { data: profiles } = await supabase.from('profiles').select('id, full_name, license_number').eq('team_id', teamId).is('deleted_at', null);
+      const { data: profiles } = await supabase.from('profiles').select('id, full_name, first_name, last_name, license_number').eq('team_id', teamId).is('deleted_at', null);
       if (!profiles) return;
 
-      const profileMap: Record<string, { name: string; apiId: string | null }> = {};
-      profiles.forEach(p => { profileMap[p.id] = { name: p.full_name, apiId: parseFitriId(p.license_number) }; });
+      const profileMap: Record<string, { name: string; apiId: string | null; first_name: string | null; last_name: string | null }> = {};
+      profiles.forEach(p => { profileMap[p.id] = { name: p.full_name, apiId: parseFitriId(p.license_number), first_name: p.first_name, last_name: p.last_name }; });
       const userIds = profiles.map(p => p.id);
 
       // 2. Prendi tutti i piani di questi utenti
@@ -112,10 +112,17 @@ const TeamCalendarPage: React.FC = () => {
         return `${surname} ${rest}`;
       };
 
+      const formatAthleteName = (p: { first_name?: string | null; last_name?: string | null; name?: string }) => {
+        const first = (p.first_name || '').trim();
+        const last = (p.last_name || '').trim();
+        if (first || last) return [last.toUpperCase(), first].filter(Boolean).join(' ');
+        return formatDisplayName(p.name || '');
+      };
+
       Object.values(raceGroups).forEach(race => {
         race.participants = race.participants
           .sort((a, b) => getSortableName(a.name).localeCompare(getSortableName(b.name)))
-          .map(p => ({ ...p, name: formatDisplayName(p.name) }));
+          .map(p => ({ ...p, name: formatAthleteName(p) }));
       });
 
       // 4b. Risultati FITRI per gli atleti del team (gare passate)
