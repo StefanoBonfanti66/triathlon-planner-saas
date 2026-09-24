@@ -19,6 +19,8 @@ const getXLSX = () => (xlsxPromise ||= import('xlsx'));
 
 interface AthleteFormState {
     full_name: string; 
+    first_name: string;
+    last_name: string;
     email: string; // Aggiunto per onboarding
     password?: string; // Password temporanea opzionale
     team_id: string; 
@@ -55,7 +57,10 @@ const AthleteModal: React.FC<AthleteModalProps> = ({
             <form onSubmit={handleSaveAthlete} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-4">
-                        <div><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Nome Completo</label><input type="text" className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-bold" value={athleteForm.full_name} onChange={e => setAthleteForm({...athleteForm, full_name: e.target.value})} required /></div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Nome</label><input type="text" className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-bold" value={athleteForm.first_name} onChange={e => { const first_name = e.target.value; setAthleteForm({ ...athleteForm, first_name, full_name: [first_name, athleteForm.last_name].filter(Boolean).join(' ') }); }} placeholder="Es: Martine" required /></div>
+                            <div><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Cognome</label><input type="text" className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-bold" value={athleteForm.last_name} onChange={e => { const last_name = e.target.value; setAthleteForm({ ...athleteForm, last_name, full_name: [athleteForm.first_name, last_name].filter(Boolean).join(' ') }); }} placeholder="Es: Maillard Salins" /></div>
+                        </div>
                         <div><label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Email (Opzionale, per invito)</label><input type="email" className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none text-sm font-bold" value={athleteForm.email} onChange={e => setAthleteForm({...athleteForm, email: e.target.value})} placeholder="atleta@esempio.it" /></div>
                         {!editingAthlete && (
                             <div>
@@ -117,6 +122,8 @@ const AdminPage: React.FC = () => {
     const [editingAthlete, setEditingAthlete] = useState<any>(null);
     const [athleteForm, setAthleteForm] = useState<AthleteFormState>({
         full_name: '', 
+        first_name: '', 
+        last_name: '', 
         email: '', 
         team_id: '', 
         license_fitri: '', 
@@ -394,8 +401,13 @@ const AdminPage: React.FC = () => {
         e.preventDefault();
         try {
             const combinedLicense = [athleteForm.license_fitri, athleteForm.license_fci].filter(Boolean).join('/');
+            const firstName = (athleteForm.first_name || '').trim();
+            const lastName = (athleteForm.last_name || '').trim();
+            const fullName = (firstName || lastName) ? [firstName, lastName].filter(Boolean).join(' ') : (athleteForm.full_name || '').trim();
             const payload: any = { 
-                full_name: athleteForm.full_name,
+                full_name: fullName,
+                first_name: firstName || null,
+                last_name: lastName || null,
                 email: athleteForm.email,
                 team_id: athleteForm.team_id,
                 license_number: combinedLicense,
@@ -532,8 +544,11 @@ const AdminPage: React.FC = () => {
                             <button onClick={() => { 
                                 const [fit, fc] = (atleta.license_number || '').split('/');
                                 setEditingAthlete(atleta); 
+                                const fallbackParts = (atleta.full_name || '').trim().split(/\s+/);
                                 setAthleteForm({ 
                                     full_name: atleta.full_name || '', 
+                                    first_name: atleta.first_name || fallbackParts[0] || '', 
+                                    last_name: atleta.last_name || (fallbackParts.length > 1 ? fallbackParts.slice(1).join(' ') : ''), 
                                     email: atleta.email || '', 
                                     team_id: atleta.team_id || '', 
                                     license_fitri: fit || '', 
@@ -707,7 +722,7 @@ const AdminPage: React.FC = () => {
                         <div className="relative group max-w-md w-full"><Mail className="absolute left-4 top-3.5 w-5 h-5 text-slate-500" /><input type="text" placeholder="Cerca atleta..." className="w-full pl-12 pr-4 py-3.5 bg-white border-2 border-slate-200 rounded-2xl outline-none text-sm font-medium" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} /></div>
                         <div className="flex flex-wrap gap-2">
                             <input type="file" accept=".xlsx, .xls, .csv" className="hidden" ref={fileInputRef} onChange={handleFileImport} />
-                            <button onClick={() => { setEditingAthlete(null); setAthleteForm({ full_name: '', email: '', team_id: isSuperAdmin ? '' : (myProfile?.team_id || ''), license_fitri: '', license_fci: '', medical_certificate_expiry: '', birth_year: '', birth_date: '', gender: '', shirt_size: '', is_licensed: false, is_licensed_fci: false, is_member: false, is_team_admin: false }); setIsAthleteModalOpen(true); }} className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg hover:bg-slate-800 transition-all"><Plus className="w-4 h-4" /> Nuovo Atleta</button>
+                            <button onClick={() => { setEditingAthlete(null); setAthleteForm({ full_name: '', first_name: '', last_name: '', email: '', team_id: isSuperAdmin ? '' : (myProfile?.team_id || ''), license_fitri: '', license_fci: '', medical_certificate_expiry: '', birth_year: '', birth_date: '', gender: '', shirt_size: '', is_licensed: false, is_licensed_fci: false, is_member: false, is_team_admin: false }); setIsAthleteModalOpen(true); }} className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg hover:bg-slate-800 transition-all"><Plus className="w-4 h-4" /> Nuovo Atleta</button>
                             <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-blue-200"><FileSpreadsheet className="w-4 h-4" /> Importa</button>
                             <button onClick={handleExportAthletesExcel} className="flex items-center gap-2 px-6 py-3 bg-white border-2 border-slate-200 text-slate-600 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 transition-all"><Download className="w-4 h-4" /> Esporta Atleti</button>
                             <button onClick={handleExportExcel} className="flex items-center gap-2 px-6 py-3 bg-emerald-50 text-emerald-700 rounded-2xl text-[10px] font-black uppercase tracking-widest border-2 border-emerald-100"><FileText className="w-4 h-4" /> Esporta Gare</button>

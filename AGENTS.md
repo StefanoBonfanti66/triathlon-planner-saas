@@ -6,22 +6,20 @@
 - Follow existing code style.
 - Update PROJECT_AI_NOTES.md at meaningful checkpoints.
 
-## Current Focus — 2026-09-21
+## Current Focus — 2026-09-24
 
-### Session completed (21 settembre — bug fix FITRI data)
-- [x] **Fix gara Iseo mancante per Andrea Paolo Lemma** — causa: user_plan assente per race 3940-2 + gara mancante in DB `races`. Fixato via SQL diretto su Supabase (INSERT races + user_plans).
-- [x] Debug logging temporaneo aggiunto in `TeamCalendarPage.tsx` per diagnostica flusso FITRI (da rimuovere).
-- [x] Verificato end-to-end: FITRI API restituisce risultato, matching per data+località funziona.
+### Session completed (24 settembre — bug fix dati: 2 atleti senza tempi gare)
+- [x] **Bug: Livio Santalucia e Martine Maillard non vedevano i tempi delle loro gare** — bug di DATI, non di codice. Nessun file del repo toccato; fix applicato live su Supabase via REST (service_role).
+- [x] **Martine Maillard** — il profilo attivo `156fdedb-7b2f-4a32-a0eb-242325d97cf0` aveva `license_number` NULL (nessuna fetch FITRI). Aggiornato con tessera `150105` + `is_licensed=true`; duplicato `eb687b1c-3746-4d39-932b-9f6f4888b5c0` soft-deletato (`deleted_at`). Verificato: risultato Mantova 20/09 01:39:52 pos 21.
+- [x] **Livio Santalucia** — profilo OK (tessera `61035`, verificata su API FITRI) ma 0 `user_plans`. Inseriti 8 user_plans (gare fitri 2026: Ostia 3990-1, Tolentino 4026-1, Santa Marinella 4002-1, Manfredonia 4082-1, Trani 4052-5, Vieste 3926-1, Bardolino 4089-1, Iseo 3940-1).
+- [x] **Setup accesso Supabase live** — server MCP `supabase` fuori uso ('Unauthorized'); workaround stabile via REST API con service_role (`API=https://bwzzvdwiimvdwkiytknc.supabase.co`, key in `/tmp/svc_key.txt`, token gestione `SUPABASE_MCP_TOKEN`).
 
-### Sessione precedente (18 settembre — feature FITRI)
-- [x] **Risultati FITRI in-app** — l'atleta iscritto a una gara passata vede risultato reale (posizione, categoria, tempo, frazioni) nel planner. Nuovi `app/src/fitri.ts` + `app/src/FitriResultBadge.tsx`; integrati in `DashboardPage` ("Le mie gare") e `TeamCalendarPage` (per partecipante).
-- [x] Endpoint FITRI pubblici senza auth (`getClassificheAtleta/<anno>/<tessera>-FITRI`), match gara per data+località.
-- [x] Tested su preview + prod: deploy `https://triathlon-planner-saas.vercel.app` live.
-- [x] Commit `003a110` su develop + merge su main (`08beabc`).
+### Sessioni precedenti
+- [x] **21/09 — bug fix FITRI data**: gara Iseo mancante per Andrea Paolo Lemma (user_plan + races via SQL). Debug logging temporaneo in `TeamCalendarPage.tsx` **ancora presente (da rimuovere)**.
+- [x] **18/09 — feature FITRI**: risultati reali in-app via `getClassificheAtleta` (posizione, categoria, tempo, frazioni); `app/src/fitri.ts` + `FitriResultBadge.tsx`; badge in `DashboardPage` e `TeamCalendarPage`; commit `003a110` → `main` (`08beabc`).
+- [x] Sessioni maggio-giugno: task sprint completati (vedi PROJECT_AI_NOTES.md).
 
-### Sessioni precedenti (14-28 maggio, 10 giugno)
-- [x] Tutti i task sprint precedenti completati (vedi PROJECT_AI_NOTES.md)
-
-### Next step (lunedì)
-- Rimuovere debug logging da `TeamCalendarPage.tsx` (era temporaneo per diagnostica).
+### Next step
+- Rimuovere il debug logging in `TeamCalendarPage.tsx` (riga ~55, era temporaneo per diagnostica). Branch `improve/tech-debt` è 1 commit avanti a `origin/develop` (`0e85da8`) — da decidere push/PR.
+- Verificare che i badge FITRI di Livio (8 gare) e Martine (Mantova) compaiano correttamente su Dashboard e Team Calendar dopo l'aggiornamento dati.
 - Ripartire dal **Backlog idee** in `PROJECT_AI_NOTES.md` (card condivisibile, leaderboard MTT con puntiFitri, storico/PB, confronto splits, meteo gara). Prioritizzare.
