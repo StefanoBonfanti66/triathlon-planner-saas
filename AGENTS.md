@@ -14,6 +14,8 @@
 - [x] **Livio Santalucia** — profilo OK (tessera `61035`, verificata su API FITRI) ma 0 `user_plans`. Inseriti 8 user_plans (gare fitri 2026: Ostia 3990-1, Tolentino 4026-1, Santa Marinella 4002-1, Manfredonia 4082-1, Trani 4052-5, Vieste 3926-1, Bardolino 4089-1, Iseo 3940-1).
 - [x] **Setup accesso Supabase live** — server MCP `supabase` fuori uso ('Unauthorized'); workaround stabile via REST API con service_role (`API=https://bwzzvdwiimvdwkiytknc.supabase.co`, key in `/tmp/svc_key.txt`, token gestione `SUPABASE_MCP_TOKEN`).
 - [x] **Fix deploy Vercel** — build falliva (vite: command not found, exit 127) perché la build partiva dalla radice del repo; config corretta: Root Directory `app`, Build Command `npm run build`; produzione e preview ora READY.
+- [x] **Feature UI: Nome/Cognome separati in anagrafica** — modale AdminPage con campi first_name/last_name (commit `e6d2803`); display nomi fixato nelle 3 pagine con `formatAthleteName` per i cognomi multipli (commit `b23f63b`); fix dati Dorothee (first_name/last_name valorizzati).
+- [x] **Merge e deploy completati** — improve/tech-debt → develop → main (merge commit `6b52061`); produzione `triathlon-planner-saas.vercel.app` READY (dpl_EBEAyMoCvz8xMWgD8tq38DXVYjyU, rollback candidate). Working tree pulito.
 
 ### Attivo
 - [ ] **Rilascio gratuito MTT** — app live per Milano Triathlon Team, uso gratuito permanente per MTT; in prospettiva campagna pubblicitaria verso le società di triathlon italiane per acquisire nuovi utenti.
