@@ -5,6 +5,7 @@ dist
 *.local
 .vercel
 .gemini/
+.playwright-mcp/
 
 backups/
 *.csv

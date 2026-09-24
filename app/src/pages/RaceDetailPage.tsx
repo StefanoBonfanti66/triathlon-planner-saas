@@ -200,7 +200,7 @@ const RaceDetailPage: React.FC = () => {
           if (profile?.team_id) {
             const { data: teamData } = await supabase.from('teams').select('*').eq('id', profile.team_id).single();
             setTeam(teamData);
-            const { data: teamPlans } = await supabase.from('user_plans').select('user_id, profiles(full_name, deleted_at)').eq('race_id', id).is('deleted_at', null);
+            const { data: teamPlans } = await supabase.from('user_plans').select('user_id, profiles(full_name, first_name, last_name, deleted_at)').eq('race_id', id).is('deleted_at', null);
             if (teamPlans) {
               const getSortableName = (name: string) => {
                 const parts = name.trim().split(/\s+/);
@@ -218,9 +218,16 @@ const RaceDetailPage: React.FC = () => {
                 return `${surname} ${rest}`;
               };
 
+              const formatAthleteName = (profile: any) => {
+                const first = (profile?.first_name || '').trim();
+                const last = (profile?.last_name || '').trim();
+                if (first || last) return [last.toUpperCase(), first].filter(Boolean).join(' ');
+                return formatDisplayName(profile?.full_name || '');
+              };
+
               const members = teamPlans
                 .filter((p: any) => p.profiles?.full_name && !p.profiles.deleted_at)
-                .map((p: any) => formatDisplayName(p.profiles.full_name))
+                .map((p: any) => formatAthleteName(p.profiles))
                 .sort((a, b) => getSortableName(a).localeCompare(getSortableName(b)));
               
               setParticipants(members);
