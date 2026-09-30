@@ -107,15 +107,33 @@ Il DB Supabase era invece **completo e aggiornato**: 0 eventi del CMS mancanti n
 - **Fix paginazione in `mtt_api_scraper.py`**: `fetch_all_events()` con `pagination[limit]=100` + `pagination[start]` crescenti e `MAX_PAGES`. Prima chiedeva `limit=500` senza offset — Strapi ricappa a 100, quindi un trimestre con >100 eventi avrebbe perso quelli in coda. Verificato live: stessi totali (30/95/62/30), 451 righe in `gare_2026.txt`.
 - Verifiche: `tsc --noEmit` OK; tutti gli id di `user_plans` risolti nel catalogo; date 01-02-2026 → 31-10-2026.
 
-### Blocco aperto: nessuna credenziale Supabase valida
-Supabase MCP → `Unauthorized`; `SUPABASE_ACCESS_TOKEN` / `SUPABASE_MCP_TOKEN` in env scaduti (Management API 401 "JWT could not be decoded"); `/tmp/svc_key.txt` non esiste più. **Impossibile applicare l'UPDATE sul DB**. SQL da eseguire manualmente:
+### Blocco risolto: nessuna credenziale Supabase valida (SQL eseguito a mano)
+Supabase MCP → `Unauthorized`; `SUPABASE_ACCESS_TOKEN` / `SUPABASE_MCP_TOKEN` in env scaduti (Management API 401 "JWT could not be decoded"); `/tmp/svc_key.txt` non esiste più. **Impossibile scrivere sul DB dall'agente**: l'utente ha eseguito a mano
 ```sql
 UPDATE races SET is_removed = true, status = 'hidden' WHERE id = '4100-1';
 ```
+Verificato nell'export `backups_history/2026-09-29/races.json`: `4100-1` `is_removed=true`. Il JSON era già allineato (generato con `--force-removed 4100`), quindi **non serve rigenerare**.
 (`DashboardPage.tsx:599` filtra la lista sul `is_removed` **del JSON**, quindi la gara è già nascosta in Dashboard; il DB serve per il badge "⚠️ GARA RIMOSSA" e per `TeamCalendarPage`, che mostra le gare di `user_plans` con `status` dal DB.)
 
+### Deploy
+Commit `1bc1956` su `main` → push `3e52fbc..1bc1956` (prima serve `env -u GITHUB_TOKEN git pull --rebase --autostash origin main`, perché il cron `📦 Daily Backup` committa quotidianamente). Deploy Vercel `dpl_B4L3ZH5cTnTYZohJ7a9FWgB78fM8` READY su `triathlon-planner-saas.vercel.app`. Nota operativa: le chiamate Vercel MCP funzionano **omettendo `teamId`** (`vercel_list_teams` restituisce `[]`).
+
 ### Da fare
-- Eseguire l'UPDATE sopra e rigenerare: `python3 tools/generate_races_full_json.py --force-removed 4100`.
 - Valutare un refresh periodico del catalogo (GitHub Action già esiste per i backup) per non ripetere il congelamento.
 - Rimuovere il debug logging temporaneo in `TeamCalendarPage.tsx` (aperto dal 21/09).
+
+## Sessione 30 settembre — Stefano Baldo: registrazioni Lecco + Cervia
+
+Utente: «un altro atleta stefano baldo non si era registrato alla gara di lecco e cervia», poi «lecco e cervia 3905 ma abbiamo fatto la 3905-1 sprint e la 3905-3 coppa crono», infine «baldo ha fatto la coppa crono maschile forse ha sbagliato a selezionare» → **correzione: `3905-4` (Maschile), non `3905-3` (Femminile)**.
+
+### Verifiche fatte (export `backups_history/2026-09-29/`)
+- Profilo: `d5aa242b-1299-431b-918a-df40bd5dd611`, tessera `85122/A252252`, team `mtt`. **NON** aveva 0 piani: ne aveva 2 (`3933-1`, `3939-3`), entrambe priority C.
+- Schema `user_plans`: `id` (UUID), `user_id` = **`profiles.id`** (= `session.user.id`), `race_id`, `priority` (A/B/C, marker personale: `A` evidenzia la card in giallo), `cost` (quasi sempre 0), `note`, `created_at`, `team_id`, `deleted_at`.
+- Gare: `4012-1` 05-07-2026 25° Triathlon Sprint Lecco City (Sprint) · `3905-1` 26-09 Sprint Age Group · **`3905-4` 27-09 Coppa Crono Maschile** (corretto da `3905-3` Femminile su indicazione dell'utente). L'evento **3931** (IRONMAN Italy Emilia Romagna, 19-20/09) escluso: 0 piani, non è quello.
+
+### Consegnato
+`tools/2026-09-30_stefano_baldo_lecco_cervia.sql` — 1 `UPDATE profiles` (`first_name`/`last_name` da NULL a `Stefano`/`Baldo`, su richiesta) + `INSERT` idempotente (`NOT EXISTS`) delle 3 gare con `priority='C'`, `cost=0`, `team_id='mtt'`, più 2 `SELECT` di verifica. **Da eseguire a mano** (stesso blocco credenziali Supabase). Non ancora eseguito.
+
+### Segnalato all'utente
+**36 profili MTT attivi non hanno alcun `user_plan`** (su 71 piani / 16 user_id distinti / 55 profili): la Dashboard "Le mie gare" resta vuota per loro. Probabili altri casi dello stesso tipo di Baldo — da verificare con `tools/check_plans.py`.
 
