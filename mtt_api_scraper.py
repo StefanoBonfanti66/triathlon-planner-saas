@@ -5,6 +5,39 @@ import time
 
 OUTPUT_FILE = "gare_2026.txt"
 
+# Strapi ricappa pagination[limit] a 100: chiedere 500 non serve a nulla e senza
+# pagination[start] un trimestre con piu' di 100 eventi perderebbe quelli in coda.
+PAGE_SIZE = 100
+MAX_PAGES = 50
+
+def fetch_all_events(url, params_base):
+    """Scarica tutti gli eventi del periodo, pagina per pagina."""
+    events = []
+    start = 0
+    for _ in range(MAX_PAGES):
+        params = dict(params_base)
+        params["pagination[limit]"] = str(PAGE_SIZE)
+        params["pagination[start]"] = str(start)
+
+        response = requests.get(url, params=params, timeout=30)
+        if response.status_code != 200:
+            print(f"   ⚠️ HTTP {response.status_code} (start={start}): stop")
+            break
+
+        res_json = response.json()
+        page = res_json.get("data", [])
+        events.extend(page)
+
+        pagination = res_json.get("meta", {}).get("pagination", {})
+        total = pagination.get("total", len(events))
+        start += PAGE_SIZE
+        if len(page) < PAGE_SIZE or start >= total:
+            break
+
+    if len(events) != total:
+        print(f"   ⚠️ Attesi {total} eventi, scaricati {len(events)}")
+    return events
+
 def run_api_scraper():
     print("🚀 SCRAPER API V4.4: ENHANCED LOCATION MAPPING")
     all_final_races = []
@@ -20,13 +53,11 @@ def run_api_scraper():
 
     for start_date, end_date in ranges:
         print(f"📅 Recupero periodo {start_date} -> {end_date}...")
-        params = {"populate": "*", "filters[$and][0][dataInizio][$gte]": start_date, "filters[$and][1][dataInizio][$lte]": end_date, "sort[0]": "dataInizio", "pagination[limit]": "500"}
+        params = {"populate": "*", "filters[$and][0][dataInizio][$gte]": start_date, "filters[$and][1][dataInizio][$lte]": end_date, "sort[0]": "dataInizio"}
 
         try:
-            response = requests.get(url, params=params, timeout=30)
-            if response.status_code != 200: continue
-            res_json = response.json()
-            events = res_json.get('data', [])
+            events = fetch_all_events(url, params)
+            print(f"   {len(events)} eventi ricevuti")
 
             for event in events:
                 item = event.get('attributes') if 'attributes' in event else event

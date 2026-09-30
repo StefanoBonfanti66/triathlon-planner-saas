@@ -88,3 +88,34 @@ Idee proposte il 18 settembre a valle della feature risultati FITRI. NESSUNA ini
   ```
 - Debug logging temporaneo in `TeamCalendarPage.tsx` per tracciare flusso `fetchFitriResults` → `findFitriResult`. Da rimuovere prima del commit.
 - Verificato: FITRI API restituisce correttamente il risultato (posizione 163, cat. M5 11º, tempo 01:30:21), matching per data + località funzionante.
+
+## Sessione 30 settembre — catalogo gare congelato (Paullo/UNATRI e altre 69)
+
+### Causa radice
+`app/src/races_full.json` è il **catalogo master** delle gare: le 4 pagine lo importano (`DashboardPage`, `TeamCalendarPage`, `RaceDetailPage`, `AdminPage`). Supabase `races` è usato **solo come override** di `is_removed` / `status` sulle gare già presenti nel JSON, quindi un override non può far comparire una gara assente dal catalogo.
+Il JSON era fermo al **05/05/2026** (commit `6512ec2`), generato a mano. Risultato: **69 gare del calendario FITRI 2026 invisibili**, inclusa Paullo (evento 4139, 11-10-2026) segnalata dall'utente.
+Confronto CMS `cms.myfitri.it/api/eventi` (217 eventi 2026: Q1 30, Q2 95, Q3 62, Q4 30) vs JSON (192 id_evento) → **30 eventi mancanti**, tutti con `createdAt >= 2026-05-07`; 25 di 30 con `publishedAt = 2026-09-29` (FITRI ha fatto un aggiornamento di massa del calendario il 29/09).
+Il DB Supabase era invece **completo e aggiornato**: 0 eventi del CMS mancanti nel DB.
+
+### Fix applicato
+- **Creato `tools/generate_races_full_json.py`**: rigenera `app/src/races_full.json` dall'export più recente in `backups_history/`. Sorgente unica, ispezionabile, ripetibile.
+  - Tiene solo le gare con progressivo (`^\d+-\d+$`): l'export contiene anche 187 righe a livello di evento con id senza progressivo (es. `3897`), mai incluse nel catalogo — escluderle evita voci fantasma in lista.
+  - Applica `--force-removed <ID_EVENTO>` per marcare `is_removed=true` su eventi da nascondere.
+  - Valida date `dd-mm-yyyy`, `type` ∈ {Triathlon, Duathlon, Aquathlon, Winter, Cross}, id univoci. `--dry-run` incluso.
+- **Rigenerato `app/src/races_full.json`**: 374 → **464 record**, +90 gare, 0 rimosse, 39 corrette verso i valori DB (title 30, date 12, distance 9, event 6, category 6, type 4, is_removed 2). I valori DB erano più completi (es. `3995-2` distance `""` → `"Sprint"`).
+- **4100 Cerveteri** (`4100-1`, 24-05-2026) marcato `is_removed=true` su richiesta esplicita dell'utente, sia nel JSON sia da applicare sul DB.
+- **Fix paginazione in `mtt_api_scraper.py`**: `fetch_all_events()` con `pagination[limit]=100` + `pagination[start]` crescenti e `MAX_PAGES`. Prima chiedeva `limit=500` senza offset — Strapi ricappa a 100, quindi un trimestre con >100 eventi avrebbe perso quelli in coda. Verificato live: stessi totali (30/95/62/30), 451 righe in `gare_2026.txt`.
+- Verifiche: `tsc --noEmit` OK; tutti gli id di `user_plans` risolti nel catalogo; date 01-02-2026 → 31-10-2026.
+
+### Blocco aperto: nessuna credenziale Supabase valida
+Supabase MCP → `Unauthorized`; `SUPABASE_ACCESS_TOKEN` / `SUPABASE_MCP_TOKEN` in env scaduti (Management API 401 "JWT could not be decoded"); `/tmp/svc_key.txt` non esiste più. **Impossibile applicare l'UPDATE sul DB**. SQL da eseguire manualmente:
+```sql
+UPDATE races SET is_removed = true, status = 'hidden' WHERE id = '4100-1';
+```
+(`DashboardPage.tsx:599` filtra la lista sul `is_removed` **del JSON**, quindi la gara è già nascosta in Dashboard; il DB serve per il badge "⚠️ GARA RIMOSSA" e per `TeamCalendarPage`, che mostra le gare di `user_plans` con `status` dal DB.)
+
+### Da fare
+- Eseguire l'UPDATE sopra e rigenerare: `python3 tools/generate_races_full_json.py --force-removed 4100`.
+- Valutare un refresh periodico del catalogo (GitHub Action già esiste per i backup) per non ripetere il congelamento.
+- Rimuovere il debug logging temporaneo in `TeamCalendarPage.tsx` (aperto dal 21/09).
+
