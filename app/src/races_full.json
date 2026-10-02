@@ -5741,7 +5741,7 @@
   },
   {
     "date": "27-09-2026",
-    "title": "TRI EVENT Campionati Italiani di Triathlon Sprint Coppa Crono",
+    "title": "TRI EVENT Campionati Italiani di Triathlon Sprint Coppa Crono Femminile",
     "event": "TRI EVENT CAMPIONATI ITALIANI TRIATHLON SPRINT ELITE, AGE GROUP, MIXED RELAY E COPPA CRONO",
     "location": "Cervia (Ravenna)",
     "region": "Emilia-Romagna",
@@ -5755,7 +5755,7 @@
   },
   {
     "date": "27-09-2026",
-    "title": "TRI EVENT Campionati Italiani di Triathlon Sprint Mixed Relay",
+    "title": "TRI EVENT Campionati Italiani di Triathlon Sprint Coppa Crono Maschile",
     "event": "TRI EVENT CAMPIONATI ITALIANI TRIATHLON SPRINT ELITE, AGE GROUP, MIXED RELAY E COPPA CRONO",
     "location": "Cervia (Ravenna)",
     "region": "Emilia-Romagna",
@@ -5769,6 +5769,20 @@
   },
   {
     "date": "27-09-2026",
+    "title": "TRI EVENT Campionati Italiani di Triathlon Sprint Mixed Relay",
+    "event": "TRI EVENT CAMPIONATI ITALIANI TRIATHLON SPRINT ELITE, AGE GROUP, MIXED RELAY E COPPA CRONO",
+    "location": "Cervia (Ravenna)",
+    "region": "Emilia-Romagna",
+    "type": "Triathlon",
+    "distance": "Sprint",
+    "rank": "",
+    "category": "",
+    "link": "https://www.myfitri.it/evento/3905",
+    "id": "3905-5",
+    "is_removed": false
+  },
+  {
+    "date": "27-09-2026",
     "title": "TRI EVENT Coppa Crono Mixed",
     "event": "TRI EVENT CAMPIONATI ITALIANI TRIATHLON SPRINT ELITE, AGE GROUP, MIXED RELAY E COPPA CRONO",
     "location": "Cervia (Ravenna)",
@@ -5778,7 +5792,7 @@
     "rank": "",
     "category": "",
     "link": "https://www.myfitri.it/evento/3905",
-    "id": "3905-5",
+    "id": "3905-6",
     "is_removed": false
   },
   {
