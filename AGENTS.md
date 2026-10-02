@@ -6,30 +6,31 @@
 - Follow existing code style.
 - Update PROJECT_AI_NOTES.md at meaningful checkpoints.
 
-## Current Focus — 2026-09-30
+## Current Focus — 2026-10-02
 
-### Session completed (30 settembre — catalogo gare congelato + registrazioni Stefano Baldo)
-- [x] **Indagata la gara "di Paullo" e 69 altre gare FITRI 2026 invisibili all'app** — causa radice: `app/src/races_full.json` (unica fonte gare del frontend, il DB serve solo da override `status`/`is_removed`) era **congelato al 05/05/2026** (commit `6512ec2`). Il CMS FITRI `cms.myfitri.it/api/eventi` al 30/09 espone **217 eventi 2026** (Q1 30, Q2 95, Q3 62, Q4 30) contro 192 id_evento nel JSON: **30 eventi mancanti = 69 gare** (Paullo/UNATRI `4139` incluso), tutti già presenti nel DB Supabase. FITRI ha fatto un aggiornamento di massa del calendario il **29/09/2026** (25/30 eventi con `publishedAt` = 2026-09-29).
-- [x] **Rigenerato `app/src/races_full.json`: 374 → 464 gare** (+90, 0 rimosse, 39 corrette con i valori più completi del DB: `title` 30, `date` 12, `distance` 9, `event` 6, `category` 6, `type` 4, `is_removed` 2). Creato **`tools/generate_races_full_json.py`** (rigenera il JSON dall'export più recente in `backups_history/`, 12 campi canonici, `--source/--out/--force-removed/--dry-run`) perché prima era fatto a mano.
-- [x] **Fix paginazione di `mtt_api_scraper.py`** — `pagination[limit]=500` veniva ricappato a 100 da Strapi e non c'era offset: un trimestre con >100 eventi avrebbe perso le gare più recenti. Aggiunto `fetch_all_events()` con `PAGE_SIZE=100` / `MAX_PAGES=50` e loop su `pagination[start]`. Scraper eseguito davvero: 217 eventi invariati, 451 righe, 2 hit su Paullo.
-- [x] **Commit `1bc1956` pushato e in produzione** — deploy Vercel `dpl_B4L3ZH5cTnTYZohJ7a9FWgB78fM8` READY su `triathlon-planner-saas.vercel.app`. Validazioni: `tsc --noEmit` exit 0, 464 id univoci, nessun id senza progressivo, `4100-1.is_removed=true`, Paullo presente.
-- [x] **4100 Cerveteri** — l'utente ha eseguito a mano `UPDATE races SET is_removed=true, status='hidden' WHERE id='4100-1';` (credenziali Supabase non valide: MCP `Unauthorized`, Management API 401 «JWT could not be could be decoded», `/tmp/svc_key.txt` sparito ⇒ ogni scrittura DB passa da SQL manuale). **Blocco risolto**, non serve rigenerare il JSON.
-- [x] **Stefano Baldo (tessera `85122/A252252`, team `mtt`)** — NON aveva 0 piani ma 2 (`3933-1`, `3939-3`). Preparato **`tools/2026-09-30_stefano_baldo_lecco_cervia.sql`**: `UPDATE profiles` per `first_name='Stefano'` / `last_name='Baldo'` (erano NULL) + `INSERT` idempotente in `user_plans` per **`4012-1`** (Lecco 05/07, Sprint) e **`3905-1`/`3905-4`** (Cervia 26-09 Sprint Age Group, 27-09 Coppa Crono **Maschile**), `priority='C'`, `cost=0`. Da eseguire a mano nel Supabase SQL Editor.
-- [x] **Diagnostica MTT**: **36 profili attivi del team non hanno alcun `user_plan`** → la loro Dashboard "Le mie gare" è vuota. Candidati a uno screening (Fabio Soresi, Tatjana Kuzina, Alessandro Labate, Riccardo Zorzetto, …).
+### Session completed (2 ottobre — sotto-gare Cervia 3905 e UNATRI 4139 corrette)
+- [x] **Catalogo "Mixed Relay" era un titolo stale**: `app/src/races_full.json` non era allineato ai titoli reali del DB per l'evento 3905. Rigenerato con `tools/generate_races_full_json.py` dall'export `backups_history/2026-09-30/`: **464 → 465 gare** (+1 `3905-6`, 3 corrette). Ora: `3905-1` Age Group 26/09 · `3905-2` Elite 26/09 · `3905-3` Coppa Crono **Femminile** 27/09 · `3905-4` Coppa Crono **Maschile** 27/09 · `3905-5` Sprint Mixed Relay 27/09 · `3905-6` TRI EVENT Coppa Crono Mixed 27/09.
+- [x] **Baldo e il gruppo MTT erano già corretti sul DB** (`3905-4` = Coppa Crono Maschile): era la UI a mostrare il nome sbagliato. **Nessun atleta MTT è iscritto al Mixed Relay** (`3905-5` = 0 righe in export). API FITRI (27/09 = `idGara W11450` "Coppa Crono Maschile") conferma per Baldo, Albini, Quaglia, Pellegrino, Bonfanti, Dughera.
+- [x] **3 script SQL consegnati, da eseguire a mano** nel Supabase SQL Editor (credenziali ancora non valide: MCP `Unauthorized`, Management API 401):
+  1. `tools/2026-10-02_paolo_pellegrino_unatri.sql` — sposta Paolo Pellegrino (`c756da6a-…`, tessera `65172/A200665`) da `4139-1` (UNATRI kids) a `4139-2` (UNATRI).
+  2. `tools/2026-10-02_cervia_3905_coppa_crono_maschile.sql` — porta `3905-3`→`3905-4` per Albini, Quaglia, Pellegrino, Bonfanti, Dughera (avevano preso la gara Femminile leggendo i titoli stale) + dedup duplicati.
+  3. `tools/2026-10-02_rimuovi_mixed_relay_3905-5.sql` — soft-delete su `3905-5`, **no-op atteso** (zero righe).
+- [x] **Commit `1f4f350` → push `5f23792`, deploy Vercel `dpl_EJvRiCM6PGpBtfewwk9aZvFD5vAy` READY** su `triathlon-planner-saas.vercel.app` (HTTP 200). `tsc --noEmit` exit 0.
 
 ### Attivo
 - [ ] **Rilascio gratuito MTT** — app live per Milano Triathlon Team, uso gratuito permanente per MTT; in prospettiva campagna pubblicitaria verso le società di triathlon italiane per acquisire nuovi utenti.
 
 ### Sessioni precedenti
-- [x] **24/09 — bug fix dati: 2 atleti senza tempi gare**: Livio Santalucia (8 `user_plans` inseriti) e Martine Maillard (`license_number` NULL → `150105`, duplicato soft-deletato); fix applicato via REST Supabase. Fix deploy Vercel (Root Directory `app`) e feature Nome/Cognome in anagrafica (commits `e6d2803`, `b23f63b`, `6b52061`).
-- [x] **21/09 — bug fix FITRI data**: gara Iseo mancante per Andrea Paolo Lemma (user_plan + races via SQL). Debug logging temporaneo in `TeamCalendarPage.tsx` **ancora presente (da rimuovere)**.
-- [x] **18/09 — feature FITRI**: risultati reali in-app via `getClassificheAtleta` (posizione, categoria, tempo, frazioni); `app/src/fitri.ts` + `FitriResultBadge.tsx`; badge in `DashboardPage` e `TeamCalendarPage`; commit `003a110` → `main` (`08beabc`).
+- [x] **30/09 — catalogo gare congelato**: `races_full.json` fermo al 05/05/2026 (commit `6512ec2`) → rigenerato 374→464 con `tools/generate_races_full_json.py`, fix paginazione `mtt_api_scraper.py` (`fetch_all_events`, PAGE_SIZE 100), commit `1bc1956` in prod. **36 profili MTT senza `user_plan`** da screening. 4100 Cerveteri `is_removed=true` eseguito a mano.
+- [x] **30/09 — Stefano Baldo**: `tools/2026-09-30_stefano_baldo_lecco_cervia.sql` (Lecco `4012-1` + Cervia `3905-1`/`3905-4` Coppa Crono Maschile) — **già eseguito dall'utente**.
+- [x] **24/09 — 2 atleti senza tempi**: Livio Santalucia (8 plan) e Martine Maillard (`150105`); fix deploy Vercel Root Directory `app` + nome/cognome in anagrafica (commits `e6d2803`, `b23f63b`, `6b52061`).
+- [x] **21/09 — gara Iseo mancante** per Andrea Paolo Lemma (SQL diretto). Debug logging temporaneo in `TeamCalendarPage.tsx` **ancora presente (da rimuovere)**.
+- [x] **18/09 — risultati FITRI in-app** (`getClassificheAtleta`, `fitri.ts`, `FitriResultBadge`; commit `003a110`).
 - [x] Sessioni maggio-giugno: task sprint completati (vedi PROJECT_AI_NOTES.md).
 
 ### Next step
-- Committare `PROJECT_AI_NOTES.md` + `tools/2026-09-30_stefano_baldo_lecco_cervia.sql` (fix catalogo già committato e in produzione con `1bc1956`).
-- Verificare su produzione che le 90 gare recuperate (Paullo/UNATRI compresa) compaiano nella ricerca/lista gare e che le 3 gare di Baldo appaiano in Dashboard "Le mie gare" e Team Calendar dopo l'esecuzione dello SQL.
-- **Refresh periodico del catalogo**: dopo ogni export DB fresco lanciare `python3 tools/generate_races_full_json.py` (senza più `--force-removed 4100`) e committare — è la lezione di questa sessione, il JSON è un artefatto generato e non può restare congelato.
+- **Eseguire a mano i 3 SQL** (ordine 1→2→3) nel Supabase SQL Editor e verificare in app che Baldo, Pellegrino e il gruppo Coppa Crono compaiano sotto le sotto-gare corrette.
 - Screening dei **36 atleti MTT senza `user_plan`** (stesso sintomo: Dashboard vuota).
 - Rimuovere il debug logging in `TeamCalendarPage.tsx` (riga ~55, era temporaneo per diagnostica).
+- **Refresh periodico del catalogo**: dopo ogni export DB fresco `python3 tools/generate_races_full_json.py` (senza più `--force-removed 4100`) e commit.
 - Ripartire dal **Backlog idee** in `PROJECT_AI_NOTES.md` (card condivisibile, leaderboard MTT con puntiFitri, storico/PB, confronto splits, meteo gara). Prioritizzare.

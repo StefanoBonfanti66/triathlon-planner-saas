@@ -137,3 +137,25 @@ Utente: «un altro atleta stefano baldo non si era registrato alla gara di lecco
 ### Segnalato all'utente
 **36 profili MTT attivi non hanno alcun `user_plan`** (su 71 piani / 16 user_id distinti / 55 profili): la Dashboard "Le mie gare" resta vuota per loro. Probabili altri casi dello stesso tipo di Baldo — da verificare con `tools/check_plans.py`.
 
+## Sessione 2 ottobre — sotto-gare Cervia 3905 + UNATRI 4139 (correzioni registrazioni MTT)
+
+Utente: «stefano baldo ... invece va messo su tri event campionati italiani di triathlon sprint coppa crono», poi «paolo pellegrini invece va spostato dalla gara unatri kids a unatri», poi «errore togli tutti gli atleti dalla tri event mixed relay nessuno di noi ha partecipato», poi «quegli atleti hanno partecipato alla coppa crono», infine «si commit e deploy».
+
+### Radice: catalogo `races_full.json` fuori sync col DB
+Gli id `races` del DB per l'evento 3905 (Cervia 26-27/09) sono stabili negli export 28/29/30-09: `3905`/`3905-1` Age Group, `3905-2` Elite, `3905-3` Coppa Crono **Femminile**, `3905-4` Coppa Crono **Maschile**, `3905-5` Mixed Relay, `3905-6` TRI EVENT Coppa Crono Mixed. Il frontend (che legge **solo** `app/src/races_full.json`) aveva invece `3905-3`=Coppa Crono (senza genere), `3905-4`=Mixed Relay, `3905-5`=TRI EVENT Coppa Crono Mixed → **l'UI mostrava nomi sbagliati e le iscrizioni fatte leggendo i titoli stale erano semanticamente errate** (es. il gruppo Coppa Crono finito su `3905-3` = Femminile).
+
+### Fix catalogo (già committato e in produzione)
+`python3 tools/generate_races_full_json.py` (fonte `backups_history/2026-09-30/`, senza `--force-removed 4100`): **464 → 465** gare, 1 aggiunta (`3905-6`), 3 modificate, 187 righe senza progressivo skippate. Diff: `3905-3`→"…Coppa Crono **Femminile**", `3905-4`→"…Coppa Crono **Maschile**", vecchia `3905-5` rinumerata `3905-6` "TRI EVENT Coppa Crono Mixed", nuova `3905-5` "…Sprint Mixed Relay". Commit `1f4f350` → push `5f23792` (rebased su `a721dd0` daily backup; push con `env -u GITHUB_TOKEN`), deploy Vercel `dpl_EJvRiCM6PGpBtfewwk9aZvFD5vAy` READY, HTTP 200. `tsc --noEmit` exit 0.
+
+### Iscrizioni MTT a Cervia (export 2026-09-30)
+Albini `3905-1`+`3905-3`, Quaglia (111549) `3905-1`+`3905-3`, Pellegrino (65172) `3905-3`, Bonfanti (106925) `3905-1`+`3905-3`, Dughera (1443) `3905-1`+`3905-3`, Baldo (85122) `3905-1`+`3905-4`, Elena Sacchetto (83922) `3905-1` only. **Zero piani su `3905-5`/`3905-6`** → nessun atleta è davvero in Mixed Relay.
+API FITRI pubblica (`https://www.myfitri.it/MyfitriWeb/getClassificheAtleta/2026/<tessera>-FITRI`): 27/09 = `idGara W11450` "TRI EVENT Campionati Italiani di Triathlon Sprint **Coppa Crono Maschile**" per 85122/43981/111549/65172/106925/1443; 83922 nessun risultato 27/09. **Baldo è quindi già corretto sul DB** (`3905-4`).
+
+### 3 script SQL consegnati (da eseguire a mano, credenziali Supabase ancora non valide)
+1. `tools/2026-10-02_paolo_pellegrino_unatri.sql` — sposta **Paolo Pellegrino** (`c756da6a-0712-4734-b00b-48c47cd61608`, 65172/A200665) da `4139-1` (UNATRI kids, creato dall'utente dopo il 30/09 quindi invisibile agli export) a `4139-2` (UNATRI, Paullo 11-10): soft-delete/update condizionati + INSERT idempotente di fallback. Evento 4139 DB e catalogo già in sync.
+2. `tools/2026-10-02_cervia_3905_coppa_crono_maschile.sql` — per Albini `eef45d9c-…`, Quaglia `33f591a8-…`, Pellegrino `c756da6a-…`, Bonfanti `4f3e45bc-…`, Dughera `d6ca5f08-…`: dedup (soft-delete `rn>1` su `3905-3`/`3905-4`) + `UPDATE race_id='3905-3'→'3905-4'`. Baldo `d5aa242b-…` resta su `3905-4`, solo in verifica. Due errori runtime già corretti in fase preparazione: `text = uuid` (`::uuid` sulle VALUES) e `p.user_id` inesistente (ora `t.user_id`). **Non ancora eseguito.**
+3. `tools/2026-10-02_rimuovi_mixed_relay_3905-5.sql` — soft-delete di soli `race_id='3905-5'` + SELECT verifica con colonna `DA CANCELLARE`. **No-op atteso.**
+
+### Nome atleti
+`first_name`/`last_name` sono NULL per molti profili MTT: il nome reale è in colonna **`full_name`** (presente negli export perché `supabase_backup.py` fa `select("*")`).
+
