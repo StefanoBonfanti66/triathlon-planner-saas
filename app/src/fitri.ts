@@ -37,6 +37,10 @@ function mapRawResult(raw: any): FitriResult | null {
   (raw.listaNomiColonneCustom || []).forEach((name: string, i: number) => {
     splits.push({ name, value: raw.listaCampiCustom?.[i] ?? '' });
   });
+  const strPos = raw.strPosizione || `${raw.posizione}`;
+  const pos = Number(raw.posizione);
+  const posCat = Number(raw.posizione_categoria);
+  const isNonClass = /DSQ|SQUAL|RITIR|DNF|NON CLASS|ESCL|SQ/i.test(strPos) || pos > 900000 || posCat > 900000;
   return {
     idGara: raw.idGara,
     anno: Number(raw.anno) || 0,
@@ -47,9 +51,9 @@ function mapRawResult(raw: any): FitriResult | null {
     distanza: raw.distanza,
     localita: raw.localita,
     manifestazione: raw.manifestazione,
-    posizione: Number(raw.posizione) || 0,
-    strPosizione: raw.strPosizione || `${raw.posizione}`,
-    posizione_categoria: Number(raw.posizione_categoria) || 0,
+    posizione: isNonClass ? (pos > 900000 ? pos : 999999) : (pos || 0),
+    strPosizione: strPos,
+    posizione_categoria: isNonClass ? (posCat > 900000 ? posCat : 999999) : (posCat || 0),
     tempo: raw.tempo,
     splits,
     puntiFitri: raw.puntiFitri,
