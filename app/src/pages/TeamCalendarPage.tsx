@@ -52,8 +52,6 @@ const TeamCalendarPage: React.FC = () => {
 
   const fetchTeamCalendarDirect = async (teamId: string) => {
     try {
-      console.log("Fetching team plans for team:", teamId);
-      
       // 1. Prendi tutti i profili del team
       const { data: profiles } = await supabase.from('profiles').select('id, full_name, first_name, last_name, license_number').eq('team_id', teamId).is('deleted_at', null);
       if (!profiles) return;
