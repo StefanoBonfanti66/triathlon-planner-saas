@@ -6,7 +6,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../supabaseClient';
 import { 
   Shield, Users, Trophy, Plus, Edit2, Trash2, 
-  Save, X, ExternalLink, Mail, Upload, Download, FileText, Copy, Camera, FileSpreadsheet, AlertCircle, CheckCircle2, RotateCw, Calendar, Heart
+  Save, X, ExternalLink, Mail, Upload, Download, FileText, Copy, Camera, FileSpreadsheet, AlertCircle, CheckCircle2, RotateCw, Calendar, Heart, Activity
 } from 'lucide-react';
 import { Navigate } from 'react-router-dom';
 import racesData from "../races_full.json";
@@ -107,7 +107,7 @@ const AdminPage: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [uploading, setUploading] = useState(false);
     const [importing, setImporting] = useState(false);
-    const [activeTab, setActiveTab] = useState<'atleti' | 'team' | 'social' | 'logs' | 'stats'>('atleti');
+    const [activeTab, setActiveTab] = useState<'atleti' | 'team' | 'social' | 'logs' | 'stats' | 'workouts'>('atleti');
     const [searchTerm, setSearchTerm] = useState('');
     const [teamSearchTerm, setTeamSearchTerm] = useState('');
     
@@ -719,6 +719,7 @@ const AdminPage: React.FC = () => {
                 <div className="flex items-center gap-4"><div className="bg-amber-500 p-4 rounded-[2rem] text-white shadow-xl rotate-3"><Shield className="w-8 h-8" /></div><div><h1 className="text-3xl font-black text-slate-800 uppercase tracking-tight">{isSuperAdmin ? 'SaaS Command Center' : `Gestione ${teams[0]?.name}`} <span className="text-xs text-slate-400 font-mono font-normal normal-case">v{pkg.version}</span></h1><p className="text-slate-500 font-bold text-sm">Benvenuto Stefano.</p></div></div>
                 <div className="flex bg-slate-100 p-1.5 rounded-[1.5rem] overflow-x-auto no-scrollbar">
                     {['atleti', 'stats', 'social', 'logs'].map(tab => (<button key={tab} onClick={() => setActiveTab(tab as any)} className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === tab ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}>{tab}</button>))}
+                    {(myProfile?.team_id === 'mtt' || isSuperAdmin) && <button onClick={() => setActiveTab('workouts')} className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'workouts' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}>Allenamenti MTT</button>}
                     {isSuperAdmin && <button onClick={() => setActiveTab('team')} className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'team' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}>Team</button>}
                 </div>
             </div>
@@ -924,6 +925,32 @@ const AdminPage: React.FC = () => {
                 <div className="bg-white rounded-[3rem] shadow-sm border border-slate-100 overflow-hidden animate-in fade-in">
                     <div className="p-8 border-b border-slate-50 flex justify-between items-center"><h3 className="text-xl font-black uppercase text-slate-800">Log Attività</h3><button onClick={() => fetchAllData(isSuperAdmin, myProfile?.team_id)}><RotateCw className="w-5 h-5 text-slate-400"/></button></div>
                     <div className="overflow-x-auto"><table className="w-full text-left"><thead><tr className="bg-slate-50 text-[10px] font-black text-slate-400 uppercase tracking-widest"><th className="px-8 py-4">Data</th><th className="px-8 py-4">Admin</th><th className="px-8 py-4">Azione</th><th className="px-8 py-4 text-right">Dettagli</th></tr></thead><tbody className="divide-y divide-slate-50">{auditLogs.map(log => (<tr key={log.id} className="text-[11px]"><td className="px-8 py-4 font-bold">{new Date(log.created_at).toLocaleString('it-IT')}</td><td className="px-8 py-4 font-black">{log.profiles?.full_name || 'Sistema'}</td><td className="px-8 py-4"><span className="px-3 py-1 bg-slate-100 rounded-full">{log.action}</span></td><td className="px-8 py-4 text-slate-400 text-right truncate max-w-xs">{JSON.stringify(log.details)}</td></tr>))}</tbody></table></div>
+                </div>
+            )}
+
+            {activeTab === 'workouts' && (myProfile?.team_id === 'mtt' || isSuperAdmin) && (
+                <div className="bg-white rounded-[3rem] shadow-sm border border-slate-100 p-8 animate-in fade-in">
+                    <div className="flex items-center justify-between mb-8">
+                        <h3 className="text-xl font-black uppercase text-slate-800 flex items-center gap-3"><Activity className="w-6 h-6 text-blue-500" /> Allenamenti Settimanali MTT</h3>
+                        <div className="flex gap-3">
+                            <button onClick={async () => {
+                                const year = new Date().getFullYear();
+                                const week = Math.ceil((Date.now() - new Date(year,0,1).getTime()) / (7*24*60*60*1000));
+                                try {
+                                    const { generateWeeklyWorkouts } = await import('../lib/mttWorkouts');
+                                    await generateWeeklyWorkouts(year, week);
+                                    alert('Bozza generata con successo!');
+                                    window.location.reload();
+                                } catch(e:any) { alert(e.message); }
+                            }} className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl hover:bg-blue-700">
+                                <Plus className="w-4 h-4" /> Genera Settimana Corrente
+                            </button>
+                        </div>
+                    </div>
+                    <div className="text-center py-12 text-slate-400">
+                        <p className="text-sm font-bold">Gestisci bozza, approva e invia gli allenamenti al gruppo Telegram MTT</p>
+                        <p className="text-xs mt-2">Orario invio automatico: Domenica alle 20:00</p>
+                    </div>
                 </div>
             )}
 
