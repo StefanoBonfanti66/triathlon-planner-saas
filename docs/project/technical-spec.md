@@ -18,7 +18,8 @@ L'applicazione è strutturata come una Single Page Application (SPA) gestita tra
   - `/calendario-team`: TeamCalendarPage.
   - `/guida`: GuidePage.
   - `/race/:id`: RaceDetailPage.
-  - `/admin`: AdminPage.
+  - `/admin`: AdminPage (include il tab "Allenamenti MTT").
+  - `/allenamenti-mtt`: TeamWorkoutsPage (storico allenamenti inviati).
 
 ## 4. Architettura Logica
 ```mermaid
@@ -51,11 +52,13 @@ graph TD
 ## 5. Moduli Funzionali
 - **Dashboard**: Vista centrale per l'atleta/team, riepilogo prossime gare, alert, status.
 - **Team Calendar / Admin / Race Detail**: Gestione calendario gare di squadra, pannello amministrativo per configurazione utenti/team, dettaglio tecnico specifiche gare.
+- **Allenamenti MTT**: tab Admin (generate → approve → send) + storico in `/allenamenti-mtt`. Edge Function `mtt-weekly-workouts` su Supabase con azioni `generate` e `send`; tabella `team_workouts` (18 colonne, FK `team_id → teams.id` e `approved_by → profiles.id`, RLS, trigger `updated_at`). Workflow GitHub Actions `.github/workflows/mtt-weekly-workouts.yml` per l'invio schedulato.
 
 ## 6. Sicurezza
 Il progetto adotta le best practice fornite da Supabase:
 - **Autenticazione**: Gestita via Supabase Auth (JWT).
 - **RLS (Row Level Security)**: Implementata e attiva su tutte le tabelle critiche per l'isolamento dei dati per `team_id`.
+- **Edge Functions**: `mtt-weekly-workouts` accetta solo `POST` con header `Authorization: Bearer`; autorizzati `service_role` (confronto a tempo costante) o JWT di un admin MTT (`team_id='mtt'`). CORS con allowlist (Vercel produzione + preview + localhost), senza `*`. Il token del bot Telegram vive solo come secret Edge (`TELEGRAM_BOT_TOKEN`), mai nel frontend.
 - **Implementazione Standard ZBN**:
   - [x] RLS implementate e attive.
   - [x] Trigger `handle_new_user` su `auth.users` per sincronizzazione profili/ruoli.

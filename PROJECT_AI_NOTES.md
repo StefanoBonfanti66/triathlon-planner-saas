@@ -159,3 +159,36 @@ API FITRI pubblica (`https://www.myfitri.it/MyfitriWeb/getClassificheAtleta/2026
 ### Nome atleti
 `first_name`/`last_name` sono NULL per molti profili MTT: il nome reale è in colonna **`full_name`** (presente negli export perché `supabase_backup.py` fa `select("*")`).
 
+## Sessione 25 ottobre — Allenamenti MTT via Telegram: implementazione + test reale
+
+Branch: `feature/mtt-weekly-telegram-workouts` (commits `b21e5d2`, `b17858f` + follow-up auth/chat_id). Nessun merge su `main`.
+
+### Funzionalità
+- Tab **Admin → "Allenamenti MTT"**: genera la settimana, elenca le bozze, approva, invia su Telegram.
+- Pagina storico in-app `/allenamenti-mtt` (tab per disciplina, immagini se presenti).
+- Edge Function `mtt-weekly-workouts` con azioni `generate` e `send`, `POST` only.
+- Workflow GitHub Actions `.github/workflows/mtt-weekly-workouts.yml` (schedule + `workflow_dispatch`), con `npm ci` e `working-directory: app` per risolvere `@supabase/supabase-js`.
+
+### Sicurezza (root cause dei problemi incontrati)
+- **Helper Telegram lato client rimosso** (`app/src/lib/telegram.ts`): leggeva `VITE_TELEGRAM_BOT_TOKEN` → qualsiasi import avrebbe messo il token del bot nel bundle pubblico. Era anche la causa dei 2 errori TS `TS2339` (`.json()` non awaitato).
+- `requireMttAdmin`: `Authorization: Bearer` obbligatorio; accetta `service_role` oppure JWT di profilo con `team_id='mtt'` e `is_team_admin`/`is_super_admin` (email MTT in allowlist). Confronto chiavi a tempo costante (`safeEqual`).
+- CORS: allowlist `triathlon-planner-saas.vercel.app` + preview `*.vercel.app` + `localhost:<port>`; eliminato `*`.
+- `team_workouts.team_id` ora ha FK `team_workouts_team_id_fkey → teams.id` (la query PostgREST con `teams!inner(...)` falliva senza FK; il send ora interroga `teams` separatamente).
+- Secret Edge: `TELEGRAM_BOT_TOKEN` + `MTT_SERVICE_ROLE_KEY`. Il secret `SUPABASE_SERVICE_ROLE_KEY` auto-iniettato da Supabase è nel nuovo formato `sb_secret_...` e `auth.getClaims()` non valida il JWT `service_role` legacy → serve `MTT_SERVICE_ROLE_KEY` dedicato.
+
+### Test reale (autorizzato dall'utente)
+- Deploy Edge Function su `bwzzvdwiimvdwkiytknc` (prima 404 `NOT_FOUND`).
+- Schema: tabella `team_workouts` già presente in produzione; aggiunta solo la FK `team_id` (DDL via Management API `database/query` col PAT).
+- Bot di test temporaneo `@LisaCoachBot`: non è membro del gruppo MTT `-5117971075` → primo invio fallito con `chat not found` (0 messaggi inviati, record riportato a `approved`).
+- Aggiunto parametro opzionale `chat_id` alla action `send` (validato come intero, riservato agli admin MTT) per il test su chat privata.
+- **Invio riuscito**: workout settimana 43/2026, `status='sent'`, **11 messaggi** di solo testo, `telegram_message_ids` 56–66, `sent_at` registrato.
+- Rollback definito: `deleteMessage` dei 56–66, record a `approved`, `supabase functions delete` + `supabase secrets delete`.
+
+### Da completare
+- Bot Telegram definitivo MTT → sostituire il token del temporaneo nel secret Edge e ripetere il test sul chat gruppo `-5117971075`.
+- Immagini + testo (oggi solo testo); invio il **lunedì** (attuale workflow: domenica 18:00 UTC = 20:00 CEST).
+- Decidere proprietario del bot e destinatari (gruppo MTT vs sottogruppo).
+- Il commit `9cf7ddf` ha cancellato 4 script SQL operativi che esistono su `main`: `tools/2026-09-30_stefano_baldo_lecco_cervia.sql`, `tools/2026-10-02_cervia_3905_coppa_crono_maschile.sql`, `tools/2026-10-02_paolo_pellegrino_unatri.sql`, `tools/2026-10-02_rimuovi_mixed_relay_3905-5.sql` → decidere prima del merge su `main`.
+- Il workflow Actions esiste solo sul branch feature: GitHub lo attiva solo dopo il merge nel branch di default.
+- Credenziali di test in `~/.config/opencode/secrets/mtt/` (PAT, service_role, bot token) — fuori dal repo, da non committare.
+
