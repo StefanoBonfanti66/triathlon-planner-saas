@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../supabaseClient';
 import { getTeamWorkouts, TeamWorkout } from '../lib/mttWorkouts';
 import { Calendar, Waves, Bike, Activity, ChevronDown, ChevronUp, Image as ImageIcon } from 'lucide-react';
 
