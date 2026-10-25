@@ -5,7 +5,7 @@
 -- Tabella principale
 CREATE TABLE IF NOT EXISTS public.team_workouts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  team_id TEXT NOT NULL DEFAULT 'mtt',
+  team_id TEXT NOT NULL DEFAULT 'mtt' REFERENCES public.teams(id),
   year INT NOT NULL,
   week_number INT NOT NULL,
   status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','approved','scheduled','sent','error')),
@@ -23,6 +23,18 @@ CREATE TABLE IF NOT EXISTS public.team_workouts (
   updated_at TIMESTAMPTZ DEFAULT now(),
   CONSTRAINT team_workouts_unique_week UNIQUE(team_id, year, week_number)
 );
+
+-- Foreign key verso teams (idempotente, utile se la tabella esisteva gia')
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'team_workouts_team_id_fkey'
+  ) THEN
+    ALTER TABLE public.team_workouts
+      ADD CONSTRAINT team_workouts_team_id_fkey
+      FOREIGN KEY (team_id) REFERENCES public.teams(id);
+  END IF;
+END $$;
 
 -- Indici
 CREATE INDEX IF NOT EXISTS idx_team_workouts_team_year_week ON public.team_workouts(team_id, year, week_number);

@@ -1,26 +1,85 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+const MTT_ADMIN_EMAILS = ['sbonfanti@hotmail.com', 'bonfantistefano4@gmail.com']
+const MTT_FALLBACK_CHAT_ID = '-5117971075'
+
+const baseCorsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Vary': 'Origin',
+}
+
+function corsHeadersFor(req: Request) {
+  const origin = req.headers.get('Origin') ?? ''
+  const allowed = origin === 'https://triathlon-planner-saas.vercel.app'
+    || /^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(origin)
+    || /^http:\/\/localhost:\d+$/.test(origin)
+
+  return allowed ? { ...baseCorsHeaders, 'Access-Control-Allow-Origin': origin } : { ...baseCorsHeaders }
+}
+
+async function requireMttAdmin(supabaseClient: any, req: Request) {
+  const authorization = req.headers.get('Authorization') ?? ''
+  const token = authorization.replace(/^Bearer\s+/i, '').trim()
+  if (!token) throw new Error('Autenticazione richiesta')
+
+  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+  if (serviceRoleKey && token === serviceRoleKey) return
+
+  const { data, error } = await supabaseClient.auth.getClaims(token)
+  if (error || !data?.claims) throw new Error('Token non valido o scaduto')
+
+  if (data.claims.role === 'service_role') return
+
+  const { data: profileData, error: profileError } = await supabaseClient
+    .from('profiles')
+    .select('team_id, is_team_admin, is_super_admin, email')
+    .eq('id', data.claims.sub)
+    .maybeSingle()
+
+  const profile = profileData as any
+
+  if (profileError) throw profileError
+
+  const isAdmin = profile?.is_team_admin === true
+    || profile?.is_super_admin === true
+    || MTT_ADMIN_EMAILS.includes((profile?.email ?? '').toLowerCase())
+
+  if (!isAdmin || profile?.team_id !== 'mtt') {
+    throw new Error('Solo gli admin MTT possono eseguire questa operazione')
+  }
 }
 
 serve(async (req) => {
+  const headers = corsHeadersFor(req)
+
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response('ok', { headers })
+  }
+
+  if (req.method !== 'POST') {
+    return new Response(JSON.stringify({ error: 'Metodo non consentito' }), {
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      status: 405,
+    })
   }
 
   try {
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      { auth: { persistSession: false } }
     )
+
+    await requireMttAdmin(supabaseClient, req)
 
     const { action, year, week_number, workout_id } = await req.json()
 
     if (action === 'generate') {
-      // Generate workout with AI + web screening
+      if (!Number.isInteger(year) || year < 2020 || year > 2100) throw new Error('Anno non valido')
+      if (!Number.isInteger(week_number) || week_number < 1 || week_number > 53) throw new Error('Settimana non valida')
+
       const workoutContent = {
         week_number,
         year,
@@ -32,7 +91,7 @@ serve(async (req) => {
             title: 'Nuoto - Tecnica + Resistenza',
             duration: '1h 00min',
             warmup: ['400m misto a ritmo facile', '4x50m gambe con tavoletta'],
-            main: ['6x100m (15\" rec)', '4x50m veloci (10\" rec)', '200m pull con palette'],
+            main: ['6x100m (15" rec)', '4x50m veloci (10" rec)', '200m pull con palette'],
             cooldown: ['200m a ritmo molto facile'],
             tips: ['Concentrati sulla respirazione bilaterale', 'Non forzare se stanco']
           },
@@ -41,7 +100,7 @@ serve(async (req) => {
             title: 'Nuoto - Ripetute aerobiche',
             duration: '1h 00min',
             warmup: ['300m sciolti'],
-            main: ['8x50m (10\" rec)', '5x100m (15\" rec)', '4x50m (8\" rec)'],
+            main: ['8x50m (10" rec)', '5x100m (15" rec)', '4x50m (8" rec)'],
             cooldown: ['200m molto facile'],
             tips: ['Mantieni un ritmo costante', 'Fai attenzione alla tecnica']
           }
@@ -119,31 +178,40 @@ serve(async (req) => {
       if (error) throw error
 
       return new Response(JSON.stringify({ success: true, workout: data }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...headers, 'Content-Type': 'application/json' },
       })
     }
 
     if (action === 'send') {
-      // Get workout
       const { data: workout, error: wError } = await supabaseClient
         .from('team_workouts')
-        .select('*, teams!inner(telegram_chat_id)')
+        .select('*')
         .eq('id', workout_id)
-        .single()
+        .eq('team_id', 'mtt')
+        .maybeSingle()
 
       if (wError) throw wError
+      if (!workout) throw new Error('Allenamento non trovato')
+      if (workout.status === 'sent') throw new Error('Allenamento gia inviato')
+      if (workout.status !== 'approved' && workout.status !== 'scheduled') {
+        throw new Error('Solo gli allenamenti approvati possono essere inviati')
+      }
 
-      const chatId = workout.teams?.telegram_chat_id || '-5117971075'
+      const { data: team, error: teamError } = await supabaseClient
+        .from('teams')
+        .select('telegram_chat_id')
+        .eq('id', workout.team_id)
+        .maybeSingle()
+
+      if (teamError) throw teamError
+
+      const chatId = team?.telegram_chat_id || MTT_FALLBACK_CHAT_ID
       const token = Deno.env.get('TELEGRAM_BOT_TOKEN')
 
       if (!token) throw new Error('TELEGRAM_BOT_TOKEN non configurato')
 
-      const messageIds = []
+      const messageIds: number[] = []
       const content = workout.content
-
-      // Send header
-      let header = `*🏊🚴🏃 ${content.title}*\n\n`
-      header += `${content.intro}\n\n`
 
       const sendMsg = async (text: string) => {
         const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
@@ -157,73 +225,81 @@ serve(async (req) => {
           })
         })
         const data = await res.json()
-        if (data.ok) messageIds.push(data.result.message_id)
+        if (!res.ok || !data.ok) {
+          throw new Error(data.description || `Errore Telegram (${res.status})`)
+        }
+        messageIds.push(data.result.message_id)
         return data
       }
 
-      await sendMsg(header)
+      try {
+        let header = `*🏊🚴🏃 ${content.title}*\n\n`
+        header += `${content.intro}\n\n`
+        await sendMsg(header)
 
-      // Send swim
-      await sendMsg(`*🏊 NUOTO*\n\n`)
-      for (const block of content.swim) {
-        let msg = `*${block.title}* (${block.duration})\n\n`
-        if (block.warmup?.length) {
-          msg += `*Riscaldamento:*\n${block.warmup.map(x => `• ${x}`).join('\n')}\n\n`
+        await sendMsg(`*🏊 NUOTO*\n\n`)
+        for (const block of content.swim) {
+          let msg = `*${block.title}* (${block.duration})\n\n`
+          if (block.warmup?.length) {
+            msg += `*Riscaldamento:*\n${block.warmup.map((x: string) => `• ${x}`).join('\n')}\n\n`
+          }
+          msg += `*Parte principale:*\n${block.main.map((x: string) => `• ${x}`).join('\n')}\n\n`
+          if (block.cooldown?.length) {
+            msg += `*Defaticamento:*\n${block.cooldown.map((x: string) => `• ${x}`).join('\n')}\n\n`
+          }
+          if (block.tips?.length) {
+            msg += `*Consigli:*\n${block.tips.map((x: string) => `💡 ${x}`).join('\n')}\n`
+          }
+          await sendMsg(msg)
         }
-        msg += `*Parte principale:*\n${block.main.map(x => `• ${x}`).join('\n')}\n\n`
-        if (block.cooldown?.length) {
-          msg += `*Defaticamento:*\n${block.cooldown.map(x => `• ${x}`).join('\n')}\n\n`
+
+        await sendMsg(`*🚴 BICI*\n\n`)
+        for (const block of content.bike) {
+          let msg = `*${block.title}* (${block.duration})\n\n`
+          if (block.warmup?.length) {
+            msg += `*Riscaldamento:*\n${block.warmup.map((x: string) => `• ${x}`).join('\n')}\n\n`
+          }
+          msg += `*Parte principale:*\n${block.main.map((x: string) => `• ${x}`).join('\n')}\n\n`
+          if (block.cooldown?.length) {
+            msg += `*Defaticamento:*\n${block.cooldown.map((x: string) => `• ${x}`).join('\n')}\n\n`
+          }
+          if (block.tips?.length) {
+            msg += `*Consigli:*\n${block.tips.map((x: string) => `💡 ${x}`).join('\n')}\n`
+          }
+          await sendMsg(msg)
         }
-        if (block.tips?.length) {
-          msg += `*Consigli:*\n${block.tips.map(x => `💡 ${x}`).join('\n')}\n`
+
+        await sendMsg(`*🏃 CORSA*\n\n`)
+        for (const block of content.run) {
+          let msg = `*${block.title}* (${block.duration})\n\n`
+          if (block.warmup?.length) {
+            msg += `*Riscaldamento:*\n${block.warmup.map((x: string) => `• ${x}`).join('\n')}\n\n`
+          }
+          msg += `*Parte principale:*\n${block.main.map((x: string) => `• ${x}`).join('\n')}\n\n`
+          if (block.cooldown?.length) {
+            msg += `*Defaticamento:*\n${block.cooldown.map((x: string) => `• ${x}`).join('\n')}\n\n`
+          }
+          if (block.tips?.length) {
+            msg += `*Consigli:*\n${block.tips.map((x: string) => `💡 ${x}`).join('\n')}\n`
+          }
+          await sendMsg(msg)
         }
-        await sendMsg(msg)
+
+        let tips = `*💡 COME ADATTARE GLI ALLENAMENTI*\n\n`
+        tips += `*FTP:* ${content.adaptation_tips.ftp}\n\n`
+        tips += `*VO2max:* ${content.adaptation_tips.vo2max}\n\n`
+        tips += `*Andature/Velocita:* ${content.adaptation_tips.pace}\n\n`
+        tips += `_${content.notes}_`
+        await sendMsg(tips)
+      } catch (sendError) {
+        await supabaseClient
+          .from('team_workouts')
+          .update({ status: 'error' })
+          .eq('id', workout_id)
+        throw sendError
       }
 
-      // Send bike
-      await sendMsg(`*🚴 BICI*\n\n`)
-      for (const block of content.bike) {
-        let msg = `*${block.title}* (${block.duration})\n\n`
-        if (block.warmup?.length) {
-          msg += `*Riscaldamento:*\n${block.warmup.map(x => `• ${x}`).join('\n')}\n\n`
-        }
-        msg += `*Parte principale:*\n${block.main.map(x => `• ${x}`).join('\n')}\n\n`
-        if (block.cooldown?.length) {
-          msg += `*Defaticamento:*\n${block.cooldown.map(x => `• ${x}`).join('\n')}\n\n`
-        }
-        if (block.tips?.length) {
-          msg += `*Consigli:*\n${block.tips.map(x => `💡 ${x}`).join('\n')}\n`
-        }
-        await sendMsg(msg)
-      }
-
-      // Send run
-      await sendMsg(`*🏃 CORSA*\n\n`)
-      for (const block of content.run) {
-        let msg = `*${block.title}* (${block.duration})\n\n`
-        if (block.warmup?.length) {
-          msg += `*Riscaldamento:*\n${block.warmup.map(x => `• ${x}`).join('\n')}\n\n`
-        }
-        msg += `*Parte principale:*\n${block.main.map(x => `• ${x}`).join('\n')}\n\n`
-        if (block.cooldown?.length) {
-          msg += `*Defaticamento:*\n${block.cooldown.map(x => `• ${x}`).join('\n')}\n\n`
-        }
-        if (block.tips?.length) {
-          msg += `*Consigli:*\n${block.tips.map(x => `💡 ${x}`).join('\n')}\n`
-        }
-        await sendMsg(msg)
-      }
-
-      // Send tips
-      let tips = `*💡 COME ADATTARE GLI ALLENAMENTI*\n\n`
-      tips += `*FTP:* ${content.adaptation_tips.ftp}\n\n`
-      tips += `*VO2max:* ${content.adaptation_tips.vo2max}\n\n`
-      tips += `*Andature/Velocità:* ${content.adaptation_tips.pace}\n\n`
-      tips += `_${content.notes}_`
-      await sendMsg(tips)
-
-      // Update workout
-      await supabaseClient
+      const { error: updateError } = await supabaseClient
         .from('team_workouts')
         .update({
           status: 'sent',
@@ -232,15 +308,17 @@ serve(async (req) => {
         })
         .eq('id', workout_id)
 
+      if (updateError) throw updateError
+
       return new Response(JSON.stringify({ success: true, message_count: messageIds.length }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...headers, 'Content-Type': 'application/json' },
       })
     }
 
     throw new Error('Azione non supportata')
-  } catch (error) {
+  } catch (error: any) {
     return new Response(JSON.stringify({ error: error.message }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...headers, 'Content-Type': 'application/json' },
       status: 400,
     })
   }
