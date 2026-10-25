@@ -19,13 +19,24 @@ function corsHeadersFor(req: Request) {
   return allowed ? { ...baseCorsHeaders, 'Access-Control-Allow-Origin': origin } : { ...baseCorsHeaders }
 }
 
+function safeEqual(a: string, b: string) {
+  if (a.length !== b.length) return false
+  let diff = 0
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i)
+  return diff === 0
+}
+
 async function requireMttAdmin(supabaseClient: any, req: Request) {
   const authorization = req.headers.get('Authorization') ?? ''
   const token = authorization.replace(/^Bearer\s+/i, '').trim()
   if (!token) throw new Error('Autenticazione richiesta')
 
-  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-  if (serviceRoleKey && token === serviceRoleKey) return
+  const serviceRoleKeys = [
+    Deno.env.get('MTT_SERVICE_ROLE_KEY'),
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'),
+  ].filter((value): value is string => Boolean(value))
+
+  if (serviceRoleKeys.some((key) => safeEqual(token, key))) return
 
   const { data, error } = await supabaseClient.auth.getClaims(token)
   if (error || !data?.claims) throw new Error('Token non valido o scaduto')
@@ -74,7 +85,7 @@ serve(async (req) => {
 
     await requireMttAdmin(supabaseClient, req)
 
-    const { action, year, week_number, workout_id } = await req.json()
+    const { action, year, week_number, workout_id, chat_id } = await req.json()
 
     if (action === 'generate') {
       if (!Number.isInteger(year) || year < 2020 || year > 2100) throw new Error('Anno non valido')
@@ -205,7 +216,11 @@ serve(async (req) => {
 
       if (teamError) throw teamError
 
-      const chatId = team?.telegram_chat_id || MTT_FALLBACK_CHAT_ID
+      const overrideChatId = typeof chat_id === 'string' && /^-?\d+$/.test(chat_id.trim())
+        ? chat_id.trim()
+        : null
+
+      const chatId = overrideChatId || team?.telegram_chat_id || MTT_FALLBACK_CHAT_ID
       const token = Deno.env.get('TELEGRAM_BOT_TOKEN')
 
       if (!token) throw new Error('TELEGRAM_BOT_TOKEN non configurato')
