@@ -117,6 +117,10 @@ const AdminPage: React.FC = () => {
     const [plansCount, setPlansCount] = useState<Record<string, number>>({});
     const [auditLogs, setAuditLogs] = useState<any[]>([]);
 
+    const [workouts, setWorkouts] = useState<any[]>([]);
+    const [workoutsLoading, setWorkoutsLoading] = useState(false);
+    const [workoutBusyId, setWorkoutBusyId] = useState<string | null>(null);
+
     // Athlete Modal State
     const [isAthleteModalOpen, setIsAthleteModalOpen] = useState(false);
     const [editingAthlete, setEditingAthlete] = useState<any>(null);
@@ -224,6 +228,51 @@ const AdminPage: React.FC = () => {
         };
         init();
     }, []);
+
+    const loadWorkouts = async () => {
+        setWorkoutsLoading(true);
+        try {
+            const { getWorkoutDrafts } = await import('../lib/mttWorkouts');
+            setWorkouts(await getWorkoutDrafts());
+        } catch (e: any) {
+            alert(e.message);
+        } finally {
+            setWorkoutsLoading(false);
+        }
+    };
+
+    const handleApproveWorkout = async (workoutId: string) => {
+        setWorkoutBusyId(workoutId);
+        try {
+            const { approveWorkout } = await import('../lib/mttWorkouts');
+            await approveWorkout(workoutId);
+            await loadWorkouts();
+        } catch (e: any) {
+            alert(e.message);
+        } finally {
+            setWorkoutBusyId(null);
+        }
+    };
+
+    const handleSendWorkout = async (workoutId: string) => {
+        setWorkoutBusyId(workoutId);
+        try {
+            const { sendWorkoutToTelegram } = await import('../lib/mttWorkouts');
+            const result = await sendWorkoutToTelegram(workoutId);
+            alert(`Allenamento inviato su Telegram (${result?.message_count ?? 0} messaggi)`);
+        } catch (e: any) {
+            alert(e.message);
+        } finally {
+            setWorkoutBusyId(null);
+            await loadWorkouts();
+        }
+    };
+
+    useEffect(() => {
+        if (activeTab === 'workouts' && (myProfile?.team_id === 'mtt' || isSuperAdmin)) {
+            loadWorkouts();
+        }
+    }, [activeTab, myProfile?.team_id, isSuperAdmin]);
 
     const getFitriCategory = (birthYear: any) => {
         const year = parseInt(birthYear);
@@ -940,17 +989,48 @@ const AdminPage: React.FC = () => {
                                     const { generateWeeklyWorkouts } = await import('../lib/mttWorkouts');
                                     await generateWeeklyWorkouts(year, week);
                                     alert('Bozza generata con successo!');
-                                    window.location.reload();
+                                    await loadWorkouts();
                                 } catch(e:any) { alert(e.message); }
                             }} className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl hover:bg-blue-700">
                                 <Plus className="w-4 h-4" /> Genera Settimana Corrente
                             </button>
                         </div>
                     </div>
-                    <div className="text-center py-12 text-slate-400">
-                        <p className="text-sm font-bold">Gestisci bozza, approva e invia gli allenamenti al gruppo Telegram MTT</p>
-                        <p className="text-xs mt-2">Orario invio automatico: Domenica alle 20:00</p>
-                    </div>
+                    <p className="text-xs text-slate-400 mb-6">Gestisci bozza, approva e invia gli allenamenti al gruppo Telegram MTT. Orario invio automatico: domenica alle 20:00.</p>
+                    {workoutsLoading ? (
+                        <div className="text-center py-12 text-slate-400 font-bold uppercase text-xs tracking-widest">Caricamento allenamenti...</div>
+                    ) : workouts.length === 0 ? (
+                        <div className="text-center py-12 text-slate-400">
+                            <p className="text-sm font-bold">Nessuna bozza da gestire</p>
+                            <p className="text-xs mt-2">Usa "Genera Settimana Corrente" per creare la bozza della settimana</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-3">
+                            {workouts.map((workout) => (
+                                <div key={workout.id} className="flex flex-wrap items-center justify-between gap-4 p-5 bg-slate-50 rounded-2xl border border-slate-100">
+                                    <div>
+                                        <div className="font-black text-slate-800">{workout.content?.title}</div>
+                                        <div className="text-xs text-slate-500 mt-1">
+                                            Settimana {workout.week_number}/{workout.year} · Stato: <span className="font-bold uppercase">{workout.status}</span>
+                                        </div>
+                                        {workout.status === 'error' && <div className="text-xs text-red-500 font-bold mt-1">Invio fallito: riprova o genera una nuova bozza</div>}
+                                    </div>
+                                    <div className="flex gap-2">
+                                        {workout.status === 'draft' && (
+                                            <button onClick={() => handleApproveWorkout(workout.id)} disabled={workoutBusyId === workout.id} className="px-5 py-3 bg-amber-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-amber-600 disabled:opacity-50">
+                                                Approva
+                                            </button>
+                                        )}
+                                        {(workout.status === 'approved' || workout.status === 'scheduled') && (
+                                            <button onClick={() => handleSendWorkout(workout.id)} disabled={workoutBusyId === workout.id} className="px-5 py-3 bg-green-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-green-700 disabled:opacity-50">
+                                                Invia su Telegram
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
             )}
 

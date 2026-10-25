@@ -45,13 +45,20 @@ const Header = memo(({ session, team, onOpenAdmin }: { session: any, team?: any,
                         <LayoutDashboard className="w-4 h-4" />
                         <span className="hidden sm:inline">Dashboard</span>
                     </NavLink>
-                    <>
-                      <NavLink to="/calendario-team" 
+                    <NavLink to="/calendario-team" 
                              className="flex items-center gap-2 px-4 py-2 bg-slate-100 border border-slate-200 text-slate-600 rounded-2xl text-sm font-bold hover:bg-blue-50 hover:text-blue-600" 
                              style={({ isActive }: { isActive: boolean }) => isActive ? getActiveLinkStyle(team?.primary_color) : undefined}>
                         <Users className="w-4 h-4" />
                         <span className="hidden sm:inline">Team</span>
                     </NavLink>
+                    {team?.id === 'mtt' && (
+                      <NavLink to="/allenamenti-mtt" 
+                               className="flex items-center gap-2 px-4 py-2 bg-slate-100 border border-slate-200 text-slate-600 rounded-2xl text-sm font-bold hover:bg-blue-50 hover:text-blue-600" 
+                               style={({ isActive }: { isActive: boolean }) => isActive ? getActiveLinkStyle(team?.primary_color) : undefined}>
+                        <Activity className="w-4 h-4" />
+                        <span className="hidden sm:inline">Allenamenti MTT</span>
+                      </NavLink>
+                    )}
                     <NavLink to="/guida" 
                              className="flex items-center gap-2 px-4 py-2 bg-slate-100 border border-slate-200 text-slate-600 rounded-2xl text-sm font-bold hover:bg-blue-50 hover:text-blue-600" 
                              style={({ isActive }: { isActive: boolean }) => isActive ? getActiveLinkStyle(team?.primary_color) : undefined}>
@@ -67,14 +74,7 @@ const Header = memo(({ session, team, onOpenAdmin }: { session: any, team?: any,
                                  style={({ isActive }: { isActive: boolean }) => isActive ? { backgroundColor: '#fef3c7', borderColor: '#f59e0b' } : undefined}>
                             <Shield className="w-4 h-4" /> 
                             <span className="hidden sm:inline">Admin</span>
-                    </NavLink>
-                    {team?.id === 'mtt' && (
-                      <NavLink to="/allenamenti-mtt" className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-blue-50 hover:text-blue-600 transition-colors">
-                        <Activity className="w-4 h-4" />
-                        <span>Allenamenti MTT</span>
-                      </NavLink>
-                    )}
-                    </>
+                        </NavLink>
                     )}
                     
                     <a 
