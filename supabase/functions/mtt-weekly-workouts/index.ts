@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { buildWeekSkeleton, dateFromIsoWeek, WeekSkeleton, SkeletonSession } from './periodization.ts'
 
 const MTT_ADMIN_EMAILS = ['sbonfanti@hotmail.com', 'bonfantistefano4@gmail.com']
 const MTT_FALLBACK_CHAT_ID = '-5117971075'
@@ -62,6 +63,166 @@ async function requireMttAdmin(supabaseClient: any, req: Request) {
   }
 }
 
+function toContentBlock(s: SkeletonSession) {
+  return {
+    discipline: s.discipline,
+    title: s.title,
+    duration: s.duration,
+    warmup: ['Riscaldamento graduale 10-15min a ritmo facile'],
+    main: s.mainOutline,
+    cooldown: ['Defaticamento 5-10min facile + stretching'],
+    tips: [`Intensità: ${s.intensity}`, `Focus: ${s.focus}`],
+  }
+}
+
+function skeletonTitle(skeleton: WeekSkeleton, year: number, weekNumber: number): string {
+  const recovery = skeleton.isRecovery ? ' · scarico' : ''
+  return `Allenamenti MTT - Settimana ${weekNumber}/${year} · ${skeleton.phaseLabel} (sett. ${skeleton.weekInMeso}/4${recovery})`
+}
+
+function renderStaticContent(skeleton: WeekSkeleton, year: number, weekNumber: number) {
+  const pick = (d: SkeletonSession['discipline']) =>
+    skeleton.sessions.filter((s) => s.discipline === d).map(toContentBlock)
+
+  return {
+    week_number: weekNumber,
+    year,
+    title: skeletonTitle(skeleton, year, weekNumber),
+    intro: `Fase ${skeleton.phaseLabel} — ${skeleton.mesoProgression}. Allenamenti non personalizzati pensati per amatori 30-60 anni: adatta intensità e volumi in base alle tue sensazioni.`,
+    swim: pick('swim'),
+    bike: pick('bike'),
+    run: pick('run'),
+    notes: 'Ricorda: idratazione e alimentazione adatte al tuo tipo di allenamento. In caso di dubbi o fastidi, consulta il tuo medico.',
+    tips_by_discipline: {
+      swim: ['Focus su tecnica > distanza', 'Usa pull/palette con moderazione'],
+      bike: ['Mantenimento + controllo respirazione', 'Idratazione importante per uscite >1h'],
+      run: ['Aumenta gradualmente se riprendi', 'Scarpe adatte e terreni idonei'],
+    },
+    adaptation_tips: {
+      ftp: 'Se conosci il tuo FTP, lavora tra 65-80% per questi allenamenti. Se non lo conosci, usa la Regola della Conversazione: devi riuscire a parlare durante l\'allenamento.',
+      vo2max: 'Per gli intervalli, se conosci i tuoi valori VO2max, rimani tra 85-92%. Altrimenti riduci l\'intensità finché non riesci a recuperare bene tra le ripetizioni.',
+      pace: 'Per la corsa, usa il tuo ritmo facile (circa 1-1\'30" più lento del tuo 5K) come riferimento. Se non hai tempi di riferimento, parti dal \'comfortably hard\' molto conservativo.',
+    },
+  }
+}
+
+function parseJsonLoose(text: string): unknown | null {
+  let t = text.trim()
+  const fence = t.match(/```(?:json)?\s*([\s\S]*?)```/i)
+  if (fence) t = fence[1].trim()
+  const start = t.indexOf('{')
+  const end = t.lastIndexOf('}')
+  if (start === -1 || end === -1 || end <= start) return null
+  try {
+    return JSON.parse(t.slice(start, end + 1))
+  } catch {
+    return null
+  }
+}
+
+function validateContent(c: unknown): string | null {
+  if (!c || typeof c !== 'object') return 'non è un oggetto'
+  const o = c as Record<string, unknown>
+  if (typeof o.title !== 'string' || !o.title.trim()) return 'title mancante'
+  if (typeof o.intro !== 'string' || !o.intro.trim()) return 'intro mancante'
+  if (typeof o.notes !== 'string' || !o.notes.trim()) return 'notes mancante'
+  for (const d of ['swim', 'bike', 'run'] as const) {
+    const arr = o[d]
+    if (!Array.isArray(arr) || arr.length < 1) return `${d} vuoto`
+    for (const block of arr as Array<Record<string, unknown>>) {
+      if (typeof block?.title !== 'string' || !block.title.trim()) return `${d}: block title mancante`
+      if (!Array.isArray(block.main) || block.main.length < 1 || (block.main as unknown[]).some((x) => typeof x !== 'string')) {
+        return `${d}: main non valido`
+      }
+    }
+  }
+  const at = o.adaptation_tips as Record<string, unknown> | undefined
+  if (!at || typeof at.ftp !== 'string' || typeof at.vo2max !== 'string' || typeof at.pace !== 'string') {
+    return 'adaptation_tips incompleto'
+  }
+  const tbd = o.tips_by_discipline as Record<string, unknown> | undefined
+  if (!tbd || !Array.isArray(tbd.swim) || !Array.isArray(tbd.bike) || !Array.isArray(tbd.run)) {
+    return 'tips_by_discipline incompleto'
+  }
+  return null
+}
+
+async function renderWithLLM(
+  skeleton: WeekSkeleton,
+  year: number,
+  weekNumber: number,
+  previousTitle?: string,
+): Promise<{ content: Record<string, unknown>; model: string } | null> {
+  const apiKey = Deno.env.get('LLM_API_KEY')
+  if (!apiKey) return null
+
+  const baseUrl = (Deno.env.get('LLM_BASE_URL') ?? 'https://api.groq.com/openai/v1').replace(/\/+$/, '')
+  const model = Deno.env.get('LLM_MODEL') ?? 'openai/gpt-oss-120b'
+
+  const system = [
+    'Sei un coach di triathlon per amatori italiani di 30-60 anni (livello base-intermedio, distanze sprint/olimpico).',
+    'Devi produrre ESCLUSIVAMENTE un oggetto JSON valido, senza markdown né commenti, che rappresenta il piano allenamenti della settimana.',
+    'Regole: lingua italiana; intensità sempre in RPE (percezione) o %FC, MAI valori FTP assoluti; rispetta la struttura (sessioni, durate, titoli, fase) dello scheletro fornito, espandendo warmup/main/cooldown/tips in modo naturale e concreto;',
+    'varia le parole rispetto alla settimana precedente se indicata; tono pratico, incoraggiante, senza pretese da elite; ogni block ha warmup/main/cooldown/tips come array di stringhe.',
+  ].join(' ')
+
+  const user = JSON.stringify({
+    task: 'Genera il contenuto completo degli allenamenti settimanali',
+    meta: {
+      year,
+      week_number: weekNumber,
+      title_format: skeletonTitle(skeleton, year, weekNumber),
+      macro_phase: skeleton.phaseLabel,
+      week_in_mesocycle: skeleton.weekInMeso,
+      is_recovery_week: skeleton.isRecovery,
+      progression: skeleton.mesoProgression,
+      previous_week_title: previousTitle ?? null,
+      weekly_notes: skeleton.weeklyNotes,
+    },
+    skeleton: skeleton.sessions,
+    required_schema: {
+      title: 'string',
+      intro: 'string',
+      swim: [{ discipline: 'swim', title: 'string', duration: 'string', warmup: ['string'], main: ['string'], cooldown: ['string'], tips: ['string'] }],
+      bike: [{ discipline: 'bike', title: 'string', duration: 'string', warmup: ['string'], main: ['string'], cooldown: ['string'], tips: ['string'] }],
+      run: [{ discipline: 'run', title: 'string', duration: 'string', warmup: ['string'], main: ['string'], cooldown: ['string'], tips: ['string'] }],
+      notes: 'string',
+      tips_by_discipline: { swim: ['string'], bike: ['string'], run: ['string'] },
+      adaptation_tips: { ftp: 'string (solo percezione/RPE)', vo2max: 'string', pace: 'string' },
+    },
+  })
+
+  try {
+    const res = await fetch(`${baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model,
+        temperature: 0.8,
+        max_tokens: 4000,
+        messages: [
+          { role: 'system', content: system },
+          { role: 'user', content: user },
+        ],
+      }),
+      signal: AbortSignal.timeout(45000),
+    })
+    if (!res.ok) return null
+    const data = await res.json()
+    const text: string = data?.choices?.[0]?.message?.content ?? ''
+    if (!text) return null
+    const parsed = parseJsonLoose(text)
+    if (validateContent(parsed)) return null
+    const content = parsed as Record<string, unknown>
+    content.week_number = weekNumber
+    content.year = year
+    content.title = skeletonTitle(skeleton, year, weekNumber)
+    return { content, model }
+  } catch {
+    return null
+  }
+}
+
 serve(async (req) => {
   const headers = corsHeadersFor(req)
 
@@ -91,83 +252,34 @@ serve(async (req) => {
       if (!Number.isInteger(year) || year < 2020 || year > 2100) throw new Error('Anno non valido')
       if (!Number.isInteger(week_number) || week_number < 1 || week_number > 53) throw new Error('Settimana non valida')
 
-      const workoutContent = {
-        week_number,
-        year,
-        title: `Allenamenti MTT - Settimana ${week_number}/${year}`,
-        intro: "Allenamenti non personalizzati pensati per amatori 30-60 anni. Adatta intensità e volumi in base alle tue sensazioni.",
-        swim: [
-          {
-            discipline: 'swim',
-            title: 'Nuoto - Tecnica + Resistenza',
-            duration: '1h 00min',
-            warmup: ['400m misto a ritmo facile', '4x50m gambe con tavoletta'],
-            main: ['6x100m (15" rec)', '4x50m veloci (10" rec)', '200m pull con palette'],
-            cooldown: ['200m a ritmo molto facile'],
-            tips: ['Concentrati sulla respirazione bilaterale', 'Non forzare se stanco']
-          },
-          {
-            discipline: 'swim',
-            title: 'Nuoto - Ripetute aerobiche',
-            duration: '1h 00min',
-            warmup: ['300m sciolti'],
-            main: ['8x50m (10" rec)', '5x100m (15" rec)', '4x50m (8" rec)'],
-            cooldown: ['200m molto facile'],
-            tips: ['Mantieni un ritmo costante', 'Fai attenzione alla tecnica']
-          }
-        ],
-        bike: [
-          {
-            discipline: 'bike',
-            title: 'Bici - Fondo aerobico',
-            duration: '1h 30min',
-            warmup: ['15min progressivo'],
-            main: ['60min a ritmo aerobico (70-75% FC max)', '10min a ritmo leggermente più sostenuto'],
-            cooldown: ['5min sciolti'],
-            tips: ['Se non conosci il tuo FTP, usa la percezione (RPE 2-3 su 10)']
-          },
-          {
-            discipline: 'bike',
-            title: 'Bici - Intervalli dolci',
-            duration: '1h 15min',
-            warmup: ['15min progressivo + 3x1min facili'],
-            main: ['4x6min (zona aerobia alta) con 3min recupero', '10min a ritmo libero'],
-            cooldown: ['10min defaticamento'],
-            tips: ['Adatta gli intervalli se non hai dati FTP/VO2max - riduci intensità se troppo faticoso']
-          }
-        ],
-        run: [
-          {
-            discipline: 'run',
-            title: 'Corsa - Fondo',
-            duration: '40-50min',
-            warmup: ['10min camminata + corsa leggera + skip'],
-            main: ['30-35min corsa continua a ritmo confortevole (puoi parlare)'],
-            cooldown: ['5-10min camminata + stretching'],
-            tips: ['Meglio correre più piano che troppo veloce', 'Ascolta sempre il tuo corpo']
-          },
-          {
-            discipline: 'run',
-            title: 'Corsa - Ritmo + andature',
-            duration: '45-50min',
-            warmup: ['10min camminata/corsa'],
-            main: ['10min riscaldamento corsa', '4x4min (ritmo leggermente più veloce) con 2min camminata/corsa leggera', '15min a ritmo facile'],
-            cooldown: ['10min camminata + stretching'],
-            tips: ['Gli 4min non devono essere massimali - mantieni margine']
-          }
-        ],
-        notes: "Ricorda: idratazione e alimentazione adatte al tuo tipo di allenamento. In caso di dubbi o fastidi, consulta il tuo medico.",
-        tips_by_discipline: {
-          swim: ["Focus su tecnica > distanza", "Usa pull/palette con moderazione"],
-          bike: ["Mantenimento + controllo respirazione", "Idratazione importante per uscite >1h"],
-          run: ["Aumenta gradualmente se riprendi", "Scarpe adatte e terreni idonei"]
-        },
-        adaptation_tips: {
-          ftp: "Se conosci il tuo FTP, lavora tra 65-80% per questi allenamenti. Se non lo conosci, usa la Regola della Conversazione: devi riuscire a parlare durante l'allenamento.",
-          vo2max: "Per gli intervalli, se conosci i tuoi valori VO2max, rimani tra 85-92%. Altrimenti riduci l'intensità finché non riesci a recuperare bene tra le ripetizioni.",
-          pace: "Per la corsa, usa il tuo ritmo facile (circa 1-1'30\" più lento del tuo 5K) come riferimento. Se non hai tempi di riferimento, parti dal 'comfortably hard' molto conservativo."
-        }
+      const { data: existing } = await supabaseClient
+        .from('team_workouts')
+        .select('status')
+        .eq('team_id', 'mtt')
+        .eq('year', year)
+        .eq('week_number', week_number)
+        .maybeSingle()
+      if (existing && existing.status !== 'draft') {
+        throw new Error(`Allenamento settimana ${week_number} già in stato «${existing.status}»: rigenerazione consentita solo su bozze`)
       }
+
+      const targetDate = dateFromIsoWeek(year, week_number)
+      const skeleton = buildWeekSkeleton(targetDate)
+
+      const { data: prevWorkout } = await supabaseClient
+        .from('team_workouts')
+        .select('content')
+        .eq('team_id', 'mtt')
+        .eq('year', year)
+        .eq('week_number', week_number - 1)
+        .maybeSingle()
+      const prevContent = prevWorkout?.content as { title?: unknown } | null
+      const previousTitle = typeof prevContent?.title === 'string' ? prevContent.title : undefined
+
+      const llmResult = await renderWithLLM(skeleton, year, week_number, previousTitle)
+      const workoutContent = llmResult
+        ? llmResult.content
+        : renderStaticContent(skeleton, year, week_number)
 
       const { data, error } = await supabaseClient
         .from('team_workouts')
@@ -176,12 +288,19 @@ serve(async (req) => {
           year,
           week_number,
           status: 'draft',
-          generated_by: 'ai',
+          generated_by: llmResult ? 'ai' : 'rules',
           generated_at: new Date().toISOString(),
+          approved_by: null,
+          approved_at: null,
+          sent_at: null,
+          telegram_message_ids: [],
           content: workoutContent,
           images: [],
-          ai_prompt_used: 'MTT weekly workout generator - amateur 30-60, sprint/olympic focus, 2+ per discipline',
-          sources: ['DuckDuckGo screening - triathlon training for age groupers']
+          ai_prompt_used: `periodization=${skeleton.macroPhase}/meso${skeleton.weekInMeso}/recovery=${skeleton.isRecovery}; llm=${llmResult ? llmResult.model : 'none (fallback statico)'}`,
+          sources: [
+            'Periodizzazione a regole: macro-fase stagionale + mesociclo 4 settimane',
+            llmResult ? `Rendering LLM: ${llmResult.model}` : 'Rendering statico di fallback',
+          ],
         }, { onConflict: 'team_id,year,week_number' })
         .select()
         .single()

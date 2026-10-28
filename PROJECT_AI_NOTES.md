@@ -192,3 +192,43 @@ Branch: `feature/mtt-weekly-telegram-workouts` (commits `b21e5d2`, `b17858f` + f
 - Il workflow Actions esiste solo sul branch feature: GitHub lo attiva solo dopo il merge nel branch di default.
 - Credenziali di test in `~/.config/opencode/secrets/mtt/` (PAT, service_role, bot token) — fuori dal repo, da non committare.
 
+
+## Sessione 28 ottobre — Test Actions riuscito + periodizzazione allenamenti MTT
+
+### Test end-to-end via GitHub Actions (chiuso)
+- Merge feature `feature/mtt-weekly-telegram-workouts` in `main` (`133f6b1`), push `2c0e7e0` (convergenza col daily backup).
+- `gh workflow run mtt-weekly-workouts.yml` → run `40675605080` **verde**: record week 43 `14258ad8` → `sent`, `telegram_message_ids` 69–79 (**11 messaggi**), `sent_at=2026-10-28T10:53:23Z`, ricevuti in chat privata utente (`8167454134`, override temporaneo).
+- Ripristinato: `teams.telegram_chat_id` MTT → `-5117971075`; record week 44 `c1619f13` → `draft`.
+- Decisioni utente: invio resta **domenica 20:00 CEST** (niente lunedì); bot **LisaCoach** resta finché non va in produzione.
+- Dopo simulazione live di una settimana di picco (ISO 31/2026, inviata in chat privata e poi cancellata): l'utente ha confermato di **voler mantenere la preparazione calibrata su sprint/olimpico** (non ricalibrazione lunghe distanze 2:30-3:30h, proposta e scartata).
+
+### Decisioni progettuali (discussione "come variano gli allenamenti")
+- Combinazione approvata: **(1) periodizzazione a regole + (2) rendering LLM**, con fallback statico.
+- **Nessuna gara-ancora** per ora (workout generico per tutti, gli atleti non gareggiano tutti uguali) → macro-fase stagionale IT: nov-feb `base`, mar-apr `build`, mag-ago `peak`, set-ott `transition`; mesociclo a rotazione **4 settimane con 4ª di scarico** (volume -35%), picco carico in settimana 3.
+- Zone **RPE** (nessun dato FTP da seedare).
+- LLM: **free tier, ~1 richiesta/settimana** → provider scelto **Groq** (free permanente, no carta, OpenAI-compatible, `openai/gpt-oss-120b`); interfaccia generica `LLM_API_KEY`/`LLM_BASE_URL`/`LLM_MODEL` per cambiare provider senza codice.
+
+### Implementato (branch `feature/mtt-periodized-ai-workouts`, NON ancora committato)
+- Nuovo `supabase/functions/mtt-weekly-workouts/periodization.ts`: `getMacroPhase`, `isoWeekNumber`, `dateFromIsoWeek`, `getMesoWeek`, `buildWeekSkeleton` (2 sessioni per disciplina, variazione per fase×settimana-mesociclo, scarico sett. 4).
+- `index.ts` action `generate` riscritta: scheletro → `renderWithLLM` (se `LLM_API_KEY` presente, fetch OpenAI-compatible, parse JSON robusto, `validateContent`) → fallback `renderStaticContent`. Metadati onesti: `generated_by='ai'|'rules'`, `ai_prompt_used` con fase/meso/llm, `sources` con regole+provider.
+- Helper nuovi in `index.ts`: `toContentBlock`, `skeletonTitle` (titolo con fase e sett. x/4), `parseJsonLoose`, `validateContent`, `renderWithLLM` (timeout 45s).
+- Guard robustezza (dopo test live): `generate` rifiuta la rigenerazione se lo stato esistente ≠ `draft` (prima sovrascriveva anche record `sent`); l'upsert azzera `approved_by`/`approved_at`/`sent_at`/`telegram_message_ids` (prima restava `approved_at` stale su un draft rigenerato).
+- Test: `periodization_test.ts` **7/7 verdi** (`deno test`), `deno check index.ts` pulito. Deno 2.9.8 installato in `~/.deno` (non era presente).
+
+### Deploy + test live (28 ottobre, chiuso)
+- Deploy Supabase CLI da zbn-srv01: `SUPABASE_ACCESS_TOKEN="$SUPABASE_MCP_TOKEN" npx supabase functions deploy mtt-weekly-workouts --project-ref bwzzvdwiimvdwkiytknc` (il token `~/.supabase/access-token` non vede il progetto; quello MCP sì). Deploy fatto **due volte**: iniziale + dopo il guard.
+- Secret Edge: `LLM_API_KEY` = chiave Groq fornita dall'utente (in `~/.config/opencode/secrets/mtt/llm.env`, 600, **mai committare**). `TELEGRAM_BOT_TOKEN` e `MTT_SERVICE_ROLE_KEY` preesistenti verificate presenti.
+- Test reale generate week 44 (Transizione, meso 4/4 scarico): `generated_by='ai'`, titolo `Allenamenti MTT - Settimana 44/2026 · Transizione (sett. 4/4 · scarico)`, 6 sedute con durate scalate ×0.65, intro coerente, `adaptation_tips`/`notes`/`tips_by_discipline` validi. Regenerate pulisce `approved_*`. Generate su week 43 (`sent`) → rifiutato con errore esplicito. Record week 44 lasciato in `draft` per la revisione dell'admin nel tab Admin.
+
+### Audit pre-domenica (28 ottobre)
+Audit end-to-end della catena di invio domenicale, eseguito su richiesta dell'utente («siamo sicuri che domenica funziona?»):
+- **Catena verde**: workflow su main → query `team_workouts` `approved` settimana corrente → invoke Edge Function `send` → Telegram. Probe auth reale: la `SUPABASE_SERVICE_ROLE_KEY` delle GitHub secrets passa `requireMttAdmin` (400 "non trovato" su id fittizio, non 401). Formula settimana del workflow = ISO week per le domeniche (verificato numericamente per 01/11/2026: entrambe 44). Edge Function deployata = versione con guard (la send usa il deploy Supabase, non il codice git). Secrets GitHub (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`) e Edge (`TELEGRAM_BOT_TOKEN`, `MTT_SERVICE_ROLE_KEY`, `LLM_API_KEY`) tutti presenti. `teams.telegram_chat_id=-5117971075` (gruppo) confermato.
+- **Bug trovato — fuso orario DST**: il cron `0 18 * * 0` (18:00 UTC) con l'ora legale finita il 25/10 corrisponde a **19:00 CET**, non alle 20:00 volute. GitHub cron è UTC-only e non segue il DST.
+- **Fix applicato** (`.github/workflows/mtt-weekly-workouts.yml`, sul branch, NON ancora su main): **due cron** `0 18 * * 0` + `0 19 * * 0` (coprono CEST e CET) più una guardia nella script che — solo per eventi `schedule` — calcola l'ora a `Europe/Rome` ed esce senza fare nulla se sono prima delle 20:00. La seconda run è comunque no-op di sicurezza (il record è già `sent`). `workflow_dispatch` resta libero da vincoli orari per i test. Simulato: estate invia alle 18:00Z, inverno alle 19:00Z, run fuori stagione esce.
+- **Implicazione**: la schedule si configura dalla `main` → per avere l'invio alle 20:00 italiane già domenica 01/11 (CET) serve il merge in `main` **prima di domenica**; altrimenti la vecchia cron manda alle 19:00.
+- **Nota flusso**: l'invio domenicale non richiede la merge del codice funzione (deploy Supabase già fatto); richiede però che il record sia in `status='approved'` — week 44 è attualmente `draft` (nessun invio se non approvato, voluto).
+
+### Da fare (prossimi passi)
+- Commit sul branch + review; merge in `main` (workflow schedule si configura dalla main; la funzione è già deployata su Supabase).
+- Prima di domenica 01/11: mergiare il fix DST del workflow; decidere se approvare la week 44 come demo o lasciare vuota.
+- Da discutere con l'utente: FTP/obiettivi personalizzati, immagini+testo, bot definitivo.
