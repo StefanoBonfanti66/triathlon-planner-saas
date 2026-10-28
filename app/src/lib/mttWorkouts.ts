@@ -11,6 +11,12 @@ export interface WorkoutBlock {
   tips?: string[];
 }
 
+export interface NewsletterContent {
+  subject: string;
+  intro: string;
+  extra: string;
+}
+
 export interface WeeklyWorkoutContent {
   week_number: number;
   year: number;
@@ -30,6 +36,7 @@ export interface WeeklyWorkoutContent {
     vo2max: string;
     pace: string;
   };
+  newsletter?: NewsletterContent;
 }
 
 export interface TeamWorkout {
@@ -43,6 +50,7 @@ export interface TeamWorkout {
   approved_by?: string;
   approved_at?: string;
   sent_at?: string;
+  newsletter_sent_at?: string;
   telegram_message_ids: any[];
   content: WeeklyWorkoutContent;
   images: Array<{ url: string; discipline: string; caption?: string }>;
@@ -142,4 +150,47 @@ export async function getWorkoutDrafts() {
 
   if (error) throw error;
   return data as TeamWorkout[];
+}
+
+export async function updateNewsletter(workoutId: string, newsletter: Partial<NewsletterContent>) {
+  const { data: current } = await supabase
+    .from('team_workouts')
+    .select('content')
+    .eq('id', workoutId)
+    .single();
+  if (!current?.content) throw new Error('Allenamento non trovato');
+
+  const merged = {
+    ...current.content,
+    newsletter: {
+      subject: '',
+      intro: '',
+      extra: '',
+      ...current.content.newsletter,
+      ...newsletter,
+    },
+  };
+
+  const { data, error } = await supabase
+    .from('team_workouts')
+    .update({ content: merged })
+    .eq('id', workoutId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as TeamWorkout;
+}
+
+export async function sendNewsletter(workoutId: string, testEmail?: string) {
+  const { data, error } = await supabase.functions.invoke('mtt-weekly-workouts', {
+    body: {
+      action: 'send-newsletter',
+      workout_id: workoutId,
+      ...(testEmail ? { test_email: testEmail } : {}),
+    },
+  });
+
+  if (error) throw error;
+  return data;
 }

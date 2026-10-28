@@ -3,7 +3,7 @@
  * Author: Stefano Bonfanti
  */
 import React, { useState, useEffect } from 'react';
-import { BookOpen, Download, ChevronRight, CheckCircle, Users, LayoutDashboard, RefreshCw, Lock, Shield, Share2, Smartphone, Database, Mail, Key } from 'lucide-react';
+import { BookOpen, Download, ChevronRight, CheckCircle, Users, LayoutDashboard, RefreshCw, Lock, Shield, Share2, Smartphone, Database, Mail, Key, Timer, Zap } from 'lucide-react';
 import { supabase } from '../supabaseClient'; // Assicurati che supabase sia importato correttamente
 
 const GuidePage: React.FC = () => {
@@ -234,6 +234,91 @@ const GuidePage: React.FC = () => {
                 <h4 className="font-black text-slate-800 uppercase text-xs mb-1">Data Sovereignty</h4>
                 <p className="text-xs text-slate-500 font-bold leading-relaxed">Database Supabase con RLS (Row Level Security) per isolamento totale dei dati tra i team.</p>
               </div>
+            </div>
+          </div>
+        </section>
+
+        {/* SEZIONE 6 - TEST FTP */}
+        <section id="test-ftp">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="bg-purple-100 p-2 rounded-xl text-purple-600">
+              <Timer className="w-5 h-5" />
+            </div>
+            <h2 className="text-xl font-black text-slate-800 uppercase tracking-tight">6. Test FTP — Come misurare la tua forma</h2>
+          </div>
+          <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+              <div>
+                <h3 className="font-black text-slate-800 uppercase text-xs mb-3 flex items-center gap-2"><Zap className="w-4 h-4 text-purple-500" /> Cos'è l'FTP</h3>
+                <p className="text-xs text-slate-500 font-bold leading-relaxed">
+                  L'<strong>Functional Threshold Power</strong> (o ritmo soglia) è la potenza/velocità media che puoi mantenere per 1 ora.
+                  È il numero più importante per calibrare i tuoi allenamenti: definisce le zone di intensità e ti permette di monitorare i progressi.
+                </p>
+              </div>
+              <div className="bg-purple-50 p-6 rounded-3xl border border-purple-100">
+                <h4 className="font-black text-purple-800 uppercase text-xs mb-2">Perché farlo ora</h4>
+                <p className="text-[11px] text-purple-700 font-bold leading-relaxed">
+                  Gli allenamenti che ricevi via Telegram usano zone di intensità. Senza un test FTP, lavori "a sensazione".
+                  Con il test, ogni seduta diventa precisa e misurabile.
+                </p>
+              </div>
+            </div>
+
+            <div className="border-t border-slate-100 pt-8">
+              <h3 className="font-black text-slate-800 uppercase text-xs mb-4">Protocollo 20 minuti (Allen & Coggan)</h3>
+              <div className="space-y-4">
+                {[
+                  { step: '1', title: 'Riscaldamento (15-20 min)', desc: 'Pedala/corri facile per scaldarti bene. Includi 3-4 sprint brevi (30-60 secondi) per preparare le gambe.' },
+                  { step: '2', title: 'Attivazione (5 min)', desc: '5 minuti a ritmo "hard" ma sostenibile. Senti le gambe pronte.' },
+                  { step: '3', title: 'Il test (20 min)', desc: '20 minuti al massimo sforzo sostenibile. Parti conservativo: i primi 5 minuti devono sembrarti "troppo facile". L\'ultimo minuto dovresti soffrire.' },
+                  { step: '4', title: 'Defaticamento (10-15 min)', desc: 'Ritorno calmo al recupero attivo.' },
+                ].map(item => (
+                  <div key={item.step} className="flex gap-4">
+                    <div className="shrink-0 w-8 h-8 bg-purple-600 text-white rounded-full flex items-center justify-center font-black text-xs">{item.step}</div>
+                    <div>
+                      <div className="font-black text-slate-800 text-xs">{item.title}</div>
+                      <p className="text-xs text-slate-500 font-bold leading-relaxed mt-1">{item.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="border-t border-slate-100 pt-8 mt-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div>
+                <h4 className="font-black text-slate-800 uppercase text-xs mb-3">Calcolo FTP</h4>
+                <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200">
+                  <p className="text-xs text-slate-600 font-bold mb-2">FTP = media 20 minuti × 0,95</p>
+                  <p className="text-[11px] text-slate-500 font-bold leading-relaxed">
+                    Esempio: se la media dei tuoi 20 minuti è 250W, il tuo FTP è circa 237W.
+                  </p>
+                </div>
+              </div>
+              <div>
+                <h4 className="font-black text-slate-800 uppercase text-xs mb-3">Zone di intensità</h4>
+                <div className="space-y-2">
+                  {[
+                    { zone: 'Z1', name: 'Recupero', range: '≤ 55% FTP', color: 'bg-blue-100 text-blue-700' },
+                    { zone: 'Z2', name: 'Aerobico', range: '56-75%', color: 'bg-emerald-100 text-emerald-700' },
+                    { zone: 'Z3', name: 'Tempo', range: '76-90%', color: 'bg-amber-100 text-amber-700' },
+                    { zone: 'Z4', name: 'Soglia', range: '91-105%', color: 'bg-orange-100 text-orange-700' },
+                    { zone: 'Z5', name: 'VO2max', range: '106-120%', color: 'bg-red-100 text-red-700' },
+                  ].map(z => (
+                    <div key={z.zone} className="flex items-center gap-3">
+                      <span className={`px-2 py-1 rounded-lg text-[10px] font-black ${z.color}`}>{z.zone}</span>
+                      <span className="text-xs font-bold text-slate-600">{z.name}</span>
+                      <span className="text-[10px] font-bold text-slate-400">{z.range}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t border-slate-100 pt-8 mt-8 flex items-center justify-between">
+              <p className="text-xs text-slate-400 font-bold">Hai fatto il test? Comunica il tuo risultato all'admin per calibrare i prossimi allenamenti.</p>
+              <a href="https://t.me/+7nNv9lvry700NTE0" target="_blank" rel="noopener noreferrer" className="px-6 py-3 bg-purple-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-purple-700 transition-all shadow-lg">
+                Comunica all'admin
+              </a>
             </div>
           </div>
         </section>
