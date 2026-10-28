@@ -127,32 +127,6 @@ export async function sendWorkoutToTelegram(workoutId: string) {
   return data;
 }
 
-export async function getTeamWorkouts(teamId: string = 'mtt') {
-  const { data, error } = await supabase
-    .from('team_workouts')
-    .select('*')
-    .eq('team_id', teamId)
-    .eq('status', 'sent')
-    .order('year', { ascending: false })
-    .order('week_number', { ascending: false });
-
-  if (error) throw error;
-  return data as TeamWorkout[];
-}
-
-export async function getWorkoutDrafts() {
-  const { data, error } = await supabase
-    .from('team_workouts')
-    .select('*')
-    .eq('team_id', 'mtt')
-    .in('status', ['draft', 'approved', 'scheduled', 'error'])
-    .order('year', { ascending: false })
-    .order('week_number', { ascending: false });
-
-  if (error) throw error;
-  return data as TeamWorkout[];
-}
-
 export async function updateNewsletter(workoutId: string, newsletter: Partial<NewsletterContent>) {
   const { data: current } = await supabase
     .from('team_workouts')
@@ -194,4 +168,109 @@ export async function sendNewsletter(workoutId: string, testEmail?: string) {
 
   if (error) throw error;
   return data;
+}
+
+// Converte sequenze letterali "\n" (backslash+n) lasciate dal LLM in newline vere.
+// Applicato ricorsivamente a tutti i campi testuali del contenuto workout.
+function normalizeNewlines(s: string): string {
+  return s.replace(/\\n/g, '\n');
+}
+
+function normalizeStringArray(arr: string[] | undefined): string[] {
+  if (!arr) return [];
+  return arr.map((s) => normalizeNewlines(s));
+}
+
+export function normalizeWorkoutContent(content: WeeklyWorkoutContent): WeeklyWorkoutContent {
+  return {
+    ...content,
+    title: normalizeNewlines(content.title),
+    intro: normalizeNewlines(content.intro),
+    notes: normalizeNewlines(content.notes),
+    swim: content.swim.map((b) => ({
+      ...b,
+      title: normalizeNewlines(b.title),
+      duration: b.duration ? normalizeNewlines(b.duration) : undefined,
+      warmup: normalizeStringArray(b.warmup),
+      main: normalizeStringArray(b.main),
+      cooldown: normalizeStringArray(b.cooldown),
+      tips: normalizeStringArray(b.tips),
+      notes: normalizeStringArray(b.notes),
+      brickRun: b.brickRun
+        ? {
+            duration: normalizeNewlines(b.brickRun.duration),
+            main: normalizeStringArray(b.brickRun.main),
+          }
+        : undefined,
+    })),
+    bike: content.bike.map((b) => ({
+      ...b,
+      title: normalizeNewlines(b.title),
+      duration: b.duration ? normalizeNewlines(b.duration) : undefined,
+      warmup: normalizeStringArray(b.warmup),
+      main: normalizeStringArray(b.main),
+      cooldown: normalizeStringArray(b.cooldown),
+      tips: normalizeStringArray(b.tips),
+      notes: normalizeStringArray(b.notes),
+      brickRun: b.brickRun
+        ? {
+            duration: normalizeNewlines(b.brickRun.duration),
+            main: normalizeStringArray(b.brickRun.main),
+          }
+        : undefined,
+    })),
+    run: content.run.map((b) => ({
+      ...b,
+      title: normalizeNewlines(b.title),
+      duration: b.duration ? normalizeNewlines(b.duration) : undefined,
+      warmup: normalizeStringArray(b.warmup),
+      main: normalizeStringArray(b.main),
+      cooldown: normalizeStringArray(b.cooldown),
+      tips: normalizeStringArray(b.tips),
+      notes: normalizeStringArray(b.notes),
+    })),
+    tips_by_discipline: {
+      swim: normalizeStringArray(content.tips_by_discipline.swim),
+      bike: normalizeStringArray(content.tips_by_discipline.bike),
+      run: normalizeStringArray(content.tips_by_discipline.run),
+    },
+    adaptation_tips: {
+      ftp: normalizeNewlines(content.adaptation_tips.ftp),
+      vo2max: normalizeNewlines(content.adaptation_tips.vo2max),
+      pace: normalizeNewlines(content.adaptation_tips.pace),
+    },
+    newsletter: content.newsletter
+      ? {
+          subject: normalizeNewlines(content.newsletter.subject),
+          intro: normalizeNewlines(content.newsletter.intro),
+          extra: normalizeNewlines(content.newsletter.extra),
+        }
+      : undefined,
+  };
+}
+
+export async function getTeamWorkouts(teamId: string = 'mtt') {
+  const { data, error } = await supabase
+    .from('team_workouts')
+    .select('*')
+    .eq('team_id', teamId)
+    .eq('status', 'sent')
+    .order('year', { ascending: false })
+    .order('week_number', { ascending: false });
+
+  if (error) throw error;
+  return (data as TeamWorkout[]).map((w) => ({ ...w, content: normalizeWorkoutContent(w.content) }));
+}
+
+export async function getWorkoutDrafts() {
+  const { data, error } = await supabase
+    .from('team_workouts')
+    .select('*')
+    .eq('team_id', 'mtt')
+    .in('status', ['draft', 'approved', 'scheduled', 'error'])
+    .order('year', { ascending: false })
+    .order('week_number', { ascending: false });
+
+  if (error) throw error;
+  return (data as TeamWorkout[]).map((w) => ({ ...w, content: normalizeWorkoutContent(w.content) }));
 }
