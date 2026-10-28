@@ -243,3 +243,7 @@ Richiesta utente: newsletter della domenica con spiegazione preparazione allenam
 - **Deploy**: Edge Function deployata su bwzz con `newsletter.ts`; secret Edge `RESEND_API_KEY` + `TELEGRAM_INVITE_URL` impostati. Migration eseguite via Management API (`/v1/projects/{ref}/database/query` con token MCP) — `db push` non funziona (migrations dir locale assente).
 - **Test reale**: generate week 44 → newsletter subject `Allenamenti MTT · Settimana 44 — Transizione` (intro 584 char, LLM), approvata, test newsletter verso `sbonfanti@hotmail.com` → **sent:1**. Limite Resend free: invio solo all'indirizzo dell'account (hotmail). Per inviare ai 30 atleti serve dominio verificato su resend.com.
 - **Da fare**: verificare dominio Resend (es. zetabytenexus.it) o accettare che l'admin invii manualmente; commit+push; approvare week 44 prima di domenica.
+
+### Aggiornamento newsletter (28 ottobre — post deploy)
+- Dominio Resend verificato: **zetabytenexus.it**. Mittente impostato: `MTT Allenamenti <allenamenti@zetabytenexus.it>` (secret Edge `RESEND_FROM`).
+- Il testo della newsletter presenta ora il servizio come **lancio di novità** (non come proseguimento): subject statico `Allenamenti MTT · Settimana NN/AAAA — <Fase>`, LLM prompt istruito a presentare il servizio come nuovo servizio settimanale AI + coach. Test reale inviato con successo a `sbonfanti@hotmail.com` (sent:1).

@@ -113,9 +113,9 @@ function renderStaticContent(skeleton: WeekSkeleton, year: number, weekNumber: n
     newsletter: {
       subject: `Allenamenti MTT · Settimana ${weekNumber}/${year} — ${skeleton.phaseLabel}`,
       intro: [
-        `Ciao squadra, ecco gli allenamenti della settimana ${weekNumber}/${year}.`,
-        `Siamo in fase ${skeleton.phaseLabel.toLowerCase()}: ${skeleton.mesoProgression}. ${skeleton.isRecovery ? 'Questa è una settimana di scarico: riduciamo i volumi per permettere al corpo di assorbire il lavoro delle settimane precedenti.' : 'Coltiviamo la qualità del lavoro con volumi e intensità pensati per amatori.'}`,
-        'Gli allenamenti non sono personalizzati: adatta intensità e durate alle tue sensazioni, senza forzare.',
+        `Ciao squadra, da questa settimana il team lancia un servizio nuovo: gli allenamenti settimanali personalizzati, pensati per te.`,
+        `Ogni settimana riceverai un piano completo (nuoto, bici, corsa) costruito sui principi della periodizzazione e adattato alla fase della stagione. In questo momento siamo in fase ${skeleton.phaseLabel.toLowerCase()}: ${skeleton.mesoProgression}. ${skeleton.isRecovery ? 'Questa è una settimana di scarico: riduciamo i volumi per permettere al corpo di assorbire il lavoro delle settimane precedenti.' : 'Stiamo costruendo solide basi aerobiche con volumi e intensità pensati per atleti amatori.'}`,
+        'Gli allenamenti sono un punto di partenza: adatta intensità e durate alle tue sensazioni, senza forzare. Se hai dubbi, chiedi nel gruppo Telegram.',
         'Buon allenamento!',
       ].join('\n\n'),
       extra: '',
@@ -212,7 +212,7 @@ async function renderWithLLM(
       adaptation_tips: { ftp: 'string (solo percezione/RPE)', vo2max: 'string', pace: 'string' },
       newsletter: {
         subject: 'string — oggetto email newsletter, max 60 char, es. "Allenamenti MTT · Settimana 44 — Transizione"',
-        intro: 'string — 3-5 paragrafi (separati da \\n\\n) che spiegano agli atleti COME e PERCHÉ stiamo preparando gli allenamenti: la fase attuale, cosa stiamo costruendo, a cosa serve lo scarico, tono caldo da coach. Non ripetere il dettaglio delle sedute.',
+        intro: 'string — 3-5 paragrafi (separati da \\n\\n). PRESENTA IL SERVIZIO COME NOVITÀ: spiega che da questa settimana il team lancia un servizio di allenamenti settimanali personalizzati, generati con l\'AI e revisionati dai coach. Non dare per scontato che lo conoscano già. Poi entra nel dettaglio della fase attuale e di cosa stiamo costruendo. Tono caldo da coach, entusiasta ma professionale.',
         extra: 'string — sempre stringa vuota "" (lo compila l\'admin)',
       },
     },
