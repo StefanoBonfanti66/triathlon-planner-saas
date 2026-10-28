@@ -17,7 +17,7 @@ export interface NewsletterWorkoutContent {
 }
 
 const TELEGRAM_INVITE_URL = Deno.env.get('TELEGRAM_INVITE_URL') ?? 'https://t.me/+7nNv9lvry700NTE0'
-const FTP_GUIDE_URL = 'https://triathlon-planner-saas.vercel.app/guida#test-ftp'
+const FTP_GUIDE_URL = 'https://www.rivaluta.it/ciclismo/ftp-ciclismo.asp'
 const APP_URL = 'https://triathlon-planner-saas.vercel.app'
 
 function esc(s: unknown): string {
