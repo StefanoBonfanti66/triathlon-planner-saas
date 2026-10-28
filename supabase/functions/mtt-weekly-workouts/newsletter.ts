@@ -10,7 +10,7 @@ export interface NewsletterWorkoutContent {
   title: string
   intro: string
   swim: Array<{ title: string; duration?: string; main: string[] }>
-  bike: Array<{ title: string; duration?: string; main: string[] }>
+  bike: Array<{ title: string; duration?: string; main: string[]; brickRun?: { duration?: string; main: string[] } }>
   run: Array<{ title: string; duration?: string; main: string[] }>
   notes: string
   newsletter?: NewsletterContent
@@ -28,7 +28,7 @@ function esc(s: unknown): string {
     .replace(/"/g, '&quot;')
 }
 
-function disciplineSection(label: string, emoji: string, blocks: NewsletterWorkoutContent['swim']): string {
+function disciplineSection(label: string, emoji: string, blocks: NewsletterWorkoutContent['swim'], brickRuns?: Array<{ duration?: string; main: string[] }>): string {
   if (!blocks?.length) return ''
   const rows = blocks.map((b) => `
     <tr><td colspan="2" style="padding:12px 0 4px;font-size:14px;font-weight:bold;color:#0f172a;">
@@ -38,12 +38,17 @@ function disciplineSection(label: string, emoji: string, blocks: NewsletterWorko
     <tr><td width="12" style="padding:2px 0 2px 12px;color:#3b82f6;font-size:13px;">•</td>
         <td style="padding:2px 0;color:#334155;font-size:13px;line-height:1.5;">${esc(line)}</td></tr>`).join('')}`).join('')
 
+  const brickRows = brickRuns?.map((b) => `
+    <tr><td width="12" style="padding:2px 0 2px 12px;color:#2563eb;font-size:13px;">•</td>
+        <td style="padding:2px 0;color:#334155;font-size:13px;line-height:1.5;">${esc(b.main.join(' → '))} ${b.duration ? `(${esc(b.duration)})` : ''}</td></tr>`).join('')
+
   return `
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 8px;">
       <tr><td style="padding:16px 0 4px;font-size:15px;font-weight:900;color:#1e40af;letter-spacing:0.05em;text-transform:uppercase;">
-        ${emoji} ${esc(label)}
+        ${emoji} ${esc(label)}${brickRuns?.length ? ` <span style="color:#94a3b8;font-weight:normal;">(+${brickRuns.length} corsa dopo bici)</span>` : ''}
       </td></tr>
       ${rows}
+      ${brickRows ? `<tr><td colspan="2" style="padding:14px 0 4px;font-size:13px;font-weight:bold;color:#c2410c;">🏃 Corsa dopo bici (brick)</td></tr>${brickRows}` : ''}
     </table>`
 }
 
@@ -89,7 +94,7 @@ export function buildNewsletterHtml(
         </td></tr>
         <tr><td style="padding:0 36px;">
           ${disciplineSection('Nuoto', '🏊', content.swim)}
-          ${disciplineSection('Bici', '🚴', content.bike)}
+          ${disciplineSection('Bici', '🚴', content.bike, content.bike.filter((b) => !!b.brickRun).map((b) => b.brickRun!))}
           ${disciplineSection('Corsa', '🏃', content.run)}
         </td></tr>
         <tr><td style="padding:8px 36px 0;">

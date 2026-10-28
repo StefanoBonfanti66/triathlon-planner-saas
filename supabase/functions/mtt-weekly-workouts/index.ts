@@ -79,6 +79,7 @@ function toContentBlock(s: SkeletonSession) {
     main: s.mainOutline,
     cooldown: ['Defaticamento 5-10min facile + stretching'],
     tips: [`Intensità: ${s.intensity}`, `Focus: ${s.focus}`],
+    ...(s.brickRun ? { brickRun: s.brickRun } : {}),
   }
 }
 
@@ -114,7 +115,8 @@ function renderStaticContent(skeleton: WeekSkeleton, year: number, weekNumber: n
       subject: `Allenamenti MTT · Settimana ${weekNumber}/${year} — ${skeleton.phaseLabel}`,
       intro: [
         `Ciao squadra, da questa settimana il team lancia un servizio nuovo: gli allenamenti settimanali personalizzati, pensati per te.`,
-        `Ogni settimana riceverai un piano completo (nuoto, bici, corsa) costruito sui principi della periodizzazione e adattato alla fase della stagione. In questo momento siamo in fase ${skeleton.phaseLabel.toLowerCase()}: ${skeleton.mesoProgression}. ${skeleton.isRecovery ? 'Questa è una settimana di scarico: riduciamo i volumi per permettere al corpo di assorbire il lavoro delle settimane precedenti.' : 'Stiamo costruendo solide basi aerobiche con volumi e intensità pensati per atleti amatori.'}`,
+        `Ogni settimana riceverai un piano completo (nuoto, bici, corsa) costruito sulla periodizzazione e adattato alla fase della stagione. In questo momento siamo in fase ${skeleton.phaseLabel.toLowerCase()}: ${skeleton.mesoProgression}. ${skeleton.isRecovery ? 'Questa è una settimana di scarico: riduciamo i volumi per permettere al corpo di assorbire il lavoro delle settimane precedenti.' : 'Stiamo costruendo solide basi aerobiche con volumi e intensità pensati per atleti amatori.'}`,
+        `Come regolare l'intensità: usiamo l'RPE (Rate of Perceived Exertion, "sforzo percepito" su scala 1-10). 1-2 = recupero, 3-4 = fondo aerobico (parli mentre ti alleni), 5-6 = soglia (respiro affannato ma sostenibile), 7-8 = duro, 9-10 = massimo. Se leggi un'allenamento con "RPE 3", significa che devi tenere un ritmo molto facile, quasi chiacchierato.`,
         'Gli allenamenti sono un punto di partenza: adatta intensità e durate alle tue sensazioni, senza forzare. Se hai dubbi, chiedi nel gruppo Telegram.',
         'Buon allenamento!',
       ].join('\n\n'),
@@ -212,7 +214,7 @@ async function renderWithLLM(
       adaptation_tips: { ftp: 'string (solo percezione/RPE)', vo2max: 'string', pace: 'string' },
       newsletter: {
         subject: 'string — oggetto email newsletter, max 60 char, es. "Allenamenti MTT · Settimana 44 — Transizione"',
-        intro: 'string — 3-5 paragrafi (separati da \\n\\n). PRESENTA IL SERVIZIO COME NOVITÀ: spiega che da questa settimana il team lancia un servizio di allenamenti settimanali personalizzati, generati con l\'AI e revisionati dai coach. Non dare per scontato che lo conoscano già. Poi entra nel dettaglio della fase attuale e di cosa stiamo costruendo. Tono caldo da coach, entusiasta ma professionale.',
+        intro: 'string — 3-5 paragrafi (separati da \\n\\n). PRESENTA IL SERVIZIO COME NOVITÀ: spiega che da questa settimana il team lancia un servizio di allenamenti settimanali personalizzati. Non dare per scontato che lo conoscano già: spiega cos\\\'è l\'RPE (Rate of Perceived Exertion, sforzo percepito su scala 1-10: 3-4 = fondo facile, 5-6 = soglia, 7-8 = duro, 9-10 = massimo) e usalo per descrivere l\'intensità delle sedute. Poi entra nel dettaglio della fase attuale e di cosa stiamo costruendo. Tono caldo da coach, entusiasta ma professionale.',
         extra: 'string — sempre stringa vuota "" (lo compila l\'admin)',
       },
     },
@@ -471,6 +473,9 @@ serve(async (req) => {
             msg += `*Consigli:*\n${block.tips.map((x: string) => `💡 ${x}`).join('\n')}\n`
           }
           await sendMsg(msg)
+          if (block.brickRun) {
+            await sendMsg(`*🏃 CORSA (dopo bici)*\n\n*${block.brickRun.title}* (${block.brickRun.duration})\n\n*Parte principale:*\n${block.brickRun.main.map((x: string) => `• ${x}`).join('\n')}\n`)
+          }
         }
 
         await sendMsg(`*🏃 CORSA*\n\n`)

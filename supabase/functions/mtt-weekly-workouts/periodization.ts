@@ -7,6 +7,7 @@ export interface SkeletonSession {
   focus: string
   intensity: string
   mainOutline: string[]
+  brickRun?: { duration: string; main: string[] }
 }
 
 export interface WeekSkeleton {
@@ -69,6 +70,7 @@ function easySession(
   focus: string,
   main: string[],
   recovery: boolean,
+  brickRun?: { duration: string; main: string[] },
 ): SkeletonSession {
   return {
     discipline,
@@ -77,6 +79,7 @@ function easySession(
     focus,
     intensity: 'RPE 3-4 su 10, conversazione possibile',
     mainOutline: recovery ? ['Volume ridotto del ~35%', 'Tutto facile, zero fatica percepita'] : main,
+    ...(brickRun ? { brickRun } : {}),
   }
 }
 
@@ -160,7 +163,10 @@ function buildSessions(phase: MacroPhase, weekInMeso: number, isRecovery: boolea
         '15min progressivo',
         'Principale: 45-55min Z2 con 2 blocchi da 10min a ritmo leggermente più sostenuto',
         'Defaticamento 10min',
-      ], isRecovery),
+      ], isRecovery, !isRecovery && weekInMeso >= 2 ? {
+        duration: '15min',
+        main: ['15min corsa facile subito dopo la bici (transizione T2)', 'Ritmo molto facile, solo per abituare le gambe alla corsa dopo la bici'],
+      } : undefined),
       {
         discipline: 'run',
         title: isRecovery ? 'Corsa - Recupero (scarico)' : 'Corsa - Lavoro di soglia',
@@ -219,7 +225,10 @@ function buildSessions(phase: MacroPhase, weekInMeso: number, isRecovery: boolea
         '15min progressivo',
         'Principale: 40min Z2 con 2x8min a ritmo sostenuto',
         'Defaticamento 10min',
-      ], isRecovery),
+      ], isRecovery, !isRecovery && weekInMeso <= 2 ? {
+        duration: '20min',
+        main: ['20min corsa a ritmo gara (simula la frazione di corsa post-bici)', 'RPE 7-8, concentrati sulla frequenza di pedalata e sulla corsa sciolta'],
+      } : undefined),
       {
         discipline: 'run',
         title: isRecovery ? 'Corsa - Mantenimento (scarico)' : 'Corsa - Ritmo gara',

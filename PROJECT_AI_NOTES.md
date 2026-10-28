@@ -247,3 +247,10 @@ Richiesta utente: newsletter della domenica con spiegazione preparazione allenam
 ### Aggiornamento newsletter (28 ottobre — post deploy)
 - Dominio Resend verificato: **zetabytenexus.it**. Mittente impostato: `MTT Allenamenti <allenamenti@zetabytenexus.it>` (secret Edge `RESEND_FROM`).
 - Il testo della newsletter presenta ora il servizio come **lancio di novità** (non come proseguimento): subject statico `Allenamenti MTT · Settimana NN/AAAA — <Fase>`, LLM prompt istruito a presentare il servizio come nuovo servizio settimanale AI + coach. Test reale inviato con successo a `sbonfanti@hotmail.com` (sent:1).
+
+### Linee guida contenuto newsletter (prime invii — 29 ottobre)
+- **Non dare per scontato nulla**: spiegare concetti base almeno per le prime 3-4 newsletter. Esempio RPE incluso in intro statica e nel prompt LLM: "RPE (Rate of Perceived Exertion, sforzo percepito su scala 1-10: 1-2 = recupero, 3-4 = fondo aerobico/parli mentre ti alleni, 5-6 = soglia, 7-8 = duro, 9-10 = massimo)".
+- Tono: caldo da coach, entusiasta ma professionale, presentare il servizio come novità.
+- L'intro della newsletter deve: presentare il servizio come nuovo, spiegare l'RPE, descrivere la fase attuale, dire che gli allenamenti sono un punto di partenza da adattare alle proprie sensazioni.
+- Consegna test confermata: l'email arriva (verificato su `sbonfanti@hotmail.com`, era finita in **spam/posta indesiderata** — avvisare gli atleti di controllare lo spam alle prime inviate).
+- Chiave: tutto è documentato qui, non serve ripetere le istruzioni per le prossime newsletter.

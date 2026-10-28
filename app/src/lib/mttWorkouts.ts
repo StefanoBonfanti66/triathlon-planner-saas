@@ -9,6 +9,7 @@ export interface WorkoutBlock {
   cooldown?: string[];
   notes?: string[];
   tips?: string[];
+  brickRun?: { duration: string; main: string[] };
 }
 
 export interface NewsletterContent {
