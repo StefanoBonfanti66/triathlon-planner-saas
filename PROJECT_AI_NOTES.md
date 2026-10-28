@@ -263,6 +263,11 @@ Richiesta utente: newsletter della domenica con spiegazione preparazione allenam
 - **Deploy**: Edge Function ridéployata su bwzzvdwiimvdwkiytknc (commit `026501d`, `5a9b766`, `7beddfa`).
 - **Git**: tutto pushato su `main`.
 
+### Fix caratteri \n letterali nell'app (30 ottobre)
+- **mttWorkouts.ts**: aggiunto `normalizeNewlines()` (converte sequenze letterali `\\n` in newline vere) e `normalizeWorkoutContent()` (applicato ricorsivamente a tutti i campi testuali: titoli, blocchi swim/bike/run, note, newsletter, adaptation_tips, brickRun).
+- **getTeamWorkouts() e getWorkoutDrafts()**: applicano `normalizeWorkoutContent` ai dati letti dal DB, così nell'app React non si vedono più i `\n\n` letterali lasciati dal LLM.
+- **Git**: commit `fdfa1c1` pushato su `main`.
+
 ### Warning Resend da risolvere
 - Resend segnala: (1) link nelle email non matchano il dominio mittente (t.me, vercel.app vs zetabytenexus.it) — normale per newsletter con risorse esterne, non bloccante; (2) DMARC mancante su zetabytenexus.it — record TXT `_dmarc` creato su DNS Netsons con `v=DMARC1; p=none; rua=mailto:sbonfanti@hotmail.com; pct=100`. Da verificare propagazione.
 - Consiglio futuro: usare sottodominio dedicato (es. `news.zetabytenexus.it`) per segmentare reputazione invio.
