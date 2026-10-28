@@ -1,6 +1,13 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { buildWeekSkeleton, dateFromIsoWeek, WeekSkeleton, SkeletonSession } from './periodization.ts'
+import {
+  buildNewsletterHtml,
+  newsletterPlainText,
+  getTeamRecipients,
+  sendViaResend,
+  NewsletterWorkoutContent,
+} from './newsletter.ts'
 
 const MTT_ADMIN_EMAILS = ['sbonfanti@hotmail.com', 'bonfantistefano4@gmail.com']
 const MTT_FALLBACK_CHAT_ID = '-5117971075'
@@ -103,6 +110,16 @@ function renderStaticContent(skeleton: WeekSkeleton, year: number, weekNumber: n
       vo2max: 'Per gli intervalli, se conosci i tuoi valori VO2max, rimani tra 85-92%. Altrimenti riduci l\'intensità finché non riesci a recuperare bene tra le ripetizioni.',
       pace: 'Per la corsa, usa il tuo ritmo facile (circa 1-1\'30" più lento del tuo 5K) come riferimento. Se non hai tempi di riferimento, parti dal \'comfortably hard\' molto conservativo.',
     },
+    newsletter: {
+      subject: `Allenamenti MTT · Settimana ${weekNumber}/${year} — ${skeleton.phaseLabel}`,
+      intro: [
+        `Ciao squadra, ecco gli allenamenti della settimana ${weekNumber}/${year}.`,
+        `Siamo in fase ${skeleton.phaseLabel.toLowerCase()}: ${skeleton.mesoProgression}. ${skeleton.isRecovery ? 'Questa è una settimana di scarico: riduciamo i volumi per permettere al corpo di assorbire il lavoro delle settimane precedenti.' : 'Coltiviamo la qualità del lavoro con volumi e intensità pensati per amatori.'}`,
+        'Gli allenamenti non sono personalizzati: adatta intensità e durate alle tue sensazioni, senza forzare.',
+        'Buon allenamento!',
+      ].join('\n\n'),
+      extra: '',
+    },
   }
 }
 
@@ -144,6 +161,10 @@ function validateContent(c: unknown): string | null {
   if (!tbd || !Array.isArray(tbd.swim) || !Array.isArray(tbd.bike) || !Array.isArray(tbd.run)) {
     return 'tips_by_discipline incompleto'
   }
+  const nl = o.newsletter as Record<string, unknown> | undefined
+  if (!nl || typeof nl.subject !== 'string' || !nl.subject.trim()) return 'newsletter.subject mancante'
+  if (typeof nl.intro !== 'string' || !nl.intro.trim()) return 'newsletter.intro mancante'
+  if (typeof nl.extra !== 'string') return 'newsletter.extra mancante'
   return null
 }
 
@@ -189,6 +210,11 @@ async function renderWithLLM(
       notes: 'string',
       tips_by_discipline: { swim: ['string'], bike: ['string'], run: ['string'] },
       adaptation_tips: { ftp: 'string (solo percezione/RPE)', vo2max: 'string', pace: 'string' },
+      newsletter: {
+        subject: 'string — oggetto email newsletter, max 60 char, es. "Allenamenti MTT · Settimana 44 — Transizione"',
+        intro: 'string — 3-5 paragrafi (separati da \\n\\n) che spiegano agli atleti COME e PERCHÉ stiamo preparando gli allenamenti: la fase attuale, cosa stiamo costruendo, a cosa serve lo scarico, tono caldo da coach. Non ripetere il dettaglio delle sedute.',
+        extra: 'string — sempre stringa vuota "" (lo compila l\'admin)',
+      },
     },
   })
 
@@ -223,6 +249,50 @@ async function renderWithLLM(
   }
 }
 
+async function dispatchNewsletter(
+  supabaseClient: any,
+  workout: Record<string, any>,
+  testEmail: string | null,
+): Promise<Record<string, unknown>> {
+  const content = workout.content as NewsletterWorkoutContent
+  const html = buildNewsletterHtml(content, workout.week, workout.year)
+  const text = newsletterPlainText(content, workout.week, workout.year)
+  const subject = content.newsletter?.subject?.trim() || `Allenamenti MTT — Settimana ${workout.week}/${workout.year}`
+
+  const recipients = testEmail
+    ? [{ email: testEmail, name: null }]
+    : await getTeamRecipients(supabaseClient)
+  if (!recipients.length) throw new Error('Nessun destinatario trovato')
+
+  let sent = 0
+  const failures: Array<{ email: string; error: string }> = []
+  for (const r of recipients) {
+    try {
+      await sendViaResend(r, subject, html, text)
+      sent++
+    } catch (e) {
+      failures.push({ email: r.email, error: e instanceof Error ? e.message : String(e) })
+    }
+    // piccola pausa per non saturare il rate limit Resend
+    await new Promise((res) => setTimeout(res, 120))
+  }
+
+  if (!testEmail) {
+    await supabaseClient
+      .from('team_workouts')
+      .update({ newsletter_sent_at: new Date().toISOString() })
+      .eq('id', workout.id)
+  }
+
+  return {
+    total: recipients.length,
+    sent,
+    failed: failures.length,
+    failures: failures.slice(0, 5),
+    test: !!testEmail,
+  }
+}
+
 serve(async (req) => {
   const headers = corsHeadersFor(req)
 
@@ -246,7 +316,7 @@ serve(async (req) => {
 
     await requireMttAdmin(supabaseClient, req)
 
-    const { action, year, week_number, workout_id, chat_id } = await req.json()
+    const { action, year, week_number, workout_id, chat_id, test_email } = await req.json()
 
     if (action === 'generate') {
       if (!Number.isInteger(year) || year < 2020 || year > 2100) throw new Error('Anno non valido')
@@ -444,7 +514,46 @@ serve(async (req) => {
 
       if (updateError) throw updateError
 
-      return new Response(JSON.stringify({ success: true, message_count: messageIds.length }), {
+      // Newsletter best-effort: se fallisce non invalida l'invio Telegram
+      let newsletter: Record<string, unknown> | null = null
+      if (workout.content?.newsletter && !workout.newsletter_sent_at) {
+        try {
+          newsletter = await dispatchNewsletter(supabaseClient, workout, null)
+        } catch (e) {
+          newsletter = { error: e instanceof Error ? e.message : String(e) }
+        }
+      }
+
+      return new Response(JSON.stringify({ success: true, message_count: messageIds.length, newsletter }), {
+        headers: { ...headers, 'Content-Type': 'application/json' },
+      })
+    }
+
+    if (action === 'send-newsletter') {
+      if (!workout_id) throw new Error('workout_id mancante')
+      const testEmail = typeof test_email === 'string' && test_email.includes('@')
+        ? test_email
+        : null
+
+      const { data: workout, error: findError } = await supabaseClient
+        .from('team_workouts')
+        .select('*')
+        .eq('id', workout_id)
+        .single()
+      if (findError || !workout) throw new Error('Allenamento non trovato')
+
+      if (!['approved', 'sent'].includes(workout.status)) {
+        throw new Error('Approvare la settimana prima di inviare la newsletter')
+      }
+      if (!workout.content?.newsletter) {
+        throw new Error('Contenuto newsletter mancante: rigenerare la settimana')
+      }
+      if (workout.newsletter_sent_at && !testEmail) {
+        throw new Error('Newsletter già inviata per questa settimana')
+      }
+
+      const result = await dispatchNewsletter(supabaseClient, workout, testEmail)
+      return new Response(JSON.stringify({ success: true, ...result }), {
         headers: { ...headers, 'Content-Type': 'application/json' },
       })
     }

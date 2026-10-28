@@ -268,6 +268,51 @@ const AdminPage: React.FC = () => {
         }
     };
 
+    const [expandedNewsletterId, setExpandedNewsletterId] = useState<string | null>(null);
+    const [newsletterDraft, setNewsletterDraft] = useState({ subject: '', intro: '', extra: '' });
+
+    const openNewsletterEditor = (workout: any) => {
+        setExpandedNewsletterId(workout.id);
+        setNewsletterDraft({
+            subject: workout.content?.newsletter?.subject || '',
+            intro: workout.content?.newsletter?.intro || '',
+            extra: workout.content?.newsletter?.extra || '',
+        });
+    };
+
+    const handleSaveNewsletter = async (workoutId: string) => {
+        setWorkoutBusyId(workoutId);
+        try {
+            const { updateNewsletter } = await import('../lib/mttWorkouts');
+            await updateNewsletter(workoutId, newsletterDraft);
+            alert('Newsletter salvata!');
+            setExpandedNewsletterId(null);
+            await loadWorkouts();
+        } catch (e: any) {
+            alert(e.message);
+        } finally {
+            setWorkoutBusyId(null);
+        }
+    };
+
+    const handleSendNewsletter = async (workoutId: string, testEmail?: string) => {
+        setWorkoutBusyId(workoutId);
+        try {
+            const { sendNewsletter } = await import('../lib/mttWorkouts');
+            const result = await sendNewsletter(workoutId, testEmail);
+            if (testEmail) {
+                alert(`Newsletter di prova inviata a ${testEmail}`);
+            } else {
+                alert(`Newsletter inviata a ${result?.sent ?? 0} destinatari (${result?.failed ?? 0} falliti)`);
+            }
+            await loadWorkouts();
+        } catch (e: any) {
+            alert(e.message);
+        } finally {
+            setWorkoutBusyId(null);
+        }
+    };
+
     useEffect(() => {
         if (activeTab === 'workouts' && (myProfile?.team_id === 'mtt' || isSuperAdmin)) {
             loadWorkouts();
@@ -1007,26 +1052,85 @@ const AdminPage: React.FC = () => {
                     ) : (
                         <div className="space-y-3">
                             {workouts.map((workout) => (
-                                <div key={workout.id} className="flex flex-wrap items-center justify-between gap-4 p-5 bg-slate-50 rounded-2xl border border-slate-100">
-                                    <div>
-                                        <div className="font-black text-slate-800">{workout.content?.title}</div>
-                                        <div className="text-xs text-slate-500 mt-1">
-                                            Settimana {workout.week_number}/{workout.year} · Stato: <span className="font-bold uppercase">{workout.status}</span>
+                                <div key={workout.id} className="p-5 bg-slate-50 rounded-2xl border border-slate-100 space-y-4">
+                                    <div className="flex flex-wrap items-center justify-between gap-4">
+                                        <div>
+                                            <div className="font-black text-slate-800">{workout.content?.title}</div>
+                                            <div className="text-xs text-slate-500 mt-1">
+                                                Settimana {workout.week_number}/{workout.year} · Stato: <span className="font-bold uppercase">{workout.status}</span>
+                                                {workout.newsletter_sent_at && <span className="ml-2 text-green-600 font-bold">· Newsletter inviata</span>}
+                                            </div>
+                                            {workout.status === 'error' && <div className="text-xs text-red-500 font-bold mt-1">Invio fallito: riprova o genera una nuova bozza</div>}
                                         </div>
-                                        {workout.status === 'error' && <div className="text-xs text-red-500 font-bold mt-1">Invio fallito: riprova o genera una nuova bozza</div>}
-                                    </div>
-                                    <div className="flex gap-2">
-                                        {workout.status === 'draft' && (
-                                            <button onClick={() => handleApproveWorkout(workout.id)} disabled={workoutBusyId === workout.id} className="px-5 py-3 bg-amber-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-amber-600 disabled:opacity-50">
-                                                Approva
+                                        <div className="flex gap-2">
+                                            {workout.status === 'draft' && (
+                                                <button onClick={() => handleApproveWorkout(workout.id)} disabled={workoutBusyId === workout.id} className="px-5 py-3 bg-amber-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-amber-600 disabled:opacity-50">
+                                                    Approva
+                                                </button>
+                                            )}
+                                            {(workout.status === 'approved' || workout.status === 'scheduled') && (
+                                                <button onClick={() => handleSendWorkout(workout.id)} disabled={workoutBusyId === workout.id} className="px-5 py-3 bg-green-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-green-700 disabled:opacity-50">
+                                                    Invia su Telegram
+                                                </button>
+                                            )}
+                                            <button
+                                                onClick={() => expandedNewsletterId === workout.id ? setExpandedNewsletterId(null) : openNewsletterEditor(workout)}
+                                                className="px-5 py-3 bg-indigo-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-600"
+                                            >
+                                                ✉ Newsletter
                                             </button>
-                                        )}
-                                        {(workout.status === 'approved' || workout.status === 'scheduled') && (
-                                            <button onClick={() => handleSendWorkout(workout.id)} disabled={workoutBusyId === workout.id} className="px-5 py-3 bg-green-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-green-700 disabled:opacity-50">
-                                                Invia su Telegram
-                                            </button>
-                                        )}
+                                        </div>
                                     </div>
+
+                                    {expandedNewsletterId === workout.id && (
+                                        <div className="border-t border-slate-200 pt-4 space-y-3">
+                                            <div>
+                                                <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Oggetto</label>
+                                                <input
+                                                    type="text"
+                                                    value={newsletterDraft.subject}
+                                                    onChange={(e) => setNewsletterDraft(d => ({ ...d, subject: e.target.value }))}
+                                                    className="w-full mt-1 px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:border-indigo-500 outline-none"
+                                                    placeholder="Allenamenti MTT · Settimana 45 — ..."
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Introduzione (come prepariamo la settimana)</label>
+                                                <textarea
+                                                    value={newsletterDraft.intro}
+                                                    onChange={(e) => setNewsletterDraft(d => ({ ...d, intro: e.target.value }))}
+                                                    rows={5}
+                                                    className="w-full mt-1 px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:border-indigo-500 outline-none"
+                                                    placeholder="Spiega agli atleti la fase, cosa stiamo costruendo, a cosa serve lo scarico..."
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Sezione extra (comunicazioni, gare, avvisi)</label>
+                                                <textarea
+                                                    value={newsletterDraft.extra}
+                                                    onChange={(e) => setNewsletterDraft(d => ({ ...d, extra: e.target.value }))}
+                                                    rows={2}
+                                                    className="w-full mt-1 px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:border-indigo-500 outline-none"
+                                                    placeholder="(opzionale) Iscrizioni, raduni, gare sociali..."
+                                                />
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <button onClick={() => handleSaveNewsletter(workout.id)} disabled={workoutBusyId === workout.id} className="px-5 py-3 bg-slate-800 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-900 disabled:opacity-50">
+                                                    Salva Newsletter
+                                                </button>
+                                                {(workout.status === 'approved' || workout.status === 'scheduled' || workout.status === 'sent') && (
+                                                    <>
+                                                        <button onClick={() => handleSendNewsletter(workout.id)} disabled={workoutBusyId === workout.id} className="px-5 py-3 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-700 disabled:opacity-50">
+                                                            Invia Newsletter
+                                                        </button>
+                                                        <button onClick={() => { const email = prompt('Invia newsletter di prova a:'); if (email) handleSendNewsletter(workout.id, email); }} disabled={workoutBusyId === workout.id} className="px-5 py-3 bg-slate-200 text-slate-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-300 disabled:opacity-50">
+                                                            Prova a me
+                                                        </button>
+                                                    </>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             ))}
                         </div>
