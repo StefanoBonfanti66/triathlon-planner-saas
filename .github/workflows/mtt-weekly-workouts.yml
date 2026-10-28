@@ -1,0 +1,87 @@
+name: MTT Weekly Workouts - Send Sunday 20:00
+
+on:
+  schedule:
+    # Domenica alle 18:00 UTC = 19:00 CET / 20:00 CEST
+    - cron: '0 18 * * 0'
+  workflow_dispatch: # Permette invio manuale per test
+
+permissions:
+  contents: read
+
+jobs:
+  send-workouts:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - name: Install Dependencies
+        working-directory: app
+        run: npm ci
+
+      - name: Send approved MTT workouts
+        working-directory: app
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          node << 'SCRIPT'
+          const { createClient } = require('@supabase/supabase-js');
+
+          const supabase = createClient(
+            process.env.SUPABASE_URL,
+            process.env.SUPABASE_SERVICE_ROLE_KEY,
+            { auth: { persistSession: false } }
+          );
+
+          async function sendApproved() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const weekNumber = Math.ceil((now - new Date(year, 0, 1)) / (7 * 24 * 60 * 60 * 1000));
+
+            console.log(`Checking workouts for week ${weekNumber}/${year}`);
+
+            const { data: workouts, error } = await supabase
+              .from('team_workouts')
+              .select('*')
+              .eq('team_id', 'mtt')
+              .eq('year', year)
+              .eq('week_number', weekNumber)
+              .eq('status', 'approved');
+
+            if (error) {
+              console.error('Error:', error);
+              process.exit(1);
+            }
+
+            if (!workouts || workouts.length === 0) {
+              console.log('No approved workouts to send');
+              return;
+            }
+
+            for (const workout of workouts) {
+              console.log(`Sending workout ${workout.id}`);
+              const { data, error: sendError } = await supabase.functions.invoke('mtt-weekly-workouts', {
+                body: { action: 'send', workout_id: workout.id }
+              });
+
+              if (sendError) {
+                console.error('Send error:', sendError);
+                await supabase.from('team_workouts').update({ status: 'error' }).eq('id', workout.id);
+                process.exitCode = 1;
+              } else {
+                console.log('Sent successfully:', data);
+              }
+            }
+          }
+
+          sendApproved();
+          SCRIPT

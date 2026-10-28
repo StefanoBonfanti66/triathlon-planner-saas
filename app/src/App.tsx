@@ -8,6 +8,7 @@ import { Analytics } from '@vercel/analytics/react';
 import Layout from './components/Layout';
 import DashboardPage from './pages/DashboardPage';
 import TeamCalendarPage from './pages/TeamCalendarPage';
+import TeamWorkoutsPage from './pages/TeamWorkoutsPage';
 import GuidePage from './pages/GuidePage';
 import RaceDetailPage from './pages/RaceDetailPage';
 import AdminPage from './pages/AdminPage';
@@ -21,6 +22,7 @@ const App: React.FC = () => {
         <Route path="/" element={<Layout />}>
           <Route index element={<DashboardPage />} />
           <Route path="calendario-team" element={<TeamCalendarPage />} />
+          <Route path="allenamenti-mtt" element={<TeamWorkoutsPage />} />
           <Route path="guida" element={<GuidePage />} />
           <Route path="race/:id" element={<RaceDetailPage />} />
           <Route path="admin" element={<AdminPage />} />

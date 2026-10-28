@@ -27,14 +27,23 @@ Se il Team Admin ha configurato il gruppo Telegram:
 - Scadenze certificati medici imminenti
 - Promemoria gare in programma tra 10 giorni
 
-## 5. Ruolo Viewer
+## 5. Allenamenti MTT via Telegram
+
+- In **Admin → Allenamenti MTT** il team admin genera la settimana di allenamenti (2 nuoto + 2 bici + 2 corsa, per atleti amatori 30-60 anni).
+- La bozza va **approvata** prima dell'invio; l'invio su Telegram avviene solo per gli allenamenti approvati.
+- Ogni invio registra data e identificativi dei messaggi Telegram inviati.
+- Gli allenamenti inviati sono consultabili in app su `/allenamenti-mtt`, con tab per disciplina.
+- I suggerimenti di adattamento indicano come modificare gli allenamenti in base a FTP, VO2max e andature.
+
+## 6. Ruolo Viewer
 
 Alcuni utenti possono avere accesso in sola lettura (`is_viewer`). Possono vedere tutti i dati del team ma non possono:
 - Aggiungere o rimuovere gare dal calendario
 - Modificare profili
 - Accedere alla sezione Admin
+- Generare, approvare o inviare gli allenamenti MTT
 
-## 6. Installazione PWA
+## 7. Installazione PWA
 
 - Da browser mobile: "Aggiungi alla Home".
 - L'icona, il nome e i colori si adattano automaticamente al team.
