@@ -107,7 +107,7 @@ function renderStaticContent(skeleton: WeekSkeleton, year: number, weekNumber: n
       run: ['Aumenta gradualmente se riprendi', 'Scarpe adatte e terreni idonei'],
     },
     adaptation_tips: {
-      ftp: 'Se conosci il tuo FTP, lavora tra 65-80% per questi allenamenti. Se non lo conosci, usa la Regola della Conversazione: devi riuscire a parlare durante l\'allenamento.',
+      ftp: 'Prima di tutto: esegui il test FTP (20 minuti al massimo sostenibile, vedi la guida nel bottone della newsletter). FTP = valore medio della potenza dei 20 minuti × 0,95. È il tuo punto di riferimento per tutte le zone di allenamento: se non lo conosci ancora, usa la Regola della Conversazione (RPE 3-4, devi riuscire a parlare mentre ti alleni). Una volta che hai l\'FTP, lavoriamo tra 65-80% di esso. Rifai il test ogni 6 settimane per aggiornare le zone man mano che migliori.',
       vo2max: 'Per gli intervalli, se conosci i tuoi valori VO2max, rimani tra 85-92%. Altrimenti riduci l\'intensità finché non riesci a recuperare bene tra le ripetizioni.',
       pace: 'Per la corsa, usa il tuo ritmo facile (circa 1-1\'30" più lento del tuo 5K) come riferimento. Se non hai tempi di riferimento, parti dal \'comfortably hard\' molto conservativo.',
     },
@@ -116,6 +116,7 @@ function renderStaticContent(skeleton: WeekSkeleton, year: number, weekNumber: n
       intro: [
         `Ciao squadra, da questa settimana il team lancia un servizio nuovo: gli allenamenti settimanali personalizzati, pensati per te.`,
         `Ogni settimana riceverai un piano completo (nuoto, bici, corsa) costruito sulla periodizzazione e adattato alla fase della stagione. In questo momento siamo in fase ${skeleton.phaseLabel.toLowerCase()}: ${skeleton.mesoProgression}. ${skeleton.isRecovery ? 'Questa è una settimana di scarico: riduciamo i volumi per permettere al corpo di assorbire il lavoro delle settimane precedenti.' : 'Stiamo costruendo solide basi aerobiche con volumi e intensità pensati per atleti amatori.'}`,
+        `⚠️ Prima di iniziare: esegui il **test FTP**. È un test di 20 minuti al massimo sostenibile in bici: il risultato (media potenza × 0,95) definisce le tue zone di allenamento, cioè l'intensità giusta per ogni seduta. Senza FTP non sappiamo se RPE 3 per te è troppo facile o troppo duro. Clicca il bottone "Come fare il test FTP" nella email per la guida passo passo. Rifai il test ogni 6 settimane per tenere aggiornate le tue zone man mano che migliori.`,
         `Come regolare l'intensità: usiamo l'RPE (Rate of Perceived Exertion, "sforzo percepito" su scala 1-10). 1-2 = recupero, 3-4 = fondo aerobico (parli mentre ti alleni), 5-6 = soglia (respiro affannato ma sostenibile), 7-8 = duro, 9-10 = massimo. Se leggi un'allenamento con "RPE 3", significa che devi tenere un ritmo molto facile, quasi chiacchierato.`,
         'Gli allenamenti sono un punto di partenza: adatta intensità e durate alle tue sensazioni, senza forzare. Se hai dubbi, chiedi nel gruppo Telegram.',
         'Buon allenamento!',
@@ -214,7 +215,7 @@ async function renderWithLLM(
       adaptation_tips: { ftp: 'string (solo percezione/RPE)', vo2max: 'string', pace: 'string' },
       newsletter: {
         subject: 'string — oggetto email newsletter, max 60 char, es. "Allenamenti MTT · Settimana 44 — Transizione"',
-        intro: 'string — 3-5 paragrafi (separati da \\n\\n). PRESENTA IL SERVIZIO COME NOVITÀ: spiega che da questa settimana il team lancia un servizio di allenamenti settimanali personalizzati. Non dare per scontato che lo conoscano già: spiega cos\\\'è l\'RPE (Rate of Perceived Exertion, sforzo percepito su scala 1-10: 3-4 = fondo facile, 5-6 = soglia, 7-8 = duro, 9-10 = massimo) e usalo per descrivere l\'intensità delle sedute. Poi entra nel dettaglio della fase attuale e di cosa stiamo costruendo. Tono caldo da coach, entusiasta ma professionale.',
+        intro: 'string — 3-5 paragrafi (separati da \\n\\n). PRESENTA IL SERVIZIO COME NOVITÀ: spiega che da questa settimana il team lancia un servizio di allenamenti settimanali personalizzati. Come PRIMA COSA invita gli atleti a eseguire il test FTP (20 min al massimo sostenibile, guida nel bottone della email) perché il risultato definisce le zone di allenamento e senza FTP non si può tarare l\'intensità. Spiega che il test va ripetuto ogni 6 settimane per aggiornare le zone. Spiega cos\'è l\'RPE (Rate of Perceived Exertion, sforzo percepito su scala 1-10: 3-4 = fondo facile, 5-6 = soglia, 7-8 = duro, 9-10 = massimo) e usalo per descrivere l\'intensità delle sedute. Poi entra nel dettaglio della fase attuale e di cosa stiamo costruendo. Tono caldo da coach, entusiasta ma professionale.',
         extra: 'string — sempre stringa vuota "" (lo compila l\'admin)',
       },
     },
