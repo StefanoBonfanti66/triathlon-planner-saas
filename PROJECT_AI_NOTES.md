@@ -254,3 +254,15 @@ Richiesta utente: newsletter della domenica con spiegazione preparazione allenam
 - L'intro della newsletter deve: presentare il servizio come nuovo, spiegare l'RPE, descrivere la fase attuale, dire che gli allenamenti sono un punto di partenza da adattare alle proprie sensazioni.
 - Consegna test confermata: l'email arriva (verificato su `sbonfanti@hotmail.com`, era finita in **spam/posta indesiderata** — avvisare gli atleti di controllare lo spam alle prime inviate).
 - Chiave: tutto è documentato qui, non serve ripetere le istruzioni per le prossime newsletter.
+
+### Brick corsa post-bici + test FTP ogni 6 settimane (30 ottobre)
+- **periodization.ts**: tipo `SkeletonSession` aggiunto campo `brickRun?: { duration: string; main: string[] }`; `easySession` accetta `brickRun` opzionale; brickRun aggiunto a: (a) fase BUILD, sessione 'Bici - Fondo attivo' (settimana >=2, non-recovery): bici 70-80min + corsa 15min facile post-bici; (b) fase PEAK, sessione 'Bici - Fondo con ritmo' (settimana <=2, non-recovery): bici 70min + corsa 20min ritmo gara.
+- **index.ts**: `toContentBlock` propaga `brickRun`; rendering Telegram aggiunge messaggio "*🏃 CORSA (dopo bici)*" dopo ogni block bici con brickRun; `adaptation_tips.ftp` include nota "Rifai il test ogni 6 settimane"; `newsletter.intro` static include invito test FTP come prima azione + nota ripeti ogni 6 settimane + spiegazione RPE 1-10; prompt LLM newsletter.intro aggiornato allo stesso contenuto.
+- **newsletter.ts**: tipo `NewsletterWorkoutContent.bike[]` elementi con `brickRun?`; `disciplineSection` accetta `brickRuns` e mostra sottosezione "Corsa dopo bici (brick)"; nuove funzioni `normalizeNewlines` e `textToHtml` per evitare caratteri `\n\n` letterali nell'HTML (usate per intro, extra, notes); link test FTP cambiato su `https://www.rivaluta.it/ciclismo/ftp-ciclismo.asp`.
+- **mttWorkouts.ts**: `WorkoutBlock.brickRun?: { duration: string; main: string[] }`.
+- **Deploy**: Edge Function ridéployata su bwzzvdwiimvdwkiytknc (commit `026501d`, `5a9b766`, `7beddfa`).
+- **Git**: tutto pushato su `main`.
+
+### Warning Resend da risolvere
+- Resend segnala: (1) link nelle email non matchano il dominio mittente (t.me, vercel.app vs zetabytenexus.it) — normale per newsletter con risorse esterne, non bloccante; (2) DMARC mancante su zetabytenexus.it — record TXT `_dmarc` creato su DNS Netsons con `v=DMARC1; p=none; rua=mailto:sbonfanti@hotmail.com; pct=100`. Da verificare propagazione.
+- Consiglio futuro: usare sottodominio dedicato (es. `news.zetabytenexus.it`) per segmentare reputazione invio.

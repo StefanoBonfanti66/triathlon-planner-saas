@@ -28,6 +28,16 @@ function esc(s: unknown): string {
     .replace(/"/g, '&quot;')
 }
 
+// Normalizza sequenze letterali \n (backslash+n) lasciate dal LLM in newline vere
+function normalizeNewlines(s: unknown): string {
+  return String(s ?? '').replace(/\\n/g, '\n')
+}
+
+// Converte testo (con eventuali newline vere o sequenze letterali \n) in HTML sicuro con <br>
+function textToHtml(s: unknown): string {
+  return esc(normalizeNewlines(s)).replace(/\n/g, '<br>')
+}
+
 function disciplineSection(label: string, emoji: string, blocks: NewsletterWorkoutContent['swim'], brickRuns?: Array<{ duration?: string; main: string[] }>): string {
   if (!blocks?.length) return ''
   const rows = blocks.map((b) => `
@@ -81,12 +91,12 @@ export function buildNewsletterHtml(
           <div style="font-size:22px;font-weight:900;color:#ffffff;margin-top:6px;line-height:1.3;">${esc(subject)}</div>
         </td></tr>
         <tr><td style="padding:28px 36px 8px;">
-          <p style="font-size:14px;color:#334155;line-height:1.65;margin:0 0 16px;white-space:pre-line;">${esc(intro)}</p>
+          <p style="font-size:14px;color:#334155;line-height:1.65;margin:0 0 16px;">${textToHtml(intro)}</p>
         </td></tr>
         ${extra ? `<tr><td style="padding:8px 36px;">
           <div style="background:#fef9c3;border-radius:16px;padding:20px 24px;">
             <div style="font-size:12px;font-weight:900;color:#a16207;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px;">📣 Altro dalla squadra</div>
-            <p style="font-size:14px;color:#422006;line-height:1.6;margin:0;white-space:pre-line;">${esc(extra)}</p>
+            <p style="font-size:14px;color:#422006;line-height:1.6;margin:0;">${textToHtml(extra)}</p>
           </div>
         </td></tr>` : ''}
         <tr><td style="padding:16px 36px 0;">
@@ -99,7 +109,7 @@ export function buildNewsletterHtml(
         </td></tr>
         <tr><td style="padding:8px 36px 0;">
           <div style="background:#f8fafc;border-radius:16px;padding:20px 24px;margin:8px 0 16px;">
-            <div style="font-size:13px;color:#475569;line-height:1.6;margin:0;white-space:pre-line;">${esc(content.notes)}</div>
+            <div style="font-size:13px;color:#475569;line-height:1.6;margin:0;">${textToHtml(content.notes)}</div>
           </div>
         </td></tr>
         <tr><td style="padding:8px 36px 24px;" align="center">
@@ -124,8 +134,8 @@ export function buildNewsletterHtml(
 export function newsletterPlainText(content: NewsletterWorkoutContent, weekNumber: number, year: number): string {
   const nl = content.newsletter
   const subject = nl?.subject?.trim() || `Allenamenti MTT — Settimana ${weekNumber}/${year}`
-  const lines: string[] = [subject, '', nl?.intro?.trim() || content.intro, '']
-  if (nl?.extra?.trim()) lines.push('📣 Altro dalla squadra:', nl.extra.trim(), '')
+  const lines: string[] = [subject, '', normalizeNewlines(nl?.intro?.trim() || content.intro), '']
+  if (nl?.extra?.trim()) lines.push('📣 Altro dalla squadra:', normalizeNewlines(nl.extra.trim()), '')
   const addBlocks = (label: string, blocks: NewsletterWorkoutContent['swim']) => {
     if (!blocks?.length) return
     lines.push(label.toUpperCase())
@@ -138,7 +148,7 @@ export function newsletterPlainText(content: NewsletterWorkoutContent, weekNumbe
   addBlocks('Nuoto', content.swim)
   addBlocks('Bici', content.bike)
   addBlocks('Corsa', content.run)
-  lines.push(content.notes, '', `Gruppo Telegram: ${TELEGRAM_INVITE_URL}`, `Guida test FTP: ${FTP_GUIDE_URL}`)
+  lines.push(normalizeNewlines(content.notes), '', `Gruppo Telegram: ${TELEGRAM_INVITE_URL}`, `Guida test FTP: ${FTP_GUIDE_URL}`)
   return lines.join('\n')
 }
 
