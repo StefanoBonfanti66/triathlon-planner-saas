@@ -34,6 +34,11 @@ Se il Team Admin ha configurato il gruppo Telegram:
 - Ogni invio registra data e identificativi dei messaggi Telegram inviati.
 - Gli allenamenti inviati sono consultabili in app su `/allenamenti-mtt`, con tab per disciplina.
 - I suggerimenti di adattamento indicano come modificare gli allenamenti in base a FTP, VO2max e andature.
+- Periodizzazione: macro-fase stagionale (nov-feb base, mar-apr build, mag-ago peak, set-ott transition) con mesociclo di 4 settimane (4ª di scarico, volume -35%). Zone RPE (sforzo percepito 1-10, nessuna FTP da seedare).
+- Brick corsa post-bici: nella fase BUILD e PEAK, alcune sessioni bici includono una corsa facile/ritmo subito dopo la bici.
+- Test FTP ogni 6 settimane: protocollo 20' (Allen & Coggan, ×0,95 per soglia funzionale, zone 1-7).
+- Invio domenicale automatico alle 20:00 ora italiana (Cron GitHub UTC 18:00 CEST / 19:00 CET + guardia Europe/Rome), solo se lo status è `approved`.
+- Newsletter settimanale inviata via Resend dopo l'allenamento: spiegazione preparazione della settimana, bottone Telegram e bottone test FTP.
 
 ## 6. Ruolo Viewer
 

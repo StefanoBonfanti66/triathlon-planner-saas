@@ -26,11 +26,22 @@ Visualizza tutte le gare a cui partecipa il tuo team:
 Gestisci le tue informazioni federali e sanitarie:
 - **Tessere**: Inserisci i numeri delle tue tessere FITRI e/o FCI negli appositi campi.
 - **Certificato Medico**: Il sistema ti avviserà visivamente quando il tuo certificato medico sta per scadere. Assicurati di caricarne uno nuovo tempestivamente.
-
 ## 5. Notifiche
+
 Se il tuo Team Admin ha configurato le notifiche Telegram, riceverai avvisi automatici per:
 - Nuovi atleti che si uniscono al team.
 - Aggiornamenti importanti sul calendario gare.
+
+## 6. Allenamenti settimanali MTT (via Telegram)
+
+Ogni domenica alle 20:00 ora italiana ricevi nel gruppo Telegram l'allenamento della settimana, se il Team Admin lo ha approvato:
+
+- 2 sedute di nuoto, 2 di bici, 2 di corsa (per atleti amatori 30-60 anni)
+- Ogni allenamento indica durata, intensità (RPE 1-10: 1-2 recupero, 3-4 fondo aerobico, 5-6 soglia, 7-8 duro, 9-10 massimo) e adattamenti consigliati
+- Nella fase BUILD e PEAK alcune sessioni bici includono un **brick**: corsa facile o a ritmo subito dopo la bici
+- Il **test FTP ogni 6 settimane** (protocollo 20', ×0,95) serve a calibrare le zone di allenamento
+- Trovano lo storico degli allenamenti inviati in app su `/allenamenti-mtt`, con tab per disciplina
+- La domenica ricevi anche la **newsletter** via email con la spiegazione della preparazione settimanale, un bottone per aprire il gruppo Telegram e un bottone per il test FTP
 
 ---
 *Race Planner SaaS: Pianifica con successo la tua stagione agonistica!*

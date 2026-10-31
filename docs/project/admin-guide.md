@@ -57,6 +57,20 @@ Il bot invia automaticamente:
 - Compleanni del giorno (solo atleti con tessera o socio attivo)
 - **Promemoria gare imminenti**: 10 giorni prima di ogni gara con iscritti del team
 - Scadenze certificati medici imminenti
+- Allenamenti settimanali MTT (invio domenica 20:00 IT, solo se approvati dall'admin)
+
+## Newsletter settimanale MTT
+
+La newsletter viene inviata via Resend ogni domenica dopo l'allenamento, se lo status della settimana è `approved`.
+
+- Dominio verificato: `zetabytenexus.it`, mittente `MTT Allenamenti <allenamenti@zetabytenexus.it>`
+- Contenuto: soggetto statico `Allenamenti MTT · Settimana NN/AAAA — <Fase>`, intro (LLM o statico con spiegazione RPE e fase attuale), sintesi delle 6 sedute, notes, adattamenti, bottone Telegram e bottone test FTP
+- Editor in Admin → Allenamenti MTT: modifica soggetto/intro/extra, poi **Salva**, **Invia** o **Prova a me**
+- L'invio è best-effort: se fallisce, l'allenamento resta comunque inviato su Telegram
+- Record `team_workouts.newsletter_sent_at` traccia l'ultima invio per evitare duplicati
+- Attenzione: alle prime inviate l'email può finire in spam. Avvisare gli atleti di controllare la posta indesiderata.
+- Link esterni (t.me, vercel.app) non matchano il dominio mittente: comportamento normale di Resend, non bloccante.
+- Consiglio futuro: usare un sottodominio dedicato (es. `news.zetabytenexus.it`) per segmentare la reputazione di invio.
 
 ## Gestione viewer
 
