@@ -226,13 +226,13 @@ Audit end-to-end della catena di invio domenicale, eseguito su richiesta dell'ut
 - **Bug trovato — fuso orario DST**: il cron `0 18 * * 0` (18:00 UTC) con l'ora legale finita il 25/10 corrisponde a **19:00 CET**, non alle 20:00 volute. GitHub cron è UTC-only e non segue il DST.
 - **Fix applicato** (`.github/workflows/mtt-weekly-workouts.yml`, sul branch, NON ancora su main): **due cron** `0 18 * * 0` + `0 19 * * 0` (coprono CEST e CET) più una guardia nella script che — solo per eventi `schedule` — calcola l'ora a `Europe/Rome` ed esce senza fare nulla se sono prima delle 20:00. La seconda run è comunque no-op di sicurezza (il record è già `sent`). `workflow_dispatch` resta libero da vincoli orari per i test. Simulato: estate invia alle 18:00Z, inverno alle 19:00Z, run fuori stagione esce.
 - **Implicazione**: la schedule si configura dalla `main` → per avere l'invio alle 20:00 italiane già domenica 01/11 (CET) serve il merge in `main` **prima di domenica**; altrimenti la vecchia cron manda alle 19:00.
-- **Nota flusso**: l'invio domenicale non richiede la merge del codice funzione (deploy Supabase già fatto); richiede però che il record sia in `status='approved'` — week 44 è attualmente `draft` (nessun invio se non approvato, voluto).
+- **Nota flusso**: l'invio domenicale non richiede la merge del codice funzione (deploy Supabase già fatto); richiede però che il record sia in `status='approved'` — week 44 (id `c1619f13`) è **approved** (confermato DB, `approved_by`=`4f3e45bc-fe1d-432e-b646-e35fa8b45e10`, `approved_at`=`2026-10-28T16:31:27.466+00:00`, `sent_at`=null → in attesa di invio domenicale).
 - **Merge + push**: branch committato (`bca1313`) e mergiato in `main` (`4923ced`), pushato. Working tree pulito (untracked: `deno.lock`, `supabase/.temp/` — da non committare).
 - **Cambio bot Telegram**: secret Edge `TELEGRAM_BOT_TOKEN` sostituito — da LisaCoachBot (temporaneo) a **`@saas_planner_bot`** (id 8333781013), membro del gruppo `-5117971075` ("MTT Notifiche gare"). Test di consegna reale riuscito (message_id 742 nel gruppo). Token salvato in `~/.config/opencode/secrets/mtt/telegram.env` (600, non committare). Il vecchio token di LisaCoachBot è decaduto dal flusso. L'utente rinomina il gruppo da sé.
 
 ### Da fare (prossimi passi)
 - Commit sul branch + review; merge in `main` (workflow schedule si configura dalla main; la funzione è già deployata su Supabase).
-- Prima di domenica 01/11: mergiare il fix DST del workflow; decidere se approvare la week 44 come demo o lasciare vuota.
+- Prima di domenica 01/11: mergiare il fix DST del workflow (già su main `4923ced`); week 44 è già **approved** (in attesa di invio domenicale).
 - Da discutere con l'utente: FTP/obiettivi personalizzati, immagini+testo, bot definitivo.
 
 ### Newsletter settimanale MTT (28 ottobre — implementazione completa)
@@ -242,7 +242,7 @@ Richiesta utente: newsletter della domenica con spiegazione preparazione allenam
 - **Client**: `mttWorkouts.ts` — tipo `NewsletterContent`, `updateNewsletter` (merge REST su content), `sendNewsletter`. AdminPage — bottoni ✉ Newsletter con editor subject/intro/extra, Salva, Invia, Prova a me. GuidePage — sezione 6 «Test FTP» id=test-ftp (protocollo 20' Allen&Coggan, calcolo ×0,95, zone 1-7).
 - **Deploy**: Edge Function deployata su bwzz con `newsletter.ts`; secret Edge `RESEND_API_KEY` + `TELEGRAM_INVITE_URL` impostati. Migration eseguite via Management API (`/v1/projects/{ref}/database/query` con token MCP) — `db push` non funziona (migrations dir locale assente).
 - **Test reale**: generate week 44 → newsletter subject `Allenamenti MTT · Settimana 44 — Transizione` (intro 584 char, LLM), approvata, test newsletter verso `sbonfanti@hotmail.com` → **sent:1**. Limite Resend free: invio solo all'indirizzo dell'account (hotmail). Per inviare ai 30 atleti serve dominio verificato su resend.com.
-- **Da fare**: verificare dominio Resend (es. zetabytenexus.it) o accettare che l'admin invii manualmente; commit+push; approvare week 44 prima di domenica.
+- **Da fare**: verificare dominio Resend (es. zetabytenexus.it) o accettare che l'admin invii manualmente; commit+push (workflow fix DST già su main). Week 44 già **approved**.
 
 ### Aggiornamento newsletter (28 ottobre — post deploy)
 - Dominio Resend verificato: **zetabytenexus.it**. Mittente impostato: `MTT Allenamenti <allenamenti@zetabytenexus.it>` (secret Edge `RESEND_FROM`).
@@ -269,5 +269,5 @@ Richiesta utente: newsletter della domenica con spiegazione preparazione allenam
 - **Git**: commit `fdfa1c1` pushato su `main`.
 
 ### Warning Resend da risolvere
-- Resend segnala: (1) link nelle email non matchano il dominio mittente (t.me, vercel.app vs zetabytenexus.it) — normale per newsletter con risorse esterne, non bloccante; (2) DMARC mancante su zetabytenexus.it — record TXT `_dmarc` creato su DNS Netsons con `v=DMARC1; p=none; rua=mailto:sbonfanti@hotmail.com; pct=100`. Da verificare propagazione.
+- Resend segnala: (1) link nelle email non matchano il dominio mittente (t.me, vercel.app vs zetabytenexus.it) — normale per newsletter con risorse esterne, non bloccante; (2) DMARC ora **live e verificato** su zetabytenexus.it: `dig TXT _dmarc.zetabytenexus.it` → ANSWER 1, TTL 300, `"v=DMARC1; p=none; rua=mailto:sbonfanti@hotmail.com; pct=100"` (corretto da errore precedente `_dmark`).
 - Consiglio futuro: usare sottodominio dedicato (es. `news.zetabytenexus.it`) per segmentare reputazione invio.
