@@ -96,6 +96,19 @@ interface PushedItem {
   status?: 'accepted' | 'existing_unverified' | 'failed' | 'unknown'
 }
 
+interface ConversionProblem {
+  blockIndex: number
+  blockTitle: string
+  discipline: string
+  segment: 'warmup' | 'cooldown'
+  missing: string[]
+}
+
+interface ConversionResult {
+  steps: any[]
+  problems: ConversionProblem[]
+}
+
 async function mywhooshLogin(): Promise<MyWhooshLoginResponse> {
   const username = Deno.env.get('MYWHOOSH_USERNAME')
   const password = Deno.env.get('MYWHOOSH_PASSWORD')
@@ -247,30 +260,29 @@ function redactSecrets(value: any): any {
   return value
 }
 
-function workoutToMyWhooshSteps(content: any, workoutIndex: number): any[] {
+function workoutToMyWhooshSteps(content: any, workoutIndex: number): ConversionResult {
   const steps: any[] = []
+  const problems: ConversionProblem[] = []
   let intervalId = 1
 
   const disciplines = ['swim', 'bike', 'run'] as const
   for (const d of disciplines) {
     const blocks = content[d] ?? []
-    for (const block of blocks) {
+    for (let bi = 0; bi < blocks.length; bi++) {
+      const block = blocks[bi]
       const title = block.title ?? `${d.charAt(0).toUpperCase() + d.slice(1)}`
       const duration = typeof block.duration === 'string' ? block.duration : ''
 
-      // Warmup
+      // Warmup — non convertibile: il modello MTT non espone estremi di potenza
+      // né durata numerica per i segmenti di riscaldamento/defaticamento.
       if (block.warmup?.length) {
-        steps.push({
-          Id: steps.length + 1,
-          Name: `${title} - Riscaldamento`,
-          Description: block.warmup.join(' | '),
-          Power: 0.55,
-          Time: 600,
-          StepType: 'E_WarmUp',
-          IntervalId: intervalId,
-          WorkoutStepsArray: [],
+        problems.push({
+          blockIndex: bi,
+          blockTitle: title,
+          discipline: d,
+          segment: 'warmup',
+          missing: ['StartPower', 'EndPower', 'durata numerica'],
         })
-        intervalId++
       }
 
       // Main
@@ -288,24 +300,20 @@ function workoutToMyWhooshSteps(content: any, workoutIndex: number): any[] {
         intervalId++
       }
 
-      // Cooldown
+      // Cooldown — non convertibile per gli stessi motivi del warmup.
       if (block.cooldown?.length) {
-        steps.push({
-          Id: steps.length + 1,
-          Name: `${title} - Defaticamento`,
-          Description: block.cooldown.join(' | '),
-          Power: 0.55,
-          Time: 600,
-          StepType: 'E_CoolDown',
-          IntervalId: intervalId,
-          WorkoutStepsArray: [],
+        problems.push({
+          blockIndex: bi,
+          blockTitle: title,
+          discipline: d,
+          segment: 'cooldown',
+          missing: ['StartPower', 'EndPower', 'durata numerica'],
         })
-        intervalId++
       }
     }
   }
 
-  if (steps.length === 0) {
+  if (steps.length === 0 && problems.length === 0) {
     steps.push({
       Id: 1,
       Name: content.title ?? 'Allenamento MTT',
@@ -318,7 +326,7 @@ function workoutToMyWhooshSteps(content: any, workoutIndex: number): any[] {
     })
   }
 
-  return steps
+  return { steps, problems }
 }
 
 function validateSteps(steps: any[]): string | undefined {
@@ -414,7 +422,17 @@ serve(async (req) => {
         const pushed: PushedItem[] = []
         for (const workout of workouts) {
           const content = workout.content as any
-          const steps = workoutToMyWhooshSteps(content, pushed.length)
+          const { steps, problems } = workoutToMyWhooshSteps(content, pushed.length)
+
+          if (problems.length > 0) {
+            const first = problems[0]
+            pushed.push({
+              workout_id: workout.id,
+              error: `Blocco ${first.blockIndex} "${first.blockTitle}" (${first.discipline}, ${first.segment}): segmenti warmup/cooldown non convertibili dal modello MTT — mancano ${first.missing.join(', ')}; nessun valore o durata inventato.`,
+              status: 'failed',
+            })
+            continue
+          }
 
           const validationError = validateSteps(steps)
           if (validationError) {
@@ -449,12 +467,8 @@ serve(async (req) => {
         })
       }
 
-      const loginResult = await mywhooshLogin()
-      if (!loginResult.AccessToken || !loginResult.WhooshId) {
-        throw new Error('Impossibile autenticarsi su MyWhoosh')
-      }
-
       const pushed: PushedItem[] = []
+      let loginResult: MyWhooshLoginResponse | undefined = undefined
 
       for (const workout of workouts) {
         if (workout.mywhoosh_workout_id) {
@@ -468,8 +482,17 @@ serve(async (req) => {
         }
 
         const content = workout.content as any
-        const steps = workoutToMyWhooshSteps(content, pushed.length)
-        const title = (content.title ?? `Allenamenti MTT - Settimana ${week_number} ${year}`).replace(/\//g, ' ')
+        const { steps, problems } = workoutToMyWhooshSteps(content, pushed.length)
+
+        if (problems.length > 0) {
+          const first = problems[0]
+          pushed.push({
+            workout_id: workout.id,
+            error: `Blocco ${first.blockIndex} "${first.blockTitle}" (${first.discipline}, ${first.segment}): segmenti warmup/cooldown non convertibili dal modello MTT — mancano ${first.missing.join(', ')}; nessun valore o durata inventato.`,
+            status: 'failed',
+          })
+          continue
+        }
 
         const validationError = validateSteps(steps)
         if (validationError) {
@@ -477,6 +500,14 @@ serve(async (req) => {
           continue
         }
 
+        if (!loginResult) {
+          loginResult = await mywhooshLogin()
+          if (!loginResult.AccessToken || !loginResult.WhooshId) {
+            throw new Error('Impossibile autenticarsi su MyWhoosh')
+          }
+        }
+
+        const title = (content.title ?? `Allenamenti MTT - Settimana ${week_number} ${year}`).replace(/\//g, ' ')
         const workoutId = String(Date.now())
         const totalTime = steps.reduce((sum, s) => sum + s.Time, 0)
 
@@ -611,7 +642,7 @@ serve(async (req) => {
         success: failedCount === 0 && unknownCount === 0,
         pushed,
         total: pushed.length,
-        whooshId: loginResult.WhooshId,
+        whooshId: loginResult?.WhooshId,
         accepted: acceptedCount,
         existing_unverified: existingUnverifiedCount,
         failed: failedCount,
