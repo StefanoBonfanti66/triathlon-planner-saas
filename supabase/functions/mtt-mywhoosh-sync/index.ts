@@ -405,6 +405,10 @@ serve(async (req) => {
       if (!Number.isInteger(year) || year < 2020 || year > 2100) throw new Error('Anno non valido')
       if (!Number.isInteger(week_number) || week_number < 1 || week_number > 53) throw new Error('Settimana non valida')
 
+      if (dry_run !== undefined && typeof dry_run !== 'boolean') {
+        throw new Error('Parametro dry_run non valido: usare true o false booleani')
+      }
+
       const { data: workouts, error: wError } = await supabaseClient
         .from('team_workouts')
         .select('id, week_number, year, content, status, mywhoosh_workout_id')
