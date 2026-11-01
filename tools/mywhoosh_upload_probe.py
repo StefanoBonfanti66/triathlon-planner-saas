@@ -504,9 +504,11 @@ def cmd_login() -> int:
     return 0
 
 
-def cmd_backup() -> int:
+def cmd_backup(output_dir: Path | None = None) -> int:
     """Backup remoto in sola lettura (quando autorizzato).
     Login, GET workout-builder/my-workouts, salvataggio JSON, nessun upload.
+    Se output_dir e' fornito, salva in quella directory (test); altrimenti
+    usa tools/backups/ (uso operativo invariato).
     """
     session = InMemorySession()
 
@@ -592,7 +594,10 @@ def cmd_backup() -> int:
     print()
 
     # Salvataggio locale senza sovrascrivere
-    backup_dir = Path(__file__).resolve().parent / "backups"
+    if output_dir is None:
+        backup_dir = Path(__file__).resolve().parent / "backups"
+    else:
+        backup_dir = output_dir
     backup_dir.mkdir(parents=True, exist_ok=True)
     stamp = time.strftime("%Y%m%d_%H%M%S")
     base_name = f"backup_myworkouts_{stamp}"
@@ -917,6 +922,7 @@ def _make_http_get_error(code: int, body: str = '{"error":"test"}') -> dict:
 def test_backup_valid_2_workouts() -> None:
     """Test locale: risposta valida con due workout."""
     from unittest.mock import patch
+    import tempfile
 
     payload = {
         "status": True,
@@ -928,9 +934,11 @@ def test_backup_valid_2_workouts() -> None:
         ],
     }
 
-    with patch("__main__.mywhoosh_login", side_effect=_mock_login_set_session), \
-         patch("__main__.http_get", return_value=_make_http_get_ok(payload)):
-        result = cmd_backup()
+    with tempfile.TemporaryDirectory() as tmp:
+        backup_dir = Path(tmp)
+        with patch("__main__.mywhoosh_login", side_effect=_mock_login_set_session), \
+             patch("__main__.http_get", return_value=_make_http_get_ok(payload)):
+            result = cmd_backup(output_dir=backup_dir)
 
     assert result == 0, f"atteso 0, ottenuto {result}"
     print("Test backup valido 2 workout: PASS")
@@ -939,12 +947,15 @@ def test_backup_valid_2_workouts() -> None:
 def test_backup_empty_data() -> None:
     """Test locale: risposta valida con data: []."""
     from unittest.mock import patch
+    import tempfile
 
     payload = {"status": True, "message": "", "display": False, "data": []}
 
-    with patch("__main__.mywhoosh_login", side_effect=_mock_login_set_session), \
-         patch("__main__.http_get", return_value=_make_http_get_ok(payload)):
-        result = cmd_backup()
+    with tempfile.TemporaryDirectory() as tmp:
+        backup_dir = Path(tmp)
+        with patch("__main__.mywhoosh_login", side_effect=_mock_login_set_session), \
+             patch("__main__.http_get", return_value=_make_http_get_ok(payload)):
+            result = cmd_backup(output_dir=backup_dir)
 
     assert result == 0
     print("Test backup data vuoto: PASS")
@@ -953,10 +964,13 @@ def test_backup_empty_data() -> None:
 def test_backup_http_401() -> None:
     """Test locale: HTTP 401."""
     from unittest.mock import patch
+    import tempfile
 
-    with patch("__main__.mywhoosh_login", side_effect=_mock_login_set_session), \
-         patch("__main__.http_get", return_value=_make_http_get_error(401)):
-        result = cmd_backup()
+    with tempfile.TemporaryDirectory() as tmp:
+        backup_dir = Path(tmp)
+        with patch("__main__.mywhoosh_login", side_effect=_mock_login_set_session), \
+             patch("__main__.http_get", return_value=_make_http_get_error(401)):
+            result = cmd_backup(output_dir=backup_dir)
 
     assert result == 1
     print("Test backup HTTP 401: PASS")
@@ -965,10 +979,13 @@ def test_backup_http_401() -> None:
 def test_backup_http_403() -> None:
     """Test locale: HTTP 403."""
     from unittest.mock import patch
+    import tempfile
 
-    with patch("__main__.mywhoosh_login", side_effect=_mock_login_set_session), \
-         patch("__main__.http_get", return_value=_make_http_get_error(403)):
-        result = cmd_backup()
+    with tempfile.TemporaryDirectory() as tmp:
+        backup_dir = Path(tmp)
+        with patch("__main__.mywhoosh_login", side_effect=_mock_login_set_session), \
+             patch("__main__.http_get", return_value=_make_http_get_error(403)):
+            result = cmd_backup(output_dir=backup_dir)
 
     assert result == 1
     print("Test backup HTTP 403: PASS")
@@ -977,10 +994,13 @@ def test_backup_http_403() -> None:
 def test_backup_http_500() -> None:
     """Test locale: HTTP 500."""
     from unittest.mock import patch
+    import tempfile
 
-    with patch("__main__.mywhoosh_login", side_effect=_mock_login_set_session), \
-         patch("__main__.http_get", return_value=_make_http_get_error(500)):
-        result = cmd_backup()
+    with tempfile.TemporaryDirectory() as tmp:
+        backup_dir = Path(tmp)
+        with patch("__main__.mywhoosh_login", side_effect=_mock_login_set_session), \
+             patch("__main__.http_get", return_value=_make_http_get_error(500)):
+            result = cmd_backup(output_dir=backup_dir)
 
     assert result == 1
     print("Test backup HTTP 500: PASS")
@@ -989,6 +1009,7 @@ def test_backup_http_500() -> None:
 def test_backup_invalid_json() -> None:
     """Test locale: JSON non valido."""
     from unittest.mock import patch
+    import tempfile
 
     raw = "non è json valido".encode("utf-8")
     result_get = {
@@ -1000,9 +1021,11 @@ def test_backup_invalid_json() -> None:
         "error": None,
     }
 
-    with patch("__main__.mywhoosh_login", side_effect=_mock_login_set_session), \
-         patch("__main__.http_get", return_value=result_get):
-        result = cmd_backup()
+    with tempfile.TemporaryDirectory() as tmp:
+        backup_dir = Path(tmp)
+        with patch("__main__.mywhoosh_login", side_effect=_mock_login_set_session), \
+             patch("__main__.http_get", return_value=result_get):
+            result = cmd_backup(output_dir=backup_dir)
 
     assert result == 1
     print("Test backup JSON non valido: PASS")
@@ -1011,12 +1034,15 @@ def test_backup_invalid_json() -> None:
 def test_backup_status_false() -> None:
     """Test locale: status false."""
     from unittest.mock import patch
+    import tempfile
 
     payload = {"status": False, "message": "errore", "data": [{"WorkoutId": "w1"}]}
 
-    with patch("__main__.mywhoosh_login", side_effect=_mock_login_set_session), \
-         patch("__main__.http_get", return_value=_make_http_get_ok(payload)):
-        result = cmd_backup()
+    with tempfile.TemporaryDirectory() as tmp:
+        backup_dir = Path(tmp)
+        with patch("__main__.mywhoosh_login", side_effect=_mock_login_set_session), \
+             patch("__main__.http_get", return_value=_make_http_get_ok(payload)):
+            result = cmd_backup(output_dir=backup_dir)
 
     assert result == 1
     print("Test backup status false: PASS")
@@ -1025,81 +1051,123 @@ def test_backup_status_false() -> None:
 def test_backup_data_not_array() -> None:
     """Test locale: data non è array."""
     from unittest.mock import patch
+    import tempfile
 
     payload = {"status": True, "data": "non array"}
 
-    with patch("__main__.mywhoosh_login", side_effect=_mock_login_set_session), \
-         patch("__main__.http_get", return_value=_make_http_get_ok(payload)):
-        result = cmd_backup()
+    with tempfile.TemporaryDirectory() as tmp:
+        backup_dir = Path(tmp)
+        with patch("__main__.mywhoosh_login", side_effect=_mock_login_set_session), \
+             patch("__main__.http_get", return_value=_make_http_get_ok(payload)):
+            result = cmd_backup(output_dir=backup_dir)
 
     assert result == 1
     print("Test backup data non array: PASS")
 
 
 def test_backup_save_without_overwrite() -> None:
-    """Test locale: salvataggio senza sovrascrittura."""
+    """Test locale: salvataggio senza sovrascrittura in directory temporanea."""
     from unittest.mock import patch
+    import tempfile
 
     payload = {"status": True, "data": [{"WorkoutId": "w1", "Name": "Test", "SportsModeType": 0}]}
 
-    backup_dir = Path(__file__).resolve().parent / "backups"
-    backup_dir.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory() as tmp:
+        backup_dir = Path(tmp)
+        before = sorted(backup_dir.glob("backup_myworkouts_*.json"))
 
-    before = sorted(backup_dir.glob("backup_myworkouts_*.json"))
+        with patch("__main__.mywhoosh_login", side_effect=_mock_login_set_session), \
+             patch("__main__.http_get", return_value=_make_http_get_ok(payload)):
+            result = cmd_backup(output_dir=backup_dir)
 
-    with patch("__main__.mywhoosh_login", side_effect=_mock_login_set_session), \
-         patch("__main__.http_get", return_value=_make_http_get_ok(payload)):
-        result = cmd_backup()
+        assert result == 0
 
-    assert result == 0
+        with patch("__main__.mywhoosh_login", side_effect=_mock_login_set_session), \
+             patch("__main__.http_get", return_value=_make_http_get_ok(payload)):
+            result = cmd_backup(output_dir=backup_dir)
 
-    with patch("__main__.mywhoosh_login", side_effect=_mock_login_set_session), \
-         patch("__main__.http_get", return_value=_make_http_get_ok(payload)):
-        result = cmd_backup()
+        assert result == 0
 
-    assert result == 0
+        after = sorted(backup_dir.glob("backup_myworkouts_*.json"))
+        assert len(after) > len(before), f"atteso più file, prima={len(before)} dopo={len(after)}"
 
-    after = sorted(backup_dir.glob("backup_myworkouts_*.json"))
-    assert len(after) > len(before), f"atteso più file, prima={len(before)} dopo={len(after)}"
-
-    # Pulizia: rimuovi i file creati durante il test
-    for f in after:
-        f.unlink(missing_ok=True)
-
-    print("Test backup senza sovrascrittura: PASS")
+        # Pulizia gestita da TemporaryDirectory; nessun unlink su file reali
+        print("Test backup senza sovrascrittura: PASS")
 
 
 def test_backup_no_secrets() -> None:
-    """Test locale: assenza di token/password nei log e nel backup."""
+    """Test locale: assenza di token/password nei log e nel backup in directory temporanea."""
     from unittest.mock import patch
     import io
+    import tempfile
 
     payload = {"status": True, "data": [{"WorkoutId": "w1", "Name": "Test", "SportsModeType": 0}]}
 
-    captured_output = io.StringIO()
+    with tempfile.TemporaryDirectory() as tmp:
+        backup_dir = Path(tmp)
+        captured_output = io.StringIO()
 
-    with patch("sys.stdout", captured_output), \
-         patch("__main__.mywhoosh_login", side_effect=_mock_login_set_session), \
-         patch("__main__.http_get", return_value=_make_http_get_ok(payload)):
-        result = cmd_backup()
+        with patch("sys.stdout", captured_output), \
+             patch("__main__.mywhoosh_login", side_effect=_mock_login_set_session), \
+             patch("__main__.http_get", return_value=_make_http_get_ok(payload)):
+            result = cmd_backup(output_dir=backup_dir)
 
-    assert result == 0
-    output = captured_output.getvalue()
-    assert "fake_access_token" not in output, "Token trovato nell'output!"
-    assert "bonfantistefano4@gmail.com" not in output, "Username trovato nell'output!"
-    assert "Mostego" not in output, "Password trovata nell'output!"
+        assert result == 0
+        output = captured_output.getvalue()
+        assert "fake_access_token" not in output, "Token trovato nell'output!"
+        assert "utente.test@example.com" not in output, "Username di test trovato nell'output!"
+        assert "prova.pwd.12345" not in output, "Password di test trovata nell'output!"
 
-    backup_dir = Path(__file__).resolve().parent / "backups"
-    backup_files = sorted(backup_dir.glob("backup_myworkouts_*.json"), key=lambda p: p.stat().st_mtime, reverse=True)
-    if backup_files:
-        latest = backup_files[0]
-        content = latest.read_text(encoding="utf-8")
-        assert "fake_access_token" not in content, "Token trovato nel backup!"
-        assert "bonfantistefano4@gmail.com" not in content, "Username trovato nel backup!"
-        assert "Mostego" not in content, "Password trovata nel backup!"
-        latest.unlink(missing_ok=True)
+        # Limite esplicito: verificare l'assenza di un valore che non compare nell'input
+        # non prova che una eventuale redazione sia avvenuta.
+        backup_files = sorted(backup_dir.glob("backup_myworkouts_*.json"), key=lambda p: p.stat().st_mtime, reverse=True)
+        if backup_files:
+            latest = backup_files[0]
+            content = latest.read_text(encoding="utf-8")
+            assert "fake_access_token" not in content, "Token trovato nel backup!"
+            assert "utente.test@example.com" not in content, "Username di test trovato nel backup!"
+            assert "prova.pwd.12345" not in content, "Password di test trovata nel backup!"
 
     print("Test backup senza segreti: PASS")
+
+
+def test_backup_save_with_sentinel() -> None:
+    """Test regressione: sentinella con pattern backup_myworkouts_*.json non viene cancellata."""
+    from unittest.mock import patch
+    import tempfile
+
+    payload = {"status": True, "data": [{"WorkoutId": "w1", "Name": "Test", "SportsModeType": 0}]}
+    sentinel_name = "backup_myworkouts_preexisting.json"
+    sentinel_content = "contenuto_sentinella_invariato"
+
+    with tempfile.TemporaryDirectory() as tmp:
+        backup_dir = Path(tmp)
+        sentinel_path = backup_dir / sentinel_name
+        sentinel_path.write_text(sentinel_content, encoding="utf-8")
+
+        # Prima chiamata mocked
+        with patch("__main__.mywhoosh_login", side_effect=_mock_login_set_session), \
+             patch("__main__.http_get", return_value=_make_http_get_ok(payload)):
+            result = cmd_backup(output_dir=backup_dir)
+
+        assert result == 0
+
+        # Seconda chiamata mocked
+        with patch("__main__.mywhoosh_login", side_effect=_mock_login_set_session), \
+             patch("__main__.http_get", return_value=_make_http_get_ok(payload)):
+            result = cmd_backup(output_dir=backup_dir)
+
+        assert result == 0
+
+        # La sentinella deve essere intatta (byte invariati)
+        assert sentinel_path.read_text(encoding="utf-8") == sentinel_content, "Sentinella modificata!"
+
+        # Deve esserci la sentinella più esattamente due nuovi backup distinti
+        all_files = sorted(backup_dir.glob("backup_myworkouts_*.json"))
+        backup_files = [f for f in all_files if f.name != sentinel_name]
+        assert len(backup_files) == 2, f"atteso 2 backup distinti, trovato {len(backup_files)}"
+
+    print("Test backup con sentinella preesistente: PASS")
 
 
 def test_backup_all() -> None:
@@ -1116,6 +1184,7 @@ def test_backup_all() -> None:
     test_backup_data_not_array()
     test_backup_save_without_overwrite()
     test_backup_no_secrets()
+    test_backup_save_with_sentinel()
     print()
     print("Tutti i test --backup: PASS")
 
