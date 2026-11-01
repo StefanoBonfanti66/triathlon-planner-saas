@@ -21,6 +21,8 @@
 ### Da completare
 - **Immagini + testo** nei workout (oggi solo testo); proprietario definitivo del bot.
 - Warning Resend: link esterni (t.me, vercel.app) non matchano dominio mittente — non bloccante; valutare sottodominio dedicato (es. news.zetabytenexus.it).
+- **Integrazione MyWhoosh** (branch `feat/mtt-mywhoosh-sync`, non mergeato): contratto di upload NON verificato, nessun push/deploy/migration/segreti eseguiti. Vedi `PROJECT_AI_NOTES.md` sezione MyWhoosh.
 
 ### Prossimo step
 - Valutare l'aggiunta di immagini ai workout; monitorare invio domenicale week 44 (record già approved, in attesa di sent).
+- Prossimo sblocco MyWhoosh: acquisire una fonte attendibile del contratto di upload, non provare payload per tentativi.

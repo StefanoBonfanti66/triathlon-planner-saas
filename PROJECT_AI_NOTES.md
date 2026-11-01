@@ -271,3 +271,32 @@ Richiesta utente: newsletter della domenica con spiegazione preparazione allenam
 ### Warning Resend da risolvere
 - Resend segnala: (1) link nelle email non matchano il dominio mittente (t.me, vercel.app vs zetabytenexus.it) — normale per newsletter con risorse esterne, non bloccante; (2) DMARC ora **live e verificato** su zetabytenexus.it: `dig TXT _dmarc.zetabytenexus.it` → ANSWER 1, TTL 300, `"v=DMARC1; p=none; rua=mailto:sbonfanti@hotmail.com; pct=100"` (corretto da errore precedente `_dmark`).
 - Consiglio futuro: usare sottodominio dedicato (es. `news.zetabytenexus.it`) per segmentare reputazione invio.
+
+## Sessione MyWhoosh — integrazione allenamenti sui rulli (branch `feat/mtt-mywhoosh-sync`)
+
+### Branch e commit (feature branch, non mergeato in `main`)
+- Lavoro sul branch `feat/mtt-mywhoosh-sync`; feature non integrata in main al momento di questa nota.
+- `029f762 feat: aggiungi Edge Function mtt-mywhoosh-sync per integrazione allenamenti MyWhoosh` — introduce Edge Function `mtt-mywhoosh-sync` (azioni `login`, `push`, `pull`), migrazione SQL colonna `mywhoosh_workout_id`, script probe locale `tools/mywhoosh_upload_probe.py` con test mock.
+- `836ffec fix: segnala segmenti MyWhoosh non convertibili e rinvia il login`.
+- `fb5b5bd fix: valida il tipo booleano di dry_run nel push MyWhoosh`.
+
+### File tracked puliti prima dell'aggiornamento
+Prima di questo aggiornamento documentale, il working tree non presentava modifiche ai file tracked. Edge Function, migration SQL e probe sono già inclusi nel commit 029f762; i fix successivi sono elencati sopra. La revisione riportata in sessione non ha rilevato segreti hardcoded nei tre file.
+
+### Contratto di upload MyWhoosh — NON verificato
+- Provenienza dell'endpoint `POST /client/custom-workout-upload` non recuperata da fonti documentali nel repo.
+- Nessun successo reale di upload documentato negli artefatti esaminati: non sono state recuperate una risposta applicativa positiva e una conferma del workout presente su MyWhoosh. Durante questa sessione di revisione non sono stati eseguiti upload reali.
+- `SportsModeType: 1` è hardcoded nell'Edge Function: valore assunto, non verificato, non da sostituire per supposizione.
+- Body Edge Function e body probe non equivalenti (Edge ha `SportsModeType` + `WorkoutsData[]` con campi estesi; probe riusa il preview senza `SportsModeType`).
+
+### Editor esportazione / mapping rampe
+- Export editor disponibile per `E_Normal` e rampe `E_WarmUp`/`E_CoolDown`, ma senza prova del contratto di upload.
+- Mapping delle rampe bloccato: il modello MTT descrive warm-up e cool-down come testo e non fornisce estremi numerici di potenza né durata numerica dei segmenti. L'export editor mostra un esempio di rappresentazione delle rampe, ma non determina i valori da applicare agli allenamenti MTT.
+
+### Assenza di verifiche runtime
+- Nessun test runtime TypeScript per l'integrazione MyWhoosh.
+- Durante questa sessione non sono stati eseguiti push Git, deploy, esecuzioni della migration SQL o configurazioni di segreti su Supabase.
+
+### Prossimo sblocco
+- Acquisire una fonte attendibile del contratto di upload MyWhoosh (endpoint, formato payload, valore corretto di `SportsModeType`).
+- Non provare payload per tentativi, nessuna richiesta di rete, nessun deploy, nessuna migration.
