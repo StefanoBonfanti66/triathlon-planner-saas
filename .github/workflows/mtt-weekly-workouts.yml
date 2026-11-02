@@ -48,7 +48,7 @@ jobs:
             { auth: { persistSession: false } }
           );
 
-          async function sendApproved() {
+            async function sendApproved() {
             const now = new Date();
 
             // Le due cron (14:00 e 15:00 UTC) coprono CEST e CET, ma va
@@ -68,8 +68,17 @@ jobs:
               return;
             }
 
+            // Calcolo ISO 8601 della settimana (allineato al frontend e a periodization.ts)
+            function getISOWeek(d) {
+              const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+              const dayNum = date.getUTCDay() || 7;
+              date.setUTCDate(date.getUTCDate() + 4 - dayNum);
+              const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+              return Math.ceil(((date.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+            }
+
             const year = now.getFullYear();
-            const weekNumber = Math.ceil((now - new Date(year, 0, 1)) / (7 * 24 * 60 * 60 * 1000));
+            const weekNumber = getISOWeek(now);
 
             console.log(`Checking workouts for week ${weekNumber}/${year}`);
 

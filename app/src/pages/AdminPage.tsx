@@ -1028,10 +1028,9 @@ const AdminPage: React.FC = () => {
                         <h3 className="text-xl font-black uppercase text-slate-800 flex items-center gap-3"><Activity className="w-6 h-6 text-blue-500" /> Allenamenti Settimanali MTT</h3>
                         <div className="flex gap-3">
                             <button onClick={async () => {
-                                const year = new Date().getFullYear();
-                                const week = Math.ceil((Date.now() - new Date(year,0,1).getTime()) / (7*24*60*60*1000));
+                                const { generateWeeklyWorkouts, getCurrentWeek } = await import('../lib/mttWorkouts');
+                                const { year, week } = getCurrentWeek();
                                 try {
-                                    const { generateWeeklyWorkouts } = await import('../lib/mttWorkouts');
                                     await generateWeeklyWorkouts(year, week);
                                     alert('Bozza generata con successo!');
                                     await loadWorkouts();
