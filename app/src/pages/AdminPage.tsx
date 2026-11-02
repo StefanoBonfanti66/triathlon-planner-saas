@@ -271,6 +271,8 @@ const AdminPage: React.FC = () => {
     const [expandedNewsletterId, setExpandedNewsletterId] = useState<string | null>(null);
     const [newsletterDraft, setNewsletterDraft] = useState({ subject: '', intro: '', extra: '' });
     const [workoutToView, setWorkoutToView] = useState<any | null>(null);
+    const [editMode, setEditMode] = useState(false);
+    const [editFields, setEditFields] = useState({ title: '', intro: '', notes: '' });
 
     const openNewsletterEditor = (workout: any) => {
         setExpandedNewsletterId(workout.id);
@@ -283,10 +285,41 @@ const AdminPage: React.FC = () => {
 
     const openWorkoutDetail = (workout: any) => {
         setWorkoutToView(workout);
+        setEditMode(false);
+        setEditFields({ title: workout.content?.title || '', intro: workout.content?.intro || '', notes: workout.content?.notes || '' });
     };
 
     const closeWorkoutDetail = () => {
         setWorkoutToView(null);
+        setEditMode(false);
+    };
+
+    const isMttAdmin = () => {
+        return myProfile?.is_team_admin === true
+            || myProfile?.is_super_admin === true
+            || session?.user?.email === 'sbonfanti@hotmail.com'
+            || session?.user?.email === 'bonfantistefano4@gmail.com';
+    };
+
+    const handleSaveWorkoutEdits = async () => {
+        if (!workoutToView) return;
+        try {
+            const { error } = await supabase
+                .from('team_workouts')
+                .update({
+                    content: {
+                        ...workoutToView.content,
+                        title: editFields.title,
+                        intro: editFields.intro,
+                        notes: editFields.notes,
+                    },
+                })
+                .eq('id', workoutToView.id);
+            if (error) throw error;
+            setWorkoutToView((prev: any) => prev ? { ...prev, content: { ...prev.content, title: editFields.title, intro: editFields.intro, notes: editFields.notes } } : null);
+            setEditMode(false);
+            await loadWorkouts();
+        } catch(e: any) { alert(e.message); }
     };
 
     const handleSaveNewsletter = async (workoutId: string) => {
@@ -1245,13 +1278,29 @@ const AdminPage: React.FC = () => {
                                 <h3 className="text-2xl font-black text-slate-800 uppercase mb-1">{workoutToView.content?.title || 'Allenamento'}</h3>
                                 <div className="text-xs text-slate-500 font-bold uppercase tracking-widest">Settimana {workoutToView.week_number}/{workoutToView.year} · Stato: {workoutToView.status}</div>
                             </div>
-                            <button onClick={closeWorkoutDetail} className="p-2 hover:bg-slate-100 rounded-xl"><X className="w-6 h-6 text-slate-400" /></button>
+                            <div className="flex gap-2">
+                                {isMttAdmin() && (
+                                    <button onClick={() => setEditMode(true)} className="p-2 hover:bg-amber-50 text-amber-700 rounded-xl border border-amber-200">
+                                        <Edit2 className="w-5 h-5" />
+                                    </button>
+                                )}
+                                <button onClick={closeWorkoutDetail} className="p-2 hover:bg-slate-100 rounded-xl"><X className="w-6 h-6 text-slate-400" /></button>
+                            </div>
                         </div>
 
                         <div className="space-y-6">
                             <div>
                                 <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Introduzione</label>
-                                <div className="mt-2 p-4 bg-slate-50 rounded-xl text-slate-700 whitespace-pre-line">{workoutToView.content?.intro || ''}</div>
+                                {editMode ? (
+                                    <textarea
+                                        value={editFields.intro}
+                                        onChange={e => setEditFields({ ...editFields, intro: e.target.value })}
+                                        rows={6}
+                                        className="mt-2 w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:border-indigo-500 outline-none"
+                                    />
+                                ) : (
+                                    <div className="mt-2 p-4 bg-slate-50 rounded-xl text-slate-700 whitespace-pre-line">{workoutToView.content?.intro || ''}</div>
+                                )}
                             </div>
 
                             {['swim', 'bike', 'run'].map(discipline => {
@@ -1298,7 +1347,16 @@ const AdminPage: React.FC = () => {
                             {workoutToView.content?.notes && (
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Note</label>
-                                    <div className="mt-2 p-4 bg-slate-50 rounded-xl text-slate-700 whitespace-pre-line">{workoutToView.content.notes}</div>
+                                    {editMode ? (
+                                        <textarea
+                                            value={editFields.notes}
+                                            onChange={e => setEditFields({ ...editFields, notes: e.target.value })}
+                                            rows={4}
+                                            className="mt-2 w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:border-indigo-500 outline-none"
+                                        />
+                                    ) : (
+                                        <div className="mt-2 p-4 bg-slate-50 rounded-xl text-slate-700 whitespace-pre-line">{workoutToView.content.notes}</div>
+                                    )}
                                 </div>
                             )}
 
@@ -1343,11 +1401,20 @@ const AdminPage: React.FC = () => {
                         </div>
 
                         <div className="mt-8 flex gap-3 justify-end">
-                            <button onClick={closeWorkoutDetail} className="px-5 py-3 bg-slate-100 text-slate-600 rounded-xl text-[10px] font-black uppercase hover:bg-slate-200">Chiudi</button>
-                            {workoutToView.status === 'draft' && (
-                                <button onClick={() => { closeWorkoutDetail(); handleApproveWorkout(workoutToView.id); }} className="px-5 py-3 bg-amber-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-amber-600">
-                                    Approvia allenamento
-                                </button>
+                            {editMode ? (
+                                <>
+                                    <button onClick={() => setEditMode(false)} className="px-5 py-3 bg-slate-100 text-slate-600 rounded-xl text-[10px] font-black uppercase hover:bg-slate-200">Annulla</button>
+                                    <button onClick={handleSaveWorkoutEdits} className="px-5 py-3 bg-blue-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-700">Salva modifiche</button>
+                                </>
+                            ) : (
+                                <>
+                                    <button onClick={closeWorkoutDetail} className="px-5 py-3 bg-slate-100 text-slate-600 rounded-xl text-[10px] font-black uppercase hover:bg-slate-200">Chiudi</button>
+                                    {workoutToView.status === 'draft' && (
+                                        <button onClick={() => { closeWorkoutDetail(); handleApproveWorkout(workoutToView.id); }} className="px-5 py-3 bg-amber-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-amber-600">
+                                            Approvia allenamento
+                                        </button>
+                                    )}
+                                </>
                             )}
                         </div>
                     </div>
