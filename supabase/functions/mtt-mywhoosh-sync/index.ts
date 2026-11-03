@@ -292,7 +292,7 @@ export function workoutToMyWhooshSteps(content: any, workoutIndex: number): Conv
           Name: `${title} - Parte principale`,
           Description: block.main.join(' | '),
           Power: 0.85,
-          Time: parseInt(duration.replace(/[^\d]/g, '')) || 1200,
+          Time: (parseInt(duration.replace(/[^\d]/g, '')) || 20) * 60,
           StepType: 'E_Normal',
           IntervalId: intervalId,
           WorkoutStepsArray: [],
@@ -428,11 +428,11 @@ serve(async (req) => {
           const content = workout.content as any
           const { steps, problems } = workoutToMyWhooshSteps(content, pushed.length)
 
-          if (problems.length > 0) {
+          if (steps.length === 0) {
             const first = problems[0]
             pushed.push({
               workout_id: workout.id,
-              error: `Blocco ${first.blockIndex} "${first.blockTitle}" (${first.discipline}, ${first.segment}): segmenti warmup/cooldown non convertibili dal modello MTT — mancano ${first.missing.join(', ')}; nessun valore o durata inventato.`,
+              error: `Nessuno step convertibile per questo allenamento. ${first ? 'Primo problema: blocco ' + first.blockIndex + ' "' + first.blockTitle + '" (' + first.discipline + ', ' + first.segment + '): segmenti warmup/cooldown non convertibili dal modello MTT — mancano ' + first.missing.join(', ') + '; nessun valore o durata inventato.' : 'nessun blocco principale trovato.'}`,
               status: 'failed',
             })
             continue
@@ -446,7 +446,7 @@ serve(async (req) => {
 
           const totalTime = steps.reduce((sum, s) => sum + s.Time, 0)
           const title = (content.title ?? `Allenamenti MTT - Settimana ${week_number} ${year}`).replace(/\//g, ' ')
-          pushed.push({
+          const item: any = {
             workout_id: workout.id,
             title,
             totalTime,
@@ -456,7 +456,11 @@ serve(async (req) => {
             error: undefined,
             dry_run: true,
             status: 'accepted',
-          })
+          }
+          if (problems.length > 0) {
+            item.warning = `Alcuni segmenti warmup/cooldown non sono convertibili su MyWhoosh (nessuna disciplina swimming supportata) e sono stati saltati: caricati solo i blocchi principali.`
+          }
+          pushed.push(item)
         }
 
         return new Response(JSON.stringify({
@@ -488,11 +492,11 @@ serve(async (req) => {
         const content = workout.content as any
         const { steps, problems } = workoutToMyWhooshSteps(content, pushed.length)
 
-        if (problems.length > 0) {
+        if (steps.length === 0) {
           const first = problems[0]
           pushed.push({
             workout_id: workout.id,
-            error: `Blocco ${first.blockIndex} "${first.blockTitle}" (${first.discipline}, ${first.segment}): segmenti warmup/cooldown non convertibili dal modello MTT — mancano ${first.missing.join(', ')}; nessun valore o durata inventato.`,
+            error: `Nessuno step convertibile per questo allenamento. ${first ? 'Primo problema: blocco ' + first.blockIndex + ' "' + first.blockTitle + '" (' + first.discipline + ', ' + first.segment + '): segmenti warmup/cooldown non convertibili dal modello MTT — mancano ' + first.missing.join(', ') + '; nessun valore o durata inventato.' : 'nessun blocco principale trovato.'}`,
             status: 'failed',
           })
           continue
@@ -512,9 +516,9 @@ serve(async (req) => {
         }
 
         const title = (content.title ?? `Allenamenti MTT - Settimana ${week_number} ${year}`).replace(/\//g, ' ')
-        // workoutId: identificativo destinazione per MyWhoosh, generato senza usare timestamp
-        // (nessuna garanzia assoluta di unicità) e senza riutilizzare l'Id dell'export sorgente.
-        const workoutId = crypto.randomUUID()
+        // workoutId: identificativo destinazione per MyWhoosh. Deve essere un numero (richiesto dall'API MyWhoosh).
+        // Usiamo Date.now() per avere un ID numerico univoco e non riutilizzare l'Id dell'export sorgente.
+        const workoutId = Date.now()
         const totalTime = steps.reduce((sum, s) => sum + s.Time, 0)
 
         const body = {
@@ -581,6 +585,7 @@ serve(async (req) => {
             mywhoosh_workout_id: workoutId,
             error: result.error ?? 'Esito remoto non confermato',
             status: result.remoteStatus === 'error' ? 'unknown' : 'unknown',
+            ...(problems.length > 0 ? { warning: 'Segmenti warmup/cooldown non convertibili saltati; upload eseguito sui soli blocchi principali.' } : {}),
           })
           console.log(`[mywhoosh] push workout=${workout.id} workoutId=${workoutId} httpStatus=${result.httpStatus} remoteStatus=${result.remoteStatus} status=unknown`)
           continue
@@ -602,6 +607,7 @@ serve(async (req) => {
             mywhoosh_workout_id: workoutId,
             error: `upload accettato da MyWhoosh, salvataggio locale fallito: ${updateError.message}`,
             status: 'accepted',
+            ...(problems.length > 0 ? { warning: 'Segmenti warmup/cooldown non convertibili saltati; upload eseguito sui soli blocchi principali.' } : {}),
           })
         } else {
           rowsAffected = Array.isArray(updatedRows) ? updatedRows.length : 0
@@ -611,6 +617,7 @@ serve(async (req) => {
               mywhoosh_workout_id: workoutId,
               error: 'upload accettato da MyWhoosh, ma nessuna riga aggiornata in team_workouts (record non trovato)',
               status: 'accepted',
+              ...(problems.length > 0 ? { warning: 'Segmenti warmup/cooldown non convertibili saltati; upload eseguito sui soli blocchi principali.' } : {}),
             })
           } else {
             pushed.push({
@@ -618,6 +625,7 @@ serve(async (req) => {
               mywhoosh_workout_id: workoutId,
               error: undefined,
               status: 'accepted',
+              ...(problems.length > 0 ? { warning: 'Segmenti warmup/cooldown non convertibili saltati; upload eseguito sui soli blocchi principali.' } : {}),
             })
           }
         }
