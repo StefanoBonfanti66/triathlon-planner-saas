@@ -201,19 +201,22 @@ Deno.test("[mtt-mywhoosh-sync] workoutToMyWhooshSteps: rampe segnalate come prob
 
   const { steps, problems } = workoutToMyWhooshSteps(content, 0)
 
-  // Il blocco bike ha un main: genera uno step E_Normal
-  assertEquals(steps.length, 1)
+  // Warmup, main e cooldown vengono tutti convertiti come step E_Normal
+  assertEquals(steps.length, 3)
   assertEquals(steps[0].StepType, "E_Normal")
-  assertEquals(steps[0].Power, 0.85)
-  // Time deriva da block.duration (livello blocco), non da main[0].Time
-  assertEquals(steps[0].Time, 600)
+  assertEquals(steps[0].Power, 0.5)      // warmup a potenza ridotta
+  assertEquals(steps[0].Time, 300)       // default 5 min (nessun numero nelle stringhe di test)
+  assertEquals(steps[1].StepType, "E_Normal")
+  assertEquals(steps[1].Power, 0.85)     // main a potenza standard
+  assertEquals(steps[1].Time, 600)       // da block.duration
+  assertEquals(steps[2].StepType, "E_Normal")
+  assertEquals(steps[2].Power, 0.4)      // cooldown a potenza ridotta
+  assertEquals(steps[2].Time, 300)       // default 5 min
 
-  // Warmup e Cooldown sono segnalati come problemi (non convertiti con valori inventati)
-  assertEquals(problems.length, 1)
-  assertEquals(problems[0].segment, "warmup")
-  assertStringIncludes(problems[0].missing[0], "StartPower")
+  // Nessun problema segnalato: warmup/cooldown ora sono convertiti, non scartati
+  assertEquals(problems.length, 0)
 
-  // Nessuno step E_WarmUp o E_CoolDown generato (nessun valore di potenza inventato)
+  // Nessuno step E_WarmUp o E_CoolDown generato (usiamo E_Normal per evitare valori inventati)
   const rampSteps = steps.filter((s) => s.StepType === "E_WarmUp" || s.StepType === "E_CoolDown")
   assertEquals(rampSteps.length, 0)
 })

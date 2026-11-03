@@ -260,6 +260,17 @@ function redactSecrets(value: any): any {
   return value
 }
 
+function extractMinutesFromStrings(arr: any[] | undefined): number {
+  if (!arr) return 0
+  let total = 0
+  for (const s of arr) {
+    const str = typeof s === 'string' ? s : String(s)
+    const m = parseInt(str.replace(/[^\d]/g, ''))
+    if (!isNaN(m)) total += m
+  }
+  return total
+}
+
 export function workoutToMyWhooshSteps(content: any, workoutIndex: number): ConversionResult {
   const steps: any[] = []
   const problems: ConversionProblem[] = []
@@ -273,19 +284,24 @@ export function workoutToMyWhooshSteps(content: any, workoutIndex: number): Conv
       const title = block.title ?? `${d.charAt(0).toUpperCase() + d.slice(1)}`
       const duration = typeof block.duration === 'string' ? block.duration : ''
 
-      // Warmup — non convertibile: il modello MTT non espone estremi di potenza
-      // né durata numerica per i segmenti di riscaldamento/defaticamento.
+      // Warmup → step E_Normal a potenza ridotta
       if (block.warmup?.length) {
-        problems.push({
-          blockIndex: bi,
-          blockTitle: title,
-          discipline: d,
-          segment: 'warmup',
-          missing: ['StartPower', 'EndPower', 'durata numerica'],
+        const warmupMinutes = extractMinutesFromStrings(block.warmup)
+        const warmupTime = warmupMinutes > 0 ? warmupMinutes * 60 : 300
+        steps.push({
+          Id: steps.length + 1,
+          Name: `${title} - Riscaldamento`,
+          Description: block.warmup.join(' | '),
+          Power: 0.5,
+          Time: warmupTime,
+          StepType: 'E_Normal',
+          IntervalId: intervalId,
+          WorkoutStepsArray: [],
         })
+        intervalId++
       }
 
-      // Main
+      // Main → step E_Normal a potenza standard
       if (block.main?.length) {
         steps.push({
           Id: steps.length + 1,
@@ -300,15 +316,21 @@ export function workoutToMyWhooshSteps(content: any, workoutIndex: number): Conv
         intervalId++
       }
 
-      // Cooldown — non convertibile per gli stessi motivi del warmup.
+      // Cooldown → step E_Normal a potenza ridotta
       if (block.cooldown?.length) {
-        problems.push({
-          blockIndex: bi,
-          blockTitle: title,
-          discipline: d,
-          segment: 'cooldown',
-          missing: ['StartPower', 'EndPower', 'durata numerica'],
+        const cooldownMinutes = extractMinutesFromStrings(block.cooldown)
+        const cooldownTime = cooldownMinutes > 0 ? cooldownMinutes * 60 : 300
+        steps.push({
+          Id: steps.length + 1,
+          Name: `${title} - Defaticamento`,
+          Description: block.cooldown.join(' | '),
+          Power: 0.4,
+          Time: cooldownTime,
+          StepType: 'E_Normal',
+          IntervalId: intervalId,
+          WorkoutStepsArray: [],
         })
+        intervalId++
       }
     }
   }
@@ -432,7 +454,7 @@ serve(async (req) => {
             const first = problems[0]
             pushed.push({
               workout_id: workout.id,
-              error: `Nessuno step convertibile per questo allenamento. ${first ? 'Primo problema: blocco ' + first.blockIndex + ' "' + first.blockTitle + '" (' + first.discipline + ', ' + first.segment + '): segmenti warmup/cooldown non convertibili dal modello MTT — mancano ' + first.missing.join(', ') + '; nessun valore o durata inventato.' : 'nessun blocco principale trovato.'}`,
+              error: `Nessuno step convertibile per questo allenamento. ${first ? 'Primo problema: blocco ' + first.blockIndex + ' "' + first.blockTitle + '" (' + first.discipline + '): nessun segmento convertibile (warmup/main/cooldown) trovato.' : 'nessun blocco principale trovato.'}`,
               status: 'failed',
             })
             continue
@@ -456,9 +478,6 @@ serve(async (req) => {
             error: undefined,
             dry_run: true,
             status: 'accepted',
-          }
-          if (problems.length > 0) {
-            item.warning = `Alcuni segmenti warmup/cooldown non sono convertibili su MyWhoosh (nessuna disciplina swimming supportata) e sono stati saltati: caricati solo i blocchi principali.`
           }
           pushed.push(item)
         }
@@ -585,7 +604,7 @@ serve(async (req) => {
             mywhoosh_workout_id: workoutId,
             error: result.error ?? 'Esito remoto non confermato',
             status: result.remoteStatus === 'error' ? 'unknown' : 'unknown',
-            ...(problems.length > 0 ? { warning: 'Segmenti warmup/cooldown non convertibili saltati; upload eseguito sui soli blocchi principali.' } : {}),
+
           })
           console.log(`[mywhoosh] push workout=${workout.id} workoutId=${workoutId} httpStatus=${result.httpStatus} remoteStatus=${result.remoteStatus} status=unknown`)
           continue
@@ -607,7 +626,7 @@ serve(async (req) => {
             mywhoosh_workout_id: workoutId,
             error: `upload accettato da MyWhoosh, salvataggio locale fallito: ${updateError.message}`,
             status: 'accepted',
-            ...(problems.length > 0 ? { warning: 'Segmenti warmup/cooldown non convertibili saltati; upload eseguito sui soli blocchi principali.' } : {}),
+
           })
         } else {
           rowsAffected = Array.isArray(updatedRows) ? updatedRows.length : 0
@@ -617,7 +636,7 @@ serve(async (req) => {
               mywhoosh_workout_id: workoutId,
               error: 'upload accettato da MyWhoosh, ma nessuna riga aggiornata in team_workouts (record non trovato)',
               status: 'accepted',
-              ...(problems.length > 0 ? { warning: 'Segmenti warmup/cooldown non convertibili saltati; upload eseguito sui soli blocchi principali.' } : {}),
+  
             })
           } else {
             pushed.push({
@@ -625,7 +644,7 @@ serve(async (req) => {
               mywhoosh_workout_id: workoutId,
               error: undefined,
               status: 'accepted',
-              ...(problems.length > 0 ? { warning: 'Segmenti warmup/cooldown non convertibili saltati; upload eseguito sui soli blocchi principali.' } : {}),
+  
             })
           }
         }
