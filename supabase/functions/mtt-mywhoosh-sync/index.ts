@@ -109,7 +109,7 @@ interface ConversionResult {
   problems: ConversionProblem[]
 }
 
-async function mywhooshLogin(): Promise<MyWhooshLoginResponse> {
+export async function mywhooshLogin(): Promise<MyWhooshLoginResponse> {
   const username = Deno.env.get('MYWHOOSH_USERNAME')
   const password = Deno.env.get('MYWHOOSH_PASSWORD')
   if (!username || !password) throw new Error('MYWHOOSH_USERNAME/MYWHOOSH_PASSWORD non configurati')
@@ -144,7 +144,7 @@ async function mywhooshLogin(): Promise<MyWhooshLoginResponse> {
   }
 }
 
-async function mywhooshRequest(token: string, url: string, body: unknown): Promise<MyWhooshRequestResult> {
+export async function mywhooshRequest(token: string, url: string, body: unknown): Promise<MyWhooshRequestResult> {
   const start = Date.now()
   let res: Response
   try {
@@ -260,7 +260,7 @@ function redactSecrets(value: any): any {
   return value
 }
 
-function workoutToMyWhooshSteps(content: any, workoutIndex: number): ConversionResult {
+export function workoutToMyWhooshSteps(content: any, workoutIndex: number): ConversionResult {
   const steps: any[] = []
   const problems: ConversionProblem[] = []
   let intervalId = 1
@@ -329,7 +329,7 @@ function workoutToMyWhooshSteps(content: any, workoutIndex: number): ConversionR
   return { steps, problems }
 }
 
-function validateSteps(steps: any[]): string | undefined {
+export function validateSteps(steps: any[]): string | undefined {
   if (steps.length === 0) return 'nessuno step generato'
 
   for (const s of steps) {
@@ -512,12 +512,14 @@ serve(async (req) => {
         }
 
         const title = (content.title ?? `Allenamenti MTT - Settimana ${week_number} ${year}`).replace(/\//g, ' ')
-        const workoutId = String(Date.now())
+        // workoutId: identificativo destinazione per MyWhoosh, generato senza usare timestamp
+        // (nessuna garanzia assoluta di unicità) e senza riutilizzare l'Id dell'export sorgente.
+        const workoutId = crypto.randomUUID()
         const totalTime = steps.reduce((sum, s) => sum + s.Time, 0)
 
         const body = {
           UserId: loginResult.WhooshId,
-          SportsModeType: 1,
+          SportsModeType: 0,
           WorkoutsData: [{
             Id: workoutId,
             Name: title,
@@ -568,7 +570,7 @@ serve(async (req) => {
         }
 
         let result: MyWhooshRequestResult
-        result = await mywhooshRequest(loginResult.AccessToken, MYWHOOSH_UPLOAD_URL, body)
+        result = await mywhooshRequest(loginResult.AccessToken!, MYWHOOSH_UPLOAD_URL, body)
 
         // Accettazione solo se il server ha restituito esplicitamente la risposta documentata.
         // Qualsiasi altro esito (non-JSON, corpo inatteso, errore HTTP, errore di trasporto)
