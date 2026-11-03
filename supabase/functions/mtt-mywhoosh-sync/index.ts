@@ -265,7 +265,7 @@ function extractMinutesFromStrings(arr: any[] | undefined): number {
   let total = 0
   for (const s of arr) {
     const str = typeof s === 'string' ? s : String(s)
-    const m = parseInt(str.replace(/[^\d]/g, ''))
+    const m = parseInt(str.match(/\d+/)?.[0] ?? '0')
     if (!isNaN(m)) total += m
   }
   return total
@@ -308,7 +308,7 @@ export function workoutToMyWhooshSteps(content: any, workoutIndex: number): Conv
           Name: `${title} - Parte principale`,
           Description: block.main.join(' | '),
           Power: 0.85,
-          Time: (parseInt(duration.replace(/[^\d]/g, '')) || 20) * 60,
+          Time: (parseInt(duration.match(/\d+/)?.[0] ?? '0') || 20) * 60,
           StepType: 'E_Normal',
           IntervalId: intervalId,
           WorkoutStepsArray: [],
