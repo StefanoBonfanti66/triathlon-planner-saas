@@ -18,17 +18,22 @@
 - **Documentazione allineata e committata** (`11977f9`, +63/-2): docs/overview.md, docs/project/user-guide.md (sez.5), docs/project/admin-guide.md (sez. Newsletter), app/GUIDA_UTENTE.md (sez.6), app/GUIDA_ADMIN.md (sez.4+5).
 - **Screening 36 profili senza user_plan completato**: 51 profili mtt attivi, 15 con user_plan, 36 senza; team_contacts 35 record email mtt.
 - **Sottodominio newsletter news.zetabytenexus.it**: DNS Netsons verificati live, Enable Sending su Resend, RESEND_FROM aggiornato su Supabase, test invio week 44 fatto dall'utente.
-- **Integrazione MyWhoosh (contratto verificato)**: `SportsModeType: 0` nel wrapper del payload (non nel workout), `workoutId` generato con `crypto.randomUUID()` (non timestamp), `export` di 4 funzioni per testabilità, 7 test locali passati su `supabase/functions/mtt-mywhoosh-sync/index.test.ts`. Contratto verificato con successo reale (HTTP 201, workout visibile in MyWhoosh, nome "MyWhoosh - new workout - Tentativo 1793552448", durata 12 min). Branch `feat/mtt-mywhoosh-sync` non mergeato, nessun deploy/migration/segreti pushati.
+- **Integrazione MyWhoosh — Edge Function `mtt-mywhoosh-sync`** su `feat/mtt-mywhoosh-sync` (3 commit pushati):
+  - `535e7c9` — durata blocchi minuti→secondi e workoutId numerico per MyWhoosh
+  - `a2dc402` — warmup/main/cooldown come step separati E_Normal con intensità differenziate (warmup 0.5, main 0.85, cooldown 0.4)
+  - `e6063a2` — fix parsing durata: prende solo primo gruppo di cifre (risolve gonfiamento a 8.725 min e poi 4h38m)
+- Push MTT→MyWhoosh testato con successo reale (HTTP 200, accepted:1, mywhoosh_workout_id generato).
 
 ### Da completare
 - **Immagini + testo** nei workout (oggi solo testo); proprietario definitivo del bot.
 - Warning Resend: link esterni (t.me, vercel.app) non matchano dominio mittente — non bloccante; sottodominio news.zetabytenexus.it attivato.
 - **Merge del branch `feat/mtt-mywhoosh-sync` su `main`**: non ancora fatto, in attesa revisione diff e conferma.
-- **Deploy Edge Function `mtt-mywhoosh-sync` su Supabase**: non ancora fatto.
-- **Configurazione segreti `MYWHOOSH_USERNAME`/`MYWHOOSH_PASSWORD` su Supabase**: non ancora fatto.
+- **Deploy Edge Function `mtt-mywhoosh-sync` su Supabase**: codice committato e pushato su `feat/mtt-mywhoosh-sync`, non ancora ridéployato dall'utente via CLI su Supabase `bwzzvdwiimvdwkiytknc`.
+- **Configurazione segreti `MYWHOOSH_USERNAME`/`MYWHOOSH_PASSWORD` su Supabase**: da verificare/configurare su Dashboard.
 - **Migration SQL `tools/2026-10-31_mtt_mywhoosh_sync.sql`**: già committata, non ancora applicata su Supabase.
 
 ### Prossimo step
-- Revisione diff e commit dei file modificati su `feat/mtt-mywhoosh-sync` (solo dopo conferma esplicita).
+- Utente ridéploa l'Edge Function via CLI: `cd /home/sbonfanti/Scrivania/Progetti/triathlon-planner-saas && supabase functions deploy mtt-mywhoosh-sync --project-ref bwzzvdwiimvdwkiytknc`
+- Poi riesegue curl push (action `push`, year 2026, week_number 44) per verificare durata e step corretti.
 - Eventuale merge su `main` e push solo dopo conferma.
 - Monitorare invio domenicale week 44 (record già approved, in attesa di sent).
