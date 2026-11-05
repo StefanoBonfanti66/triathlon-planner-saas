@@ -1,0 +1,126 @@
+{
+  "UserId": "USER_ID_PLACEHOLDER",
+  "WorkoutsData": [
+    {
+      "Id": "preview-seduta1-2026-w44-001",
+      "Name": "Bici - Uscita libero (scarico)",
+      "Description": "Uscita libera (scarico) - 42 minuti di pedalata. Mantieni una cadenza alta ma con forza leggera. Controlla la postura: schiena neutra, mani leggere sul manubrio. Stretching fuori bici: quadricipiti, glutei e polpacci per 3-4 minuti, escluso dalla durata pedalata.",
+      "Mode": "E_Ride",
+      "ERGMode": "E_OFF",
+      "IsRecovery": false,
+      "IsIntervals": false,
+      "FTPMode": "E_NoFTP",
+      "IsTT": false,
+      "IsTSS": false,
+      "IsIF": false,
+      "FTPMultiplier": 0,
+      "StressPoint": 0,
+      "CategoryId": 1,
+      "SubcategoryId": 0,
+      "Type": "E_Custom",
+      "DisplayType": "E_byWatts",
+      "StepCount": 4,
+      "IsFavorite": false,
+      "CompletedCount": 0,
+      "AuthorName": "",
+      "Time": 2520,
+      "WorkoutStepsArray": [
+        {
+          "Id": 1,
+          "Pace": 1,
+          "IntervalId": 0,
+          "WorkoutMessage": [
+            {
+              "Id": 0,
+              "Time": 0,
+              "Message": "Pedalata facile"
+            }
+          ],
+          "Rpm": 0,
+          "StepType": "E_FreeRide",
+          "Power": 0,
+          "StartPower": 0,
+          "EndPower": 0,
+          "Time": 300,
+          "IsManualGrade": false,
+          "ManualGradeValue": 0,
+          "ShowAveragePower": false,
+          "FlatRoad": 0
+        },
+        {
+          "Id": 2,
+          "Pace": 1,
+          "IntervalId": 0,
+          "WorkoutMessage": [
+            {
+              "Id": 0,
+              "Time": 0,
+              "Message": "Spin a bassa resistenza"
+            }
+          ],
+          "Rpm": 0,
+          "StepType": "E_FreeRide",
+          "Power": 0,
+          "StartPower": 0,
+          "EndPower": 0,
+          "Time": 120,
+          "IsManualGrade": false,
+          "ManualGradeValue": 0,
+          "ShowAveragePower": false,
+          "FlatRoad": 0
+        },
+        {
+          "Id": 3,
+          "Pace": 1,
+          "IntervalId": 0,
+          "WorkoutMessage": [
+            {
+              "Id": 0,
+              "Time": 0,
+              "Message": "Pedalata rilassata, conversazione possibile, RPE 3-4"
+            }
+          ],
+          "Rpm": 0,
+          "StepType": "E_FreeRide",
+          "Power": 0,
+          "StartPower": 0,
+          "EndPower": 0,
+          "Time": 1800,
+          "IsManualGrade": false,
+          "ManualGradeValue": 0,
+          "ShowAveragePower": false,
+          "FlatRoad": 0
+        },
+        {
+          "Id": 4,
+          "Pace": 1,
+          "IntervalId": 0,
+          "WorkoutMessage": [
+            {
+              "Id": 0,
+              "Time": 0,
+              "Message": "Defaticamento"
+            }
+          ],
+          "Rpm": 0,
+          "StepType": "E_FreeRide",
+          "Power": 0,
+          "StartPower": 0,
+          "EndPower": 0,
+          "Time": 300,
+          "IsManualGrade": false,
+          "ManualGradeValue": 0,
+          "ShowAveragePower": false,
+          "FlatRoad": 0
+        }
+      ],
+      "WorkoutSteps": {},
+      "WorkoutstepsTMap": [],
+      "WokoutAssociationId": 0,
+      "IF": 0,
+      "TSS": 0,
+      "KJ": 0,
+      "IsVODAvailable": false
+    }
+  ]
+}
