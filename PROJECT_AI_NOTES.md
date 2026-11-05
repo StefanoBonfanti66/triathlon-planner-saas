@@ -274,29 +274,34 @@ Richiesta utente: newsletter della domenica con spiegazione preparazione allenam
 
 ## Sessione MyWhoosh — integrazione allenamenti sui rulli (branch `feat/mtt-mywhoosh-sync`)
 
-### Branch e commit (feature branch, non mergeato in `main`)
-- Lavoro sul branch `feat/mtt-mywhoosh-sync`; feature non integrata in main al momento di questa nota.
-- `029f762 feat: aggiungi Edge Function mtt-mywhoosh-sync per integrazione allenamenti MyWhoosh` — introduce Edge Function `mtt-mywhoosh-sync` (azioni `login`, `push`, `pull`), migrazione SQL colonna `mywhoosh_workout_id`, script probe locale `tools/mywhoosh_upload_probe.py` con test mock.
-- `836ffec fix: segnala segmenti MyWhoosh non convertibili e rinvia il login`.
-- `fb5b5bd fix: valida il tipo booleano di dry_run nel push MyWhoosh`.
+### Commit sul branch (13 commit, non ancora mergeati in `main`)
+- `029f762` Edge Function `mtt-mywhoosh-sync` (azioni `login`, `push`, `pull`) + migration SQL + probe Python.
+- `836ffec` segnala segmenti non convertibili e rinvia il login.
+- `fb5b5bd` valida il tipo booleano di `dry_run` nel push.
+- `79e159d` consolida stato e blocchi integrazione.
+- `bbc4421` isola i test backup MyWhoosh dai dati locali.
+- `3ee2c13` **contratto MyWhoosh verificato**: `SportsModeType: 0` nel wrapper (accanto a `UserId`/`WorkoutsData`), `Id` workout numerico non-timestamp.
+- `535e7c9` durata blocchi minuti→secondi.
+- `a2dc402` warmup/main/cooldown come step `E_Normal` separati (0.5/0.85/0.4).
+- `e6063a2` parsing durata: solo il primo gruppo di cifre.
+- `9591922` Current Focus AGENTS.md aggiornato.
 
-### File tracked puliti prima dell'aggiornamento
-Prima di questo aggiornamento documentale, il working tree non presentava modifiche ai file tracked. Edge Function, migration SQL e probe sono già inclusi nel commit 029f762; i fix successivi sono elencati sopra. La revisione riportata in sessione non ha rilevato segreti hardcoded nei tre file.
+### Verifica live 2026-11-05 (Supabase CLI + Management API con PAT in `~/.config/opencode/secrets/mtt/supabase_pat.txt`)
+- Edge Function `mtt-mywhoosh-sync` **deployata**: v26, `updated_at` 2026-11-03T20:17:07Z → allineata a `e6063a2` (commit 21:15:55 +0100, deploy 21:17 CET).
+- Secrets Edge presenti: `MYWHOOSH_USERNAME`, `MYWHOOSH_PASSWORD` (oltre `TELEGRAM_BOT_TOKEN`, `MTT_SERVICE_ROLE_KEY`, `LLM_API_KEY`, `RESEND_API_KEY`, `RESEND_FROM`).
+- Migration `tools/2026-10-31_mtt_mywhoosh_sync.sql` **applicata**: `public.team_workouts.mywhoosh_workout_id` (text) + indice `idx_team_workouts_mywhoosh_workout_id` presenti.
+- Week 44 record `c1619f13`: `status='sent'`, `sent_at=2026-11-01T21:50:14Z`, `mywhoosh_workout_id='1793737031433'` → push reale riuscito (HTTP 200, accepted:1).
+- Supabase **MCP non utilizzabile** (token scaduto → 401 "Unauthorized"): verifica fatta via CLI (`supabase functions list`, `supabase secrets list`) e `POST /v1/projects/{ref}/database/query`.
 
-### Contratto di upload MyWhoosh — NON verificato
-- Provenienza dell'endpoint `POST /client/custom-workout-upload` non recuperata da fonti documentali nel repo.
-- Nessun successo reale di upload documentato negli artefatti esaminati: non sono state recuperate una risposta applicativa positiva e una conferma del workout presente su MyWhoosh. Durante questa sessione di revisione non sono stati eseguiti upload reali.
-- `SportsModeType: 1` è hardcoded nell'Edge Function: valore assunto, non verificato, non da sostituire per supposizione.
-- Body Edge Function e body probe non equivalenti (Edge ha `SportsModeType` + `WorkoutsData[]` con campi estesi; probe riusa il preview senza `SportsModeType`).
+### Probe Python — flusso "due rampe" (NON ancora committato)
+- Esteso a 2805 righe (+1656/-91): `validate_two_ramps`, `prepare_two_ramps_payload` (aggiunge `SportsModeType: 0` al wrapper senza mutare l'input), `attempt_id` separato dal workout id, `extract_error_message` per corpo errore HTTP, `cmd_upload --artifact` con POST singolo e conferma interattiva.
+- 3 suite locali PASS (mock, no rete): `--test-two-ramps`, `--test-upload`, `--test-backup`.
+- Fixture: export ufficiale MyWhoosh "MyWhoosh - new workout" (2 step `E_WarmUp` 0.25→0.75 e `E_CoolDown` 0.75→0.25, 360 s ciascuno, `Time` 720) salvato in `tools/mywhoosh-template-rampe.json`; i default `--local-checks-two-ramps` / `--prepare-two-ramps` ora puntano a quel file.
+- `.gitignore` esteso: `deno.lock`, `supabase/.temp/`, `__pycache__/`, `*.pyc`, `tools/attempts/`, `tools/.mywhoosh_attempt_id`, `tools/preview_seduta*.json` (con eccezione `preview_seduta1_mywhoosh.json`), `tools/mywhoosh_steps_verify.mjs`.
+- Sicurezza: gli artefatti in `tools/attempts/` contengono l'`UserId` reale → mai committare (il probe stesso avvisa).
 
-### Editor esportazione / mapping rampe
-- Export editor disponibile per `E_Normal` e rampe `E_WarmUp`/`E_CoolDown`, ma senza prova del contratto di upload.
-- Mapping delle rampe bloccato: il modello MTT descrive warm-up e cool-down come testo e non fornisce estremi numerici di potenza né durata numerica dei segmenti. L'export editor mostra un esempio di rappresentazione delle rampe, ma non determina i valori da applicare agli allenamenti MTT.
-
-### Assenza di verifiche runtime
-- Nessun test runtime TypeScript per l'integrazione MyWhoosh.
-- Durante questa sessione non sono stati eseguiti push Git, deploy, esecuzioni della migration SQL o configurazioni di segreti su Supabase.
-
-### Prossimo sblocco
-- Acquisire una fonte attendibile del contratto di upload MyWhoosh (endpoint, formato payload, valore corretto di `SportsModeType`).
-- Non provare payload per tentativi, nessuna richiesta di rete, nessun deploy, nessuna migration.
+### Lacune aperte
+- **Nessuna automazione del push**: nessun workflow GitHub Actions chiama l'azione `push` di `mtt-mywhoosh-sync`; oggi il push è manuale (probe/curl).
+- **Converter automatico senza rampe numeriche**: l'Edge Function converte warmup/main/cooldown in `E_Normal` con potenze hardcoded (0.55/0.85/0.7), non verificate sulla prescrizione MTT; il flusso a due rampe con `StartPower`/`EndPower` esiste solo nel probe locale.
+- **Merge su `main` non fatto**: `main` indietro di 8 commit → merge reale; nessun file in comune con `origin/main` → nessun conflitto atteso.
+- Immagini + testo nei workout e proprietario definitivo del bot ancora da decidere.
