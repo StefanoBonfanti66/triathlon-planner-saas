@@ -270,6 +270,9 @@ const AdminPage: React.FC = () => {
 
     const [expandedNewsletterId, setExpandedNewsletterId] = useState<string | null>(null);
     const [newsletterDraft, setNewsletterDraft] = useState({ subject: '', intro: '', extra: '' });
+    const [workoutToView, setWorkoutToView] = useState<any | null>(null);
+    const [editMode, setEditMode] = useState(false);
+    const [editFields, setEditFields] = useState({ title: '', intro: '', notes: '' });
 
     const openNewsletterEditor = (workout: any) => {
         setExpandedNewsletterId(workout.id);
@@ -278,6 +281,45 @@ const AdminPage: React.FC = () => {
             intro: workout.content?.newsletter?.intro || '',
             extra: workout.content?.newsletter?.extra || '',
         });
+    };
+
+    const openWorkoutDetail = (workout: any) => {
+        setWorkoutToView(workout);
+        setEditMode(false);
+        setEditFields({ title: workout.content?.title || '', intro: workout.content?.intro || '', notes: workout.content?.notes || '' });
+    };
+
+    const closeWorkoutDetail = () => {
+        setWorkoutToView(null);
+        setEditMode(false);
+    };
+
+    const isMttAdmin = () => {
+        return myProfile?.is_team_admin === true
+            || myProfile?.is_super_admin === true
+            || session?.user?.email === 'sbonfanti@hotmail.com'
+            || session?.user?.email === 'bonfantistefano4@gmail.com';
+    };
+
+    const handleSaveWorkoutEdits = async () => {
+        if (!workoutToView) return;
+        try {
+            const { error } = await supabase
+                .from('team_workouts')
+                .update({
+                    content: {
+                        ...workoutToView.content,
+                        title: editFields.title,
+                        intro: editFields.intro,
+                        notes: editFields.notes,
+                    },
+                })
+                .eq('id', workoutToView.id);
+            if (error) throw error;
+            setWorkoutToView((prev: any) => prev ? { ...prev, content: { ...prev.content, title: editFields.title, intro: editFields.intro, notes: editFields.notes } } : null);
+            setEditMode(false);
+            await loadWorkouts();
+        } catch(e: any) { alert(e.message); }
     };
 
     const handleSaveNewsletter = async (workoutId: string) => {
@@ -1028,10 +1070,9 @@ const AdminPage: React.FC = () => {
                         <h3 className="text-xl font-black uppercase text-slate-800 flex items-center gap-3"><Activity className="w-6 h-6 text-blue-500" /> Allenamenti Settimanali MTT</h3>
                         <div className="flex gap-3">
                             <button onClick={async () => {
-                                const year = new Date().getFullYear();
-                                const week = Math.ceil((Date.now() - new Date(year,0,1).getTime()) / (7*24*60*60*1000));
+                                const { generateWeeklyWorkouts, getCurrentWeek } = await import('../lib/mttWorkouts');
+                                const { year, week } = getCurrentWeek();
                                 try {
-                                    const { generateWeeklyWorkouts } = await import('../lib/mttWorkouts');
                                     await generateWeeklyWorkouts(year, week);
                                     alert('Bozza generata con successo!');
                                     await loadWorkouts();
@@ -1078,6 +1119,9 @@ const AdminPage: React.FC = () => {
                                                 className="px-5 py-3 bg-indigo-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-600"
                                             >
                                                 ✉ Newsletter
+                                            </button>
+                                            <button onClick={() => openWorkoutDetail(workout)} className="px-5 py-3 bg-blue-50 text-blue-700 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-100 border border-blue-200">
+                                                Dettagli
                                             </button>
                                         </div>
                                     </div>
@@ -1224,6 +1268,157 @@ const AdminPage: React.FC = () => {
                     teams={teams}
                     isSuperAdmin={isSuperAdmin}
                 />
+            )}
+
+            {workoutToView && (
+                <div className="fixed inset-0 z-[130] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm animate-in fade-in">
+                    <div className="bg-white rounded-[3rem] p-8 max-w-4xl w-full shadow-2xl max-h-[90vh] overflow-y-auto">
+                        <div className="flex justify-between items-start mb-6">
+                            <div>
+                                <h3 className="text-2xl font-black text-slate-800 uppercase mb-1">{workoutToView.content?.title || 'Allenamento'}</h3>
+                                <div className="text-xs text-slate-500 font-bold uppercase tracking-widest">Settimana {workoutToView.week_number}/{workoutToView.year} · Stato: {workoutToView.status}</div>
+                            </div>
+                            <div className="flex gap-2">
+                                {isMttAdmin() && (
+                                    <button onClick={() => setEditMode(true)} className="p-2 hover:bg-amber-50 text-amber-700 rounded-xl border border-amber-200">
+                                        <Edit2 className="w-5 h-5" />
+                                    </button>
+                                )}
+                                <button onClick={closeWorkoutDetail} className="p-2 hover:bg-slate-100 rounded-xl"><X className="w-6 h-6 text-slate-400" /></button>
+                            </div>
+                        </div>
+
+                        <div className="space-y-6">
+                            <div>
+                                <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Introduzione</label>
+                                {editMode ? (
+                                    <textarea
+                                        value={editFields.intro}
+                                        onChange={e => setEditFields({ ...editFields, intro: e.target.value })}
+                                        rows={6}
+                                        className="mt-2 w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:border-indigo-500 outline-none"
+                                    />
+                                ) : (
+                                    <div className="mt-2 p-4 bg-slate-50 rounded-xl text-slate-700 whitespace-pre-line">{workoutToView.content?.intro || ''}</div>
+                                )}
+                            </div>
+
+                            {['swim', 'bike', 'run'].map(discipline => {
+                                const blocks = workoutToView.content?.[discipline] || [];
+                                return (
+                                    <div key={discipline} className="space-y-3">
+                                        <h4 className="text-xs font-black uppercase text-slate-400 tracking-widest">{discipline === 'swim' ? '🏊 Nuoto' : discipline === 'bike' ? '🚴 Bici' : '🏃 Corsa'}</h4>
+                                        <div className="space-y-3">
+                                            {blocks.map((block: any, i: number) => (
+                                                <div key={i} className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                                                    <div className="flex justify-between items-start mb-2">
+                                                        <div className="font-bold text-slate-800">{block.title}</div>
+                                                        {block.duration && <span className="text-[10px] font-black bg-slate-200 text-slate-600 px-2 py-0.5 rounded">{block.duration}</span>}
+                                                    </div>
+                                                    {block.warmup?.length && (
+                                                        <div className="space-y-1">
+                                                            <div className="text-[9px] font-bold text-slate-500 uppercase mb-1">Riscaldamento</div>
+                                                            <ul className="list-disc list-inside text-sm text-slate-600 space-y-1">{block.warmup.map((w: string) => <li key={w}>{w}</li>)}</ul>
+                                                        </div>
+                                                    )}
+                                                    <div className="space-y-1">
+                                                        <div className="text-[9px] font-bold text-slate-500 uppercase mb-1">Parte principale</div>
+                                                        <ul className="list-disc list-inside text-sm text-slate-600 space-y-1">{block.main.map((m: string) => <li key={m}>{m}</li>)}</ul>
+                                                    </div>
+                                                    {block.cooldown?.length && (
+                                                        <div className="space-y-1">
+                                                            <div className="text-[9px] font-bold text-slate-500 uppercase mb-1">Defaticamento</div>
+                                                            <ul className="list-disc list-inside text-sm text-slate-600 space-y-1">{block.cooldown.map((c: string) => <li key={c}>{c}</li>)}</ul>
+                                                        </div>
+                                                    )}
+                                                    {block.tips?.length && (
+                                                        <div className="space-y-1">
+                                                            <div className="text-[9px] font-bold text-slate-500 uppercase mb-1">Consigli</div>
+                                                            <ul className="list-disc list-inside text-sm text-slate-600 space-y-1">{block.tips.map((t: string) => <li key={t}>{t}</li>)}</ul>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+
+                            {workoutToView.content?.notes && (
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Note</label>
+                                    {editMode ? (
+                                        <textarea
+                                            value={editFields.notes}
+                                            onChange={e => setEditFields({ ...editFields, notes: e.target.value })}
+                                            rows={4}
+                                            className="mt-2 w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:border-indigo-500 outline-none"
+                                        />
+                                    ) : (
+                                        <div className="mt-2 p-4 bg-slate-50 rounded-xl text-slate-700 whitespace-pre-line">{workoutToView.content.notes}</div>
+                                    )}
+                                </div>
+                            )}
+
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                {Object.entries(workoutToView.content?.tips_by_discipline || {}).map(([key, tips]) => (
+                                    <div key={key} className="p-3 bg-slate-50 rounded-xl">
+                                        <div className="text-[9px] font-bold text-slate-500 uppercase mb-2">{key}</div>
+                                        <ul className="list-disc list-inside text-sm text-slate-600 space-y-1">
+                                            {(tips as string[]).map((t: string) => <li key={t}>{t}</li>)}
+                                        </ul>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+                                <div className="p-3 bg-amber-50 rounded-xl">
+                                    <div className="text-[9px] font-bold text-amber-600 uppercase mb-1">FTP</div>
+                                    <div className="text-sm text-amber-800 whitespace-pre-line">{workoutToView.content?.adaptation_tips?.ftp || ''}</div>
+                                </div>
+                                <div className="p-3 bg-blue-50 rounded-xl">
+                                    <div className="text-[9px] font-bold text-blue-600 uppercase mb-1">VO2max</div>
+                                    <div className="text-sm text-blue-800 whitespace-pre-line">{workoutToView.content?.adaptation_tips?.vo2max || ''}</div>
+                                </div>
+                                <div className="p-3 bg-indigo-50 rounded-xl">
+                                    <div className="text-[9px] font-bold text-indigo-600 uppercase mb-1">Pace</div>
+                                    <div className="text-sm text-indigo-800 whitespace-pre-line">{workoutToView.content?.adaptation_tips?.pace || ''}</div>
+                                </div>
+                            </div>
+
+                            {workoutToView.content?.newsletter && (
+                                <div className="mt-6 border-t border-slate-200 pt-6 space-y-3">
+                                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Newsletter</label>
+                                    <div className="space-y-2">
+                                        <div className="font-bold text-slate-800">{workoutToView.content.newsletter.subject}</div>
+                                        <div className="text-sm text-slate-700 whitespace-pre-line">{workoutToView.content.newsletter.intro}</div>
+                                        {workoutToView.content.newsletter.extra && (
+                                            <div className="text-sm text-slate-600 whitespace-pre-line">{workoutToView.content.newsletter.extra}</div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="mt-8 flex gap-3 justify-end">
+                            {editMode ? (
+                                <>
+                                    <button onClick={() => setEditMode(false)} className="px-5 py-3 bg-slate-100 text-slate-600 rounded-xl text-[10px] font-black uppercase hover:bg-slate-200">Annulla</button>
+                                    <button onClick={handleSaveWorkoutEdits} className="px-5 py-3 bg-blue-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-700">Salva modifiche</button>
+                                </>
+                            ) : (
+                                <>
+                                    <button onClick={closeWorkoutDetail} className="px-5 py-3 bg-slate-100 text-slate-600 rounded-xl text-[10px] font-black uppercase hover:bg-slate-200">Chiudi</button>
+                                    {workoutToView.status === 'draft' && (
+                                        <button onClick={() => { closeWorkoutDetail(); handleApproveWorkout(workoutToView.id); }} className="px-5 py-3 bg-amber-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-amber-600">
+                                            Approvia allenamento
+                                        </button>
+                                    )}
+                                </>
+                            )}
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );

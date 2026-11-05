@@ -1,14 +1,14 @@
-name: MTT Weekly Workouts - Send Sunday 20:00
+name: MTT Weekly Workouts - Send Sunday 16:00
 
 on:
   schedule:
     # GitHub cron è UTC-only e non segue il DST. Due run domenicali:
-    # - 18:00 UTC = 20:00 CEST (estate)
-    # - 19:00 UTC = 20:00 CET (inverno)
+    # - 14:00 UTC = 16:00 CEST (estate)
+    # - 15:00 UTC = 16:00 CET (inverno)
     # La run "sbagliata" è un no-op: il record è già stato inviato dall'altra
     # (status='sent') e la query cerca solo status='approved'.
-    - cron: '0 18 * * 0'
-    - cron: '0 19 * * 0'
+    - cron: '0 14 * * 0'
+    - cron: '0 15 * * 0'
   workflow_dispatch: # Permette invio manuale per test
 
 permissions:
@@ -48,11 +48,11 @@ jobs:
             { auth: { persistSession: false } }
           );
 
-          async function sendApproved() {
+            async function sendApproved() {
             const now = new Date();
 
-            // Le due cron (18:00 e 19:00 UTC) coprono CEST e CET, ma va
-            // inviato solo quando in Italia sono almeno le 20:00: la run
+            // Le due cron (14:00 e 15:00 UTC) coprono CEST e CET, ma va
+            // inviato solo quando in Italia sono almeno le 16:00: la run
             // fuori stagione esce senza fare nulla.
             const romeHour = Number(
               new Intl.DateTimeFormat('en-US', {
@@ -63,13 +63,22 @@ jobs:
             );
             // Solo per il cron: il workflow_dispatch manuale può inviare
             // in qualsiasi momento (serve per i test).
-            if (process.env.GITHUB_EVENT === 'schedule' && romeHour < 20) {
-              console.log(`It's ${romeHour}:00 in Rome — waiting for the 20:00 run`);
+            if (process.env.GITHUB_EVENT === 'schedule' && romeHour < 16) {
+              console.log(`It's ${romeHour}:00 in Rome — waiting for the 16:00 run`);
               return;
             }
 
+            // Calcolo ISO 8601 della settimana (allineato al frontend e a periodization.ts)
+            function getISOWeek(d) {
+              const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+              const dayNum = date.getUTCDay() || 7;
+              date.setUTCDate(date.getUTCDate() + 4 - dayNum);
+              const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+              return Math.ceil(((date.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+            }
+
             const year = now.getFullYear();
-            const weekNumber = Math.ceil((now - new Date(year, 0, 1)) / (7 * 24 * 60 * 60 * 1000));
+            const weekNumber = getISOWeek(now);
 
             console.log(`Checking workouts for week ${weekNumber}/${year}`);
 

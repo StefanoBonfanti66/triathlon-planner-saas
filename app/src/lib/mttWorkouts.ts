@@ -59,6 +59,21 @@ export interface TeamWorkout {
   sources: string[];
 }
 
+// Calcolo ISO 8601 della settimana (uguale a periodization.ts sul backend)
+// per evitare mismatch tra frontend e backend sul numero di settimana.
+export function isoWeekNumber(date: Date): number {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+}
+
+export function getCurrentWeek(): { year: number; week: number } {
+  const now = new Date();
+  return { year: now.getFullYear(), week: isoWeekNumber(now) };
+}
+
 export async function generateWeeklyWorkouts(year: number, weekNumber: number) {
   const { data: session } = await supabase.auth.getSession();
   if (!session.session) throw new Error('Non autenticato');
