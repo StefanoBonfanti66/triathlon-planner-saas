@@ -10,3 +10,13 @@ dist
 backups/
 *.csv
 *.xlsx
+
+deno.lock
+supabase/.temp/
+__pycache__/
+*.pyc
+tools/attempts/
+tools/.mywhoosh_attempt_id
+tools/preview_seduta*.json
+!tools/preview_seduta1_mywhoosh.json
+tools/mywhoosh_steps_verify.mjs
