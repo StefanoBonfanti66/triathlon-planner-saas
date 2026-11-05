@@ -12,8 +12,8 @@
 - **Integrazione MyWhoosh — deploy e DB verificati (2026-11-05)**: Edge Function `mtt-mywhoosh-sync` **deployata** su Supabase `bwzzvdwiimvdwkiytknc` (v26, 2026-11-03T20:17Z, allineata a `e6063a2`); secrets `MYWHOOSH_USERNAME`/`MYWHOOSH_PASSWORD` **presenti**; migration `tools/2026-10-31_mtt_mywhoosh_sync.sql` **applicata** (colonna `team_workouts.mywhoosh_workout_id` + indice presenti).
 - **Push MTT→MyWhoosh reale**: record week 44 `c1619f13` → `status='sent'`, `sent_at=2026-11-01T21:50:14Z`, `mywhoosh_workout_id='1793737031433'` (HTTP 200, accepted:1).
 - **Converter corretto**: durata minuti→secondi (`535e7c9`), warmup/main/cooldown come step `E_Normal` separati (0.5/0.85/0.4, `a2dc402`), parsing durata sul primo gruppo di cifre (`e6063a2`).
-- **Probe Python esteso al flusso "due rampe"** (non ancora committato): validazione `E_WarmUp`/`E_CoolDown` con `StartPower`/`EndPower`, `attempt_id` separato dal workout id, upload senza POST multipli, estrazione corpo errore HTTP; 3 suite locali PASS (`--test-two-ramps`, `--test-upload`, `--test-backup`).
-- **Fixture e `.gitignore`**: template ufficiale MyWhoosh salvato in `tools/mywhoosh-template-rampe.json` (export "MyWhoosh - new workout": 2 step 0.25→0.75 e 0.75→0.25, 360 s ciascuno), default del probe allineati; `.gitignore` esteso (deno.lock, supabase/.temp/, __pycache__, tools/attempts/, preview di prova).
+- **Probe Python esteso al flusso "due rampe"** (committato `e301f91`): validazione `E_WarmUp`/`E_CoolDown` con `StartPower`/`EndPower`, `attempt_id` separato dal workout id, upload senza POST multipli, estrazione corpo errore HTTP; 3 suite locali PASS (`--test-two-ramps`, `--test-upload`, `--test-backup`).
+- **Fixture e `.gitignore`** (committati `e301f91`): template ufficiale MyWhoosh salvato in `tools/mywhoosh-template-rampe.json` (export "MyWhoosh - new workout": 2 step 0.25→0.75 e 0.75→0.25, 360 s ciascuno), default del probe allineati; `.gitignore` esteso (deno.lock, supabase/.temp/, __pycache__, tools/attempts/, preview di prova).
 - **Allenamenti MTT in produzione**: periodizzazione a regole + rendering LLM (Groq, fallback statico), brick run post-bici, test FTP ogni 6 settimane (`133f6b1` in `main`), Edge Function `mtt-weekly-workouts` deployata su `bwzzvdwiimvdwkiytknc`.
 - **Invio domenicale**: doppia cron UTC 18:00/19:00 + guardia `Europe/Rome` (fix DST, `bca1313`/`4923ced`); bot `@saas_planner_bot` nel gruppo MTT `-5117971075`.
 - **Newsletter settimanale** via Resend, mittente `MTT Allenamenti <allenamenti@zetabytenexus.it>`; editor in Admin con Salva/Invia/Prova a me; tabelle `team_contacts` e `team_workouts.newsletter_sent_at`.
@@ -23,14 +23,11 @@
 - **Dashboard ZBN** riallineata: `zbn-ops-dashboard` fast-forward a `994d5d8`.
 
 ### Da completare
-- **Commit del blocco probe + fixture + `.gitignore`** su `feat/mtt-mywhoosh-sync` (ancora non committato: `tools/mywhoosh_upload_probe.py` +1656/-91, `tools/mywhoosh-template-rampe.json`, `tools/preview_seduta1_mywhoosh.json`, `.gitignore`).
-- **Merge del branch `feat/mtt-mywhoosh-sync` su `main`**: `main` è indietro di 8 commit → merge reale, non fast-forward; i file toccati da `origin/main` non sono toccati dal branch → nessun conflitto atteso.
 - **Automazione push MyWhoosh**: nessun workflow chiama l'azione `push` di `mtt-mywhoosh-sync`; oggi il push è manuale (probe/curl). Valutare il wiring in `mtt-weekly-workouts.yml`.
 - **Rampe reali nel converter automatico**: l'Edge Function converte warmup/main/cooldown in `E_Normal` con potenze hardcoded (0.55/0.85/0.7, non verificate sulla prescrizione MTT); il flusso a due rampe numeriche esiste solo nel probe locale.
 - **Immagini + testo** nei workout (oggi solo testo); proprietario definitivo del bot.
 
 ### Prossimo step
-- Rivedere e committare il blocco probe/fixture/`.gitignore` sul branch.
-- Merge `feat/mtt-mywhoosh-sync` → `main` (main aggiornata) e push.
 - Verifica end-to-end su una settimana nuova (45): durate e step corretti e `mywhoosh_workout_id` valorizzato.
 - Monitorare invio domenicale (week 44 già `sent`).
+- Valutare il wiring del push MyWhoosh nel workflow domenicale.

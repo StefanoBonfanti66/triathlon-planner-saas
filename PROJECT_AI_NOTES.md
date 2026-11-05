@@ -293,7 +293,7 @@ Richiesta utente: newsletter della domenica con spiegazione preparazione allenam
 - Week 44 record `c1619f13`: `status='sent'`, `sent_at=2026-11-01T21:50:14Z`, `mywhoosh_workout_id='1793737031433'` → push reale riuscito (HTTP 200, accepted:1).
 - Supabase **MCP non utilizzabile** (token scaduto → 401 "Unauthorized"): verifica fatta via CLI (`supabase functions list`, `supabase secrets list`) e `POST /v1/projects/{ref}/database/query`.
 
-### Probe Python — flusso "due rampe" (NON ancora committato)
+### Probe Python — flusso "due rampe" (committato `e301f91`, mergeato in `main`)
 - Esteso a 2805 righe (+1656/-91): `validate_two_ramps`, `prepare_two_ramps_payload` (aggiunge `SportsModeType: 0` al wrapper senza mutare l'input), `attempt_id` separato dal workout id, `extract_error_message` per corpo errore HTTP, `cmd_upload --artifact` con POST singolo e conferma interattiva.
 - 3 suite locali PASS (mock, no rete): `--test-two-ramps`, `--test-upload`, `--test-backup`.
 - Fixture: export ufficiale MyWhoosh "MyWhoosh - new workout" (2 step `E_WarmUp` 0.25→0.75 e `E_CoolDown` 0.75→0.25, 360 s ciascuno, `Time` 720) salvato in `tools/mywhoosh-template-rampe.json`; i default `--local-checks-two-ramps` / `--prepare-two-ramps` ora puntano a quel file.
@@ -303,5 +303,5 @@ Richiesta utente: newsletter della domenica con spiegazione preparazione allenam
 ### Lacune aperte
 - **Nessuna automazione del push**: nessun workflow GitHub Actions chiama l'azione `push` di `mtt-mywhoosh-sync`; oggi il push è manuale (probe/curl).
 - **Converter automatico senza rampe numeriche**: l'Edge Function converte warmup/main/cooldown in `E_Normal` con potenze hardcoded (0.55/0.85/0.7), non verificate sulla prescrizione MTT; il flusso a due rampe con `StartPower`/`EndPower` esiste solo nel probe locale.
-- **Merge su `main` non fatto**: `main` indietro di 8 commit → merge reale; nessun file in comune con `origin/main` → nessun conflitto atteso.
+- **Merge su `main` eseguito (2026-11-05)**: `origin/main` merged in `main` (merge commit), poi `feat/mtt-mywhoosh-sync` merged in `main` senza conflitti; 2 commit locali non pubblicati (`11977f9`, `f1a694d`) inclusi. Verifiche post-merge: `python3 -m py_compile` OK, 3 suite probe PASS, `npm run build` (tsc + vite) OK. Deno non installato localmente → `supabase/functions/mtt-mywhoosh-sync/index.test.ts` non eseguito in locale.
 - Immagini + testo nei workout e proprietario definitivo del bot ancora da decidere.
