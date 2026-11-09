@@ -1,0 +1,5 @@
+# I file originali degli allenamenti non vanno committati.
+# Restano nella cartella Google Drive condivisa e, se serve, in locale qui.
+*
+!.gitignore
+!.gitkeep

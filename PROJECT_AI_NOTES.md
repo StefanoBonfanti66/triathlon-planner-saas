@@ -268,6 +268,29 @@ Richiesta utente: newsletter della domenica con spiegazione preparazione allenam
 - **getTeamWorkouts() e getWorkoutDrafts()**: applicano `normalizeWorkoutContent` ai dati letti dal DB, così nell'app React non si vedono più i `\n\n` letterali lasciati dal LLM.
 - **Git**: commit `fdfa1c1` pushato su `main`.
 
+## Sessione 9 novembre — critiche MTT agli allenamenti + documento "come funzionano"
+
+### Feedback ricevuto (gruppo MTT, 09/11/2026)
+- Achille: «questi allenamenti o li cambi totalmente o è meglio non mandarli».
+- Luca Bacci: prima di mandarli al gruppo vanno visti dagli admin; ha passato a Gemini Notebook gli allenamenti di novembre degli anni passati. Riferimento del club per novembre: **transizione + base aerobica + forza**, con forte accento su **tecnica di nuoto** e **palestra/corpo libero**.
+- Struttura settimanale di riferimento MTT: **3 sedute obbligatorie (1 nuoto, 1 bici, 1 corsa) + 2 palestra/corpo libero**, più sedute facoltative sulla disciplina più debole. Esempio nuoto: 2.300–2.500 m con blocchi tecnica/ritmo.
+- Stefano ha risposto nel gruppo: gli admin possono già vedere/modificare gli allenamenti in app prima dell'invio; preparerà un documento sul funzionamento attuale e poi si applicheranno le modifiche; va deciso per quali gare/periodo preparare.
+
+### Divario tecnico individuato (codice attuale)
+- `periodization.ts` genera **6 sedute (2 nuoto, 2 bici, 2 corsa)** e **nessuna palestra**; `getMacroPhase` decide la fase solo dal mese.
+- `index.ts` valida e renderizza solo `swim`/`bike`/`run`; il prompt LLM riceve solo scheletro + titolo precedente, **nessun archivio storico**, nessuna gara obiettivo, nessuna personalizzazione.
+- Volumi nuoto in minuti, non in metri; note che dichiarano esplicitamente «Allenamenti non personalizzati».
+
+### Consegnato
+- Creati `docs/project/mtt-allenamenti-come-funzionano.{md,html,pdf}` (HTML self-contained con logo MTT, PDF A4 4 pagine generato con Chrome headless): descrive flusso (scheletro a regole → rendering LLM/fallback → bozza → revisione admin → approvazione → invio domenica 20:00 + newsletter), macro-fasi, mesociclo, struttura sedute, limiti attuali e decisioni aperte (periodo/gare target, struttura 3+2, archivio storico).
+- Preparata la struttura `docs/project/allenamenti-archivio/` (vuota, in attesa dello storico di Luca): `README.md` con convenzioni (naming `AAAA-MM_<fase>_<disciplina>_<NN>.md`), `manifest.csv` (header: id, anno, mese, fase, disciplina, periodo, file_originale, formato, link_drive, file_normalizzato, stato, note), `normalizzato/_TEMPLATE.md`, `raw/` con `.gitignore` (binari non committati). Flusso: Luca carica su Drive condiviso → riga nel manifest → normalizzazione → verifica admin → uso nel LLM; le settimane future si esportano automaticamente da `team_workouts`.
+
+### Decisioni aperte (prima di modificare il codice)
+- Periodo/gare obiettivo della preparazione.
+- Conferma struttura 3 obbligatorie + 2 palestra + facoltative disciplina debole.
+- Dove si trova l'archivio degli allenamenti passati e in che formato (serve per la "memoria" del club).
+- Poi: step B (aggiungere `strength` e ristrutturare), C (memoria archivio nel prompt/fallback), D (ancoraggio gare/personalizzazione).
+
 ### Warning Resend da risolvere
 - Resend segnala: (1) link nelle email non matchano il dominio mittente (t.me, vercel.app vs zetabytenexus.it) — normale per newsletter con risorse esterne, non bloccante; (2) DMARC ora **live e verificato** su zetabytenexus.it: `dig TXT _dmarc.zetabytenexus.it` → ANSWER 1, TTL 300, `"v=DMARC1; p=none; rua=mailto:sbonfanti@hotmail.com; pct=100"` (corretto da errore precedente `_dmark`).
 - Consiglio futuro: usare sottodominio dedicato (es. `news.zetabytenexus.it`) per segmentare reputazione invio.

@@ -6,7 +6,7 @@
 - Follow existing code style.
 - Update PROJECT_AI_NOTES.md at meaningful checkpoints.
 
-## Current Focus — 2026-11-05
+## Current Focus — 2026-11-09
 
 ### Completato
 - **Integrazione MyWhoosh — deploy e DB verificati (2026-11-05)**: Edge Function `mtt-mywhoosh-sync` **deployata** su Supabase `bwzzvdwiimvdwkiytknc` (v26, 2026-11-03T20:17Z, allineata a `e6063a2`); secrets `MYWHOOSH_USERNAME`/`MYWHOOSH_PASSWORD` **presenti**; migration `tools/2026-10-31_mtt_mywhoosh_sync.sql` **applicata** (colonna `team_workouts.mywhoosh_workout_id` + indice presenti).
@@ -22,13 +22,20 @@
 - **DMARC live** su `zetabytenexus.it` (`p=none`, `rua=mailto:sbonfanti@hotmail.com`, `pct=100`).
 - **Documentazione allineata e committata** (`11977f9`): docs/overview.md, docs/project/user-guide.md, docs/project/admin-guide.md, app/GUIDA_UTENTE.md, app/GUIDA_ADMIN.md.
 - **Dashboard ZBN** riallineata: `zbn-ops-dashboard` fast-forward a `994d5d8`.
+- **Calcolo settimana ISO 8601**: `isoWeekNumber()`/`getCurrentWeek()` in `app/src/lib/mttWorkouts.ts`, `getISOWeek()` nel workflow, AdminPage usa `getCurrentWeek()` (commit `ad8631a`).
+- **Modifica workout admin nella modal dettagli** (`app/src/pages/AdminPage.tsx`, commit `f838831`, pushto su `main`): pulsante 'Modifica' solo per admin (`isMttAdmin()`), textarea editabili per Introduzione/Note, salvataggio su `team_workouts.content` (title/intro/notes) con `tsc --noEmit` pulito.
+- **Critiche MTT agli allenamenti (09/11)**: il gruppo (Achille, Luca) chiede palestra/corpo libero, struttura 3 obbligatorie + 2 forza + facoltative sulla disciplina debole, memoria degli allenamenti storici e ancoraggio a periodo/gare. Creato il documento di ricostruzione `docs/project/mtt-allenamenti-come-funzionano.{md,html,pdf}` (PDF per WhatsApp) e preparata la struttura `docs/project/allenamenti-archivio/` (README, `manifest.csv`, template, `raw/` gitignored).
 
 ### Da completare
 - **Automazione push MyWhoosh**: nessun workflow chiama l'azione `push` di `mtt-mywhoosh-sync`; oggi il push è manuale (probe/curl). Valutare il wiring in `mtt-weekly-workouts.yml`.
 - **Rampe reali nel converter automatico**: l'Edge Function converte warmup/main/cooldown in `E_Normal` con potenze hardcoded (0.55/0.85/0.7, non verificate sulla prescrizione MTT); il flusso a due rampe numeriche esiste solo nel probe locale.
+- Decisioni MTT: **periodo/gare target**, conferma **struttura 3+2**, dove/formato dello **storico di Luca**.
+- **Step B**: aggiungere la disciplina `strength` e ristrutturare `periodization.ts`, rendering Telegram, newsletter, tipi app ed editor admin.
+- **Step C**: catalogare e normalizzare l'archivio storico e iniettarlo nel prompt LLM + fallback statico.
 - **Immagini + testo** nei workout (oggi solo testo); proprietario definitivo del bot.
+- Screening **36 atleti MTT senza `user_plan`**; verifica DMARC e warning Resend (link esterni, prime email in spam).
 
 ### Prossimo step
-- Verifica end-to-end su una settimana nuova (45): durate e step corretti e `mywhoosh_workout_id` valorizzato.
-- Monitorare invio domenicale (week 44 già `sent`).
-- Valutare il wiring del push MyWhoosh nel workflow domenicale.
+- Chiedere a Luca dove tiene e in che formato lo storico; appena disponibile catalogarlo in `manifest.csv` e normalizzare novembre. In parallelo chiudere le decisioni periodo/gare e struttura, poi partire con lo step B.
+- Verifica end-to-end MyWhoosh su una settimana nuova (45): durate e step corretti e `mywhoosh_workout_id` valorizzato.
+- Monitorare invio domenicale; valutare il wiring del push MyWhoosh nel workflow domenicale.
