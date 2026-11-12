@@ -58,6 +58,15 @@ Deno.test('november/base: 3 mandatory + 2 strength + optional', () => {
   }
 })
 
+Deno.test('november: tuesday group run, wednesday swim technique', () => {
+  const s = buildWeekSkeleton(dateFromIsoWeek(2026, 46))
+  const tueRun = s.sessions.filter((x) => x.day === 'Martedì' && x.discipline === 'run')
+  assertEquals(tueRun.length, 1, 'tuesday run')
+  assert(tueRun[0].title.toLowerCase().includes('gruppo'), 'tuesday run is group')
+  const wedSwim = s.sessions.filter((x) => x.day === 'Mercoledì' && x.discipline === 'swim')
+  assertEquals(wedSwim.length, 1, 'wednesday swim')
+})
+
 Deno.test('build has maintenance strength, peak has none', () => {
   const build = buildWeekSkeleton(dateFromIsoWeek(2026, 13))
   assertEquals(build.sessions.filter((x) => x.discipline === 'strength').length, 1)

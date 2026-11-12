@@ -165,7 +165,7 @@ function swimTechnique(recovery: boolean, weeks = 3): SkeletonSession {
     duration: '60min',
     focus: 'tecnica, catch e sensibilità',
     intensity: 'RPE 4-6 su 10, mai a tutta',
-    day: 'Martedì',
+    day: 'Mercoledì',
     main: [
       '400m sciolti misto',
       '8x50m tecnica (bipodalico, bilanciato, catch) rec 15"',
@@ -191,7 +191,7 @@ function swimAerobic(recovery: boolean, weekInMeso: number): SkeletonSession {
     duration: '60min',
     focus: 'tecnica e volume aerobico',
     intensity: 'RPE 4-5 su 10, ritmo costante',
-    day: 'Martedì',
+    day: 'Mercoledì',
     main: [
       '400m sciolti misto',
       '8x50m tecnica (bipodalico, bilanciato, catch) rec 15"',
@@ -223,27 +223,22 @@ function swimGroup(recovery: boolean): SkeletonSession {
   }, recovery)
 }
 
-function runQuality(recovery: boolean, weekInMeso: number): SkeletonSession {
-  const progression = weekInMeso === 2 || weekInMeso === 4
+function runGroup(recovery: boolean): SkeletonSession {
   return makeSession({
     discipline: 'run',
-    title: 'Corsa - Qualità',
-    duration: '50min',
-    focus: 'capacità aerobica e ritmo',
-    intensity: 'RPE 6-7 su 10 nella parte principale',
-    day: 'Mercoledì',
+    title: 'Corsa - Gruppo con il coach',
+    duration: '60min',
+    focus: 'qualità di corsa guidata dal coach',
+    intensity: 'RPE 5-7 su 10, segui le indicazioni del coach',
+    day: 'Martedì',
     main: [
-      '1-2km riscaldamento facile + mobilità',
-      'Andature: 4x20" (skip, tallonate, allunghi) rec completo',
-      progression
-        ? 'Principale: 8-10km in progressione (-2-3"/km ogni km)'
-        : 'Principale: 4x2km a ritmo medio rec 2min di corsa facile',
-      '1km defaticamento facile',
+      'Ritrovo serale con il gruppo: segui il lavoro proposto dal coach',
+      'Se il coach non è presente: 1-2km riscaldamento + andature, poi 4x2km a ritmo medio rec 2min di corsa facile, 1km defaticamento',
+      'Ritmo controllato: l\'obiettivo è la qualità, non la gara',
     ],
     recoveryMain: [
-      '1km riscaldamento + andature leggere',
-      'Principale: 20-25min facili a ritmo conversazione',
-      '1km defaticamento',
+      'Seduta di gruppo in scarico: segui il coach e resta facile',
+      'Nessuna serie forte, priorità a tecnica e recupero',
     ],
   }, recovery)
 }
@@ -255,8 +250,9 @@ function runFondo(recovery: boolean, hard: boolean): SkeletonSession {
     duration: '45min',
     focus: 'adattamento muscolare e tecnica',
     intensity: 'RPE 3-4 su 10, conversazione possibile',
-    day: 'Mercoledì',
+    day: 'Martedì',
     main: [
+      'Seduta in gruppo con il coach: segui il lavoro proposto',
       '10min camminata + corsa leggera + skip',
       `Principale: ${hard ? '35-40' : '30'}min corsa continua a ritmo confortevole`,
       '4x20s allunghi progressivi (non massimali)',
@@ -334,8 +330,8 @@ function buildSessions(phase: MacroPhase, weekInMeso: number, isRecovery: boolea
   if (phase === 'transition' && month === 10) {
     return [
       strengthA(isRecovery),
+      runGroup(isRecovery),
       swimTechnique(isRecovery),
-      runQuality(isRecovery, weekInMeso),
       swimGroup(isRecovery),
       strengthCircuit(isRecovery, weekInMeso === 4 ? 2 : 3),
       bikeWinter(isRecovery, weekInMeso),
@@ -352,7 +348,7 @@ function buildSessions(phase: MacroPhase, weekInMeso: number, isRecovery: boolea
         duration: '50min',
         focus: 'tecnica',
         intensity: 'RPE 3-5 su 10',
-        day: 'Martedì',
+        day: 'Mercoledì',
         main: [
           '300m misto facile',
           'Drill a piacere + 4x50m stile vario',
@@ -366,8 +362,9 @@ function buildSessions(phase: MacroPhase, weekInMeso: number, isRecovery: boolea
         duration: '40min',
         focus: 'recupero attivo',
         intensity: 'RPE 3-4 su 10',
-        day: 'Mercoledì',
+        day: 'Martedì',
         main: [
+          'Seduta in gruppo con il coach: segui il lavoro proposto',
           '10min camminata/corsa',
           '25min a ritmo libero su terreno morbido',
           '5min camminata',
@@ -426,7 +423,7 @@ function buildSessions(phase: MacroPhase, weekInMeso: number, isRecovery: boolea
         duration: '60min',
         focus: 'soglia respiratoria',
         intensity: 'RPE 6-7 su 10 nella parte principale',
-        day: 'Martedì',
+        day: 'Mercoledì',
         main: [
           '400m misto riscaldamento',
           `${weekInMeso >= 2 ? '6' : '5'}x200m a ritmo costante sostenuto (15" rec)`,
@@ -440,8 +437,9 @@ function buildSessions(phase: MacroPhase, weekInMeso: number, isRecovery: boolea
         duration: '50min',
         focus: 'soglia di corsa',
         intensity: 'RPE 6-7 su 10',
-        day: 'Mercoledì',
+        day: 'Martedì',
         main: [
+          'Seduta in gruppo con il coach: segui il lavoro proposto',
           '15min riscaldamento facile con drill',
           `Principale: ${runReps} a RPE 6-7 con 2min di recupero camminata/corsa leggera`,
           '15min ritmo facile',
@@ -516,7 +514,7 @@ function buildSessions(phase: MacroPhase, weekInMeso: number, isRecovery: boolea
       duration: '60min',
       focus: 'ritmo gara in vasca',
       intensity: 'RPE 6-7 su 10',
-      day: 'Martedì',
+      day: 'Mercoledì',
       main: [
         '400m misto riscaldamento',
         'Principale: 800-1000m continui al ritmo previsto in gara',
@@ -530,8 +528,9 @@ function buildSessions(phase: MacroPhase, weekInMeso: number, isRecovery: boolea
       duration: '50min',
       focus: 'ritmo gara',
       intensity: 'RPE 7-8 su 10',
-      day: 'Mercoledì',
+      day: 'Martedì',
       main: [
+        'Seduta in gruppo con il coach: segui il lavoro proposto',
         '15min riscaldamento facile',
         `Principale: ${runRaceMin} al ritmo gara previsto con 5min facili (x2 se possibile)`,
         '10min ritmo facile',
@@ -598,6 +597,7 @@ export function buildWeekSkeleton(date: Date): WeekSkeleton {
     weeklyNotes: [
       'Struttura della settimana: 3 sedute obbligatorie (nuoto, bici, corsa) + 2 di forza; le sedute facoltative sono un extra',
       'Il giovedì è la seduta di gruppo in piscina: 60 minuti con il coach, seguite il lavoro proposto in vasca',
+      'Il martedì sera la corsa è la seduta di gruppo con il coach, con il lavoro deciso da lui',
       'Le sedute di forza sono a corpo libero: nessuna attrezzatura, tecnica pulita e mai a cedimento',
       'Adatta sempre intensità e volumi alle tue sensazioni',
       'Allenamenti non personalizzati: pensati per amatori 30-60 anni',

@@ -214,15 +214,15 @@
     <thead><tr><th>Giorno</th><th>Seduta</th><th>Note</th></tr></thead>
     <tbody>
       <tr><td>Lunedì</td><td>Forza A — corpo libero</td><td>squat, affondi, piegamenti, plank, ponti</td></tr>
-      <tr><td>Martedì</td><td>Nuoto — tecnica</td><td>2.300–2.500 m con blocchi tecnica/ritmo</td></tr>
-      <tr><td>Mercoledì</td><td>Corsa — qualità</td><td>4×2 km medio oppure progressione 8–10 km</td></tr>
+      <tr><td>Martedì</td><td>Corsa — gruppo con il coach</td><td>seduta serale di qualità guidata dal coach</td></tr>
+      <tr><td>Mercoledì</td><td>Nuoto — tecnica</td><td>2.300–2.500 m con blocchi tecnica/ritmo</td></tr>
       <tr><td>Giovedì</td><td>Nuoto — gruppo in piscina</td><td>seduta di gruppo con il coach, 60 minuti</td></tr>
       <tr><td>Venerdì</td><td>Forza + circuito</td><td>circuito forza con richiami di corsa</td></tr>
       <tr><td>Sabato</td><td>Bici — fondo Z2</td><td>blocchi di forza in bici</td></tr>
       <tr><td>Domenica</td><td>Corsa — lunga</td><td><strong>facoltativa</strong> (12–16 km Z2 o riposo)</td></tr>
     </tbody>
   </table>
-  <p style="margin-top:12px">Da dicembre a febbraio la struttura resta la stessa (2 forza, nuoto tecnica/aerobico, corsa qualità/fondo, bici Z2, due facoltative); in <code>build</code> la forza scende a una seduta di mantenimento e compaiono soglia e brick; in <code>peak</code> la forza scompare e le sedute diventano specifiche gara. Ogni seduta ha <strong>giorno</strong>, titolo, durata, focus, intensità in <strong>RPE</strong> (scala 1–10) e traccia del lavoro principale. Nelle fasi <code>build</code> e <code>peak</code> alcune bici includono un <strong>brick run</strong>. L'intensità non usa mai valori FTP assoluti.</p>
+  <p style="margin-top:12px">Durante tutto l'anno il martedì sera è la seduta di corsa di gruppo con il coach; il nuoto si colloca il mercoledì e il giovedì resta il nuoto di gruppo in piscina. Da dicembre a febbraio la struttura resta la stessa (2 forza, nuoto tecnica/aerobico il mercoledì, corsa di gruppo il martedì, bici Z2, una facoltativa); in <code>build</code> la forza scende a una seduta di mantenimento e compaiono soglia e brick; in <code>peak</code> la forza scompare e le sedute diventano specifiche gara. Ogni seduta ha <strong>giorno</strong>, titolo, durata, focus, intensità in <strong>RPE</strong> (scala 1–10) e traccia del lavoro principale. Nelle fasi <code>build</code> e <code>peak</code> alcune bici includono un <strong>brick run</strong>. L'intensità non usa mai valori FTP assoluti.</p>
 
   <h3>2.4 Ruolo del LLM</h3>
   <p>Il modello (oggi Groq, <code>openai/gpt-oss-120b</code>, una chiamata a settimana) riceve lo scheletro della settimana, il titolo della settimana precedente e le regole di stile/formato JSON.</p>

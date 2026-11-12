@@ -29,7 +29,7 @@
 - **Step B implementato (12/11)**: disciplina `strength`, struttura 3 obbligatorie + 2 forza + facoltative, novembre come "Forza e tecnica" (transition), agenda Telegram per giorno, sezione Forza in newsletter/app, editor admin. Modificati `periodization.ts`, `index.ts`, `newsletter.ts`, `mttWorkouts.ts`, `TeamWorkoutsPage.tsx`, `AdminPage.tsx`; doc `.md/.html/.pdf` aggiornati. Verifiche: `npm run build` OK, `deno check` OK, `deno test` 11/11 OK. **Deployata** su Supabase e **settimana ISO 46 rigenerata** (bozza AI) il 12/11.
 
 ### Da completare
-- **Validare la settimana 46** (bozza AI già generata) e fare una prova con `send-newsletter` test prima dell'invio domenicale 15/11/2026.
+- **Validare la settimana 46** e fare una prova con `send-newsletter` test prima dell'invio domenicale 15/11/2026. Schema aggiornato il 12/11: Mar corsa gruppo con coach, Mer nuoto tecnica, Gio nuoto gruppo piscina → **deploy + rigenerazione** della bozza ancora da fare.
 - **Automazione push MyWhoosh**: nessun workflow chiama l'azione `push` di `mtt-mywhoosh-sync`; oggi il push è manuale (probe/curl). Valutare il wiring in `mtt-weekly-workouts.yml`.
 - **Rampe reali nel converter automatico**: l'Edge Function converte warmup/main/cooldown in `E_Normal` con potenze hardcoded (0.55/0.85/0.7, non verificate sulla prescrizione MTT); il flusso a due rampe numeriche esiste solo nel probe locale.
 - Decisioni MTT: **periodo/gare target**; conferma **struttura 3+2** (i documenti di Luca la confermano già).

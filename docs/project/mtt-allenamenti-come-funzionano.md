@@ -72,14 +72,16 @@ In novembre (fase **Forza e tecnica**) la settimana è:
 | Giorno | Seduta | Note |
 |---|---|---|
 | Lunedì | Forza A — corpo libero | squat, affondi, piegamenti, plank, ponti |
-| Martedì | Nuoto — tecnica | 2.300–2.500 m con blocchi tecnica/ritmo |
-| Mercoledì | Corsa — qualità | 4×2 km medio oppure progressione 8–10 km |
+| Martedì | Corsa — gruppo con il coach | seduta serale di qualità guidata dal coach |
+| Mercoledì | Nuoto — tecnica | 2.300–2.500 m con blocchi tecnica/ritmo |
 | Giovedì | Nuoto — gruppo in piscina | seduta di gruppo con il coach, 60 minuti |
 | Venerdì | Forza + circuito | circuito forza con richiami di corsa |
 | Sabato | Bici — fondo Z2 | blocchi di forza in bici |
 | Domenica | Corsa — lunga | **facoltativa** (12–16 km Z2 o riposo) |
 
-Da dicembre a febbraio la struttura resta la stessa (2 forza, nuoto tecnica/aerobico, corsa qualità/fondo, bici Z2, due facoltative); in `build` la forza scende a una seduta di mantenimento e compaiono soglia e brick; in `peak` la forza scompare e le sedute diventano specifiche gara.
+Durante tutto l'anno il martedì sera è la seduta di corsa di gruppo con il coach; il nuoto si colloca il mercoledì e il giovedì resta il nuoto di gruppo in piscina.
+
+Da dicembre a febbraio la struttura resta la stessa (2 forza, nuoto tecnica/aerobico il mercoledì, corsa di gruppo il martedì, bici Z2, una facoltativa); in `build` la forza scende a una seduta di mantenimento e compaiono soglia e brick; in `peak` la forza scompare e le sedute diventano specifiche gara.
 
 Ogni seduta ha: **giorno**, titolo, durata, focus, intensità in **RPE** (scala 1–10) e traccia del lavoro principale. Le sedute facoltative sono marcate come tali. Nelle fasi `build` e `peak` alcune bici includono un **brick run**. L'intensità non usa mai valori FTP assoluti: si lavora per RPE finché l'atleta non ha un FTP misurato.
 
