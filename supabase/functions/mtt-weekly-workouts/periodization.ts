@@ -237,7 +237,6 @@ function swimGroup(recovery: boolean): SkeletonSession {
       'Seduta di gruppo in piscina: 60 minuti a disposizione',
       'Segui il lavoro proposto dal coach in vasca (tecnica e ritmo)',
       'Se il coach non è presente: 400m sciolti + 8x100m aerobico rec 15" + 200m defaticamento',
-      'Se non puoi venire in piscina: 30-40min lavoro a secco per il nuoto (proposta dell\'app): 10min mobilità spalle (circonduzioni, petto e dorso), 3 serie di 12 remate con banda elastica (simulazione pull), 1 min plank + 1 min side-plank per lato + 20 superman (core/lombari), 5min stretching globale. In alternativa: nuoto in acque libere se disponibile.',
     ],
     recoveryMain: [
       'Seduta di gruppo in scarico: segui il coach e resta facile',
