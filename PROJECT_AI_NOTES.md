@@ -208,17 +208,23 @@ Branch: `feature/mtt-weekly-telegram-workouts` (commits `b21e5d2`, `b17858f` + f
 - Zone **RPE** (nessun dato FTP da seedare).
 - LLM: **free tier, ~1 richiesta/settimana** → provider scelto **Groq** (free permanente, no carta, OpenAI-compatible, `openai/gpt-oss-120b`); interfaccia generica `LLM_API_KEY`/`LLM_BASE_URL`/`LLM_MODEL` per cambiare provider senza codice.
 
-### Implementato (branch `feature/mtt-periodized-ai-workouts`, NON ancora committato)
-- Nuovo `supabase/functions/mtt-weekly-workouts/periodization.ts`: `getMacroPhase`, `isoWeekNumber`, `dateFromIsoWeek`, `getMesoWeek`, `buildWeekSkeleton` (2 sessioni per disciplina, variazione per fase×settimana-mesociclo, scarico sett. 4).
-- `index.ts` action `generate` riscritta: scheletro → `renderWithLLM` (se `LLM_API_KEY` presente, fetch OpenAI-compatible, parse JSON robusto, `validateContent`) → fallback `renderStaticContent`. Metadati onesti: `generated_by='ai'|'rules'`, `ai_prompt_used` con fase/meso/llm, `sources` con regole+provider.
-- Helper nuovi in `index.ts`: `toContentBlock`, `skeletonTitle` (titolo con fase e sett. x/4), `parseJsonLoose`, `validateContent`, `renderWithLLM` (timeout 45s).
-- Guard robustezza (dopo test live): `generate` rifiuta la rigenerazione se lo stato esistente ≠ `draft` (prima sovrascriveva anche record `sent`); l'upsert azzera `approved_by`/`approved_at`/`sent_at`/`telegram_message_ids` (prima restava `approved_at` stale su un draft rigenerato).
-- Test: `periodization_test.ts` **7/7 verdi** (`deno test`), `deno check index.ts` pulito. Deno 2.9.8 installato in `~/.deno` (non era presente).
+### Implementato (branch `main`, commit 2074329 + correzioni schema strict)
+- `supabase/functions/mtt-weekly-workouts/periodization.ts` (già su main): `getMacroPhase`, `isoWeekNumber`, `dateFromIsoWeek`, `getMesoWeek`, `buildWeekSkeleton` (2 sessioni per disciplina, variazione per fase×settimana-mesociclo, scarico sett. 4).
+- `index.ts` action `generate` riscritta: scheletro → `renderWithLLM` (se `LLM_API_KEY` presente, fetch OpenAI-compatible) → fallback `renderStaticContent`. Metadati onesti: `generated_by='ai'|'rules'`, `ai_prompt_used` con fase/meso/llm+causa, `sources` con regole+provider.
+- **Structured Outputs strict (Groq)**: `response_format: { type: 'json_schema', json_schema: { name: 'workout_plan', strict: true, schema: workoutJsonSchema } }`; `max_completion_tokens: 4000`, `reasoning_effort: 'low'`. Ogni oggetto nello schema ha `required` == esattamente tutte le chiavi di `properties` e `additionalProperties: false` (verificato ricorsivamente con test dedicato).
+- `renderWithLLM` restituisce `LlmlResult` con kind discriminato (`config-missing`, `http-error`, `rate-limit`, `empty-content`, `truncated`, `model-refusal`, `unexpected-finish-reason`, `parse-failed`, `validation-failed`, `ai-ok`), mai `null` silenzioso. Controllo `finish_reason`: `stop` → OK; `length` → `truncated`; `content_filter` → `model-refusal`; altro → `unexpected-finish-reason`. `generated_by='ai'` solo se `kind==='ai-ok'`, altrimenti `'rules'` con causa in `ai_prompt_used`.
+- `llmLog(event: 'llm-outcome')` con diagnostica essenziale (kind, modello, status, finish_reason, token, lunghezza contenuto, causa).
+- Helper: `toContentBlock`, `skeletonTitle`, `parseJsonLoose`, `validateContent`, `renderWithLLM` (timeout 45s). `handleGenerate` estratto ed esportato; `serve()` protetto da `if (import.meta.main)`.
+- Guard robustezza: `generate` rifiuta la rigenerazione se lo stato esistente ≠ `draft`; l'upsert azzera `approved_by`/`approved_at`/`sent_at`/`telegram_message_ids`.
+- Test: `index.test.ts` **19/19 verdi** (`deno test --no-check --allow-env`, incluso test ricorsivo schema strict), `deno check` pulito su `index.ts` e `index.test.ts`.
+- **Prova reale locale** (harness `harness_real_provider.ts`, una sola esecuzione, nessun persist): `kind=ai-ok`, modello `openai/gpt-oss-120b`, HTTP 200, `finish_reason=stop`, token prompt 3353/completion 3466/total 6819, validazione applicativa OK. Chiave letta da file locale, non mostrata né committata.
+- **Rilascio applicativo NON ancora effettuato**: la versione deployata su Supabase (`bwzzvdwiimvdwkiytknc`) è quella precedente (senza `response_format` strict, `generated_by` sempre `rules` con null silenzioso sui fallimenti). Il nuovo codice è locale, committato in questo repo ma non deployato. Generare la settimana 46 con il codice attuale produrrebbe `generated_by='rules'` (fallback statico) finché non viene rilasciato il deploy.
 
 ### Deploy + test live (28 ottobre, chiuso)
 - Deploy Supabase CLI da zbn-srv01: `SUPABASE_ACCESS_TOKEN="$SUPABASE_MCP_TOKEN" npx supabase functions deploy mtt-weekly-workouts --project-ref bwzzvdwiimvdwkiytknc` (il token `~/.supabase/access-token` non vede il progetto; quello MCP sì). Deploy fatto **due volte**: iniziale + dopo il guard.
 - Secret Edge: `LLM_API_KEY` = chiave Groq fornita dall'utente (in `~/.config/opencode/secrets/mtt/llm.env`, 600, **mai committare**). `TELEGRAM_BOT_TOKEN` e `MTT_SERVICE_ROLE_KEY` preesistenti verificate presenti.
-- Test reale generate week 44 (Transizione, meso 4/4 scarico): `generated_by='ai'`, titolo `Allenamenti MTT - Settimana 44/2026 · Transizione (sett. 4/4 · scarico)`, 6 sedute con durate scalate ×0.65, intro coerente, `adaptation_tips`/`notes`/`tips_by_discipline` validi. Regenerate pulisce `approved_*`. Generate su week 43 (`sent`) → rifiutato con errore esplicito. Record week 44 lasciato in `draft` per la revisione dell'admin nel tab Admin.
+- Test reale generate week 44 (Transizione, meso 4/4 scarico): record creato con `generated_by='rules'` (fallback statico, la versione deployata non aveva `response_format` strict); titolo `Allenamenti MTT - Settimana 44/2026 · Transizione (sett. 4/4 · scarico)`, 6 sedute con durate scalate ×0.65, intro coerente, `adaptation_tips`/`notes`/`tips_by_discipline` validi. Regenerate pulisce `approved_*`. Generate su week 43 (`sent`) → rifiutato con errore esplicito. Record week 44 lasciato in `draft` per la revisione dell'admin nel tab Admin.
+- **Nota**: la prova reale locale sul nuovo codice (schema strict) ha restituito `kind=ai-ok`; il deploy di tale codice è ancora pendente (vedi "Da fare" e piano di rilascio).
 
 ### Audit pre-domenica (28 ottobre)
 Audit end-to-end della catena di invio domenicale, eseguito su richiesta dell'utente («siamo sicuri che domenica funziona?»):
@@ -231,8 +237,9 @@ Audit end-to-end della catena di invio domenicale, eseguito su richiesta dell'ut
 - **Cambio bot Telegram**: secret Edge `TELEGRAM_BOT_TOKEN` sostituito — da LisaCoachBot (temporaneo) a **`@saas_planner_bot`** (id 8333781013), membro del gruppo `-5117971075` ("MTT Notifiche gare"). Test di consegna reale riuscito (message_id 742 nel gruppo). Token salvato in `~/.config/opencode/secrets/mtt/telegram.env` (600, non committare). Il vecchio token di LisaCoachBot è decaduto dal flusso. L'utente rinomina il gruppo da sé.
 
 ### Da fare (prossimi passi)
-- Commit sul branch + review; merge in `main` (workflow schedule si configura dalla main; la funzione è già deployata su Supabase).
-- Prima di domenica 01/11: mergiare il fix DST del workflow (già su main `4923ced`); week 44 è già **approved** (in attesa di invio domenicale).
+- **Rilascio applicativo LLM**: deploy Edge Function `mtt-weekly-workouts` aggiornata su Supabase `bwzzvdwiimvdwkiytknc` (codice già su main, non ancora deployato). Verificare `LLM_API_KEY` impostata nell'Edge e assenza di override `LLM_MODEL`/`LLM_BASE_URL` diversi da quelli provati localmente (`openai/gpt-oss-120b`, `https://api.groq.com/openai/v1`). Procedure e rollback nel piano di rilascio (vedi sotto).
+- Rigenerare settimana 46 con il codice rilasciato e verificare `generated_by='ai'`.
+- Prima di domenica: confermare fix DST del workflow (già su main `4923ced`); week 44 è già **approved** (in attesa di invio domenicale).
 - Da discutere con l'utente: FTP/obiettivi personalizzati, immagini+testo, bot definitivo.
 
 ### Newsletter settimanale MTT (28 ottobre — implementazione completa)

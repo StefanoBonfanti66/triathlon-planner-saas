@@ -33,6 +33,41 @@ const DEFAULT_COOLDOWN: Record<Discipline, string[]> = {
   strength: ['Stretching completo 5-10min'],
 }
 
+type LlmCause =
+  | 'config-missing'
+  | 'http-error'
+  | 'rate-limit'
+  | 'empty-content'
+  | 'truncated'
+  | 'model-refusal'
+  | 'unexpected-finish-reason'
+  | 'parse-failed'
+  | 'validation-failed'
+  | 'ai-ok'
+
+export type { LlmCause }
+export type { LlmResult }
+export { workoutJsonSchema, disciplineBlockSchema }
+
+interface LlmTokens {
+  prompt?: number
+  completion?: number
+  total?: number
+}
+
+interface LlmResult {
+  kind: LlmCause
+  content?: Record<string, unknown>
+  model?: string
+  status?: number | null
+  message?: string
+  retryAfter?: number
+  finishReason?: string | null
+  tokens?: LlmTokens
+  parseError?: string
+  validationError?: string
+}
+
 const baseCorsHeaders = {
   // DEBUG_FORCE_REDEPLOY_v2  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
@@ -176,7 +211,7 @@ function parseJsonLoose(text: string): { value: unknown | null; error: string | 
   }
 }
 
-function validateContent(c: unknown, skeleton: WeekSkeleton): string | null {
+export function validateContent(c: unknown, skeleton: WeekSkeleton): string | null {
   if (!c || typeof c !== 'object') return 'non è un oggetto'
   const o = c as Record<string, unknown>
   if (typeof o.title !== 'string' || !o.title.trim()) return 'title mancante'
@@ -242,18 +277,99 @@ function applySkeletonMeta(content: Record<string, unknown>, skeleton: WeekSkele
   }
 }
 
-async function renderWithLLM(
+const disciplineBlockSchema = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['discipline', 'title', 'duration', 'warmup', 'main', 'cooldown', 'tips', 'day', 'optional'],
+  properties: {
+    discipline: { type: 'string' },
+    title: { type: 'string' },
+    day: { type: 'string' },
+    optional: { type: 'boolean' },
+    duration: { type: 'string' },
+    warmup: { type: 'array', items: { type: 'string' } },
+    main: { type: 'array', items: { type: 'string' } },
+    cooldown: { type: 'array', items: { type: 'string' } },
+    tips: { type: 'array', items: { type: 'string' } },
+  },
+}
+
+const workoutJsonSchema = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['title', 'intro', 'swim', 'bike', 'run', 'strength', 'notes', 'tips_by_discipline', 'adaptation_tips', 'newsletter'],
+  properties: {
+    title: { type: 'string' },
+    intro: { type: 'string' },
+    swim: { type: 'array', items: disciplineBlockSchema },
+    bike: { type: 'array', items: disciplineBlockSchema },
+    run: { type: 'array', items: disciplineBlockSchema },
+    strength: { type: 'array', items: disciplineBlockSchema },
+    notes: { type: 'string' },
+    tips_by_discipline: {
+      type: 'object',
+      additionalProperties: false,
+      required: ['swim', 'bike', 'run', 'strength'],
+      properties: {
+        swim: { type: 'array', items: { type: 'string' } },
+        bike: { type: 'array', items: { type: 'string' } },
+        run: { type: 'array', items: { type: 'string' } },
+        strength: { type: 'array', items: { type: 'string' } },
+      },
+    },
+    adaptation_tips: {
+      type: 'object',
+      additionalProperties: false,
+      required: ['ftp', 'vo2max', 'pace'],
+      properties: {
+        ftp: { type: 'string' },
+        vo2max: { type: 'string' },
+        pace: { type: 'string' },
+      },
+    },
+    newsletter: {
+      type: 'object',
+      additionalProperties: false,
+      required: ['subject', 'intro', 'extra'],
+      properties: {
+        subject: { type: 'string' },
+        intro: { type: 'string' },
+        extra: { type: 'string' },
+      },
+    },
+  },
+}
+
+function llmLog(kind: LlmCause, extra: Record<string, unknown>): void {
+  try {
+    console.log(
+      JSON.stringify({
+        event: 'llm-outcome',
+        kind,
+        ...extra,
+      }),
+    )
+  } catch {
+    // never break the flow because of logging
+  }
+}
+
+export async function renderWithLLM(
   skeleton: WeekSkeleton,
   year: number,
   weekNumber: number,
   previousTitle?: string,
-): Promise<{ content: Record<string, unknown>; model: string } | null> {
+  fetchFn?: typeof fetch,
+): Promise<LlmResult> {
   const apiKey = Deno.env.get('LLM_API_KEY')
-  if (!apiKey) return null
+  if (!apiKey) {
+    llmLog('config-missing', { reason: 'LLM_API_KEY non configurata' })
+    return { kind: 'config-missing' }
+  }
 
+  const fetchHttp = fetchFn ?? fetch
   const baseUrl = (Deno.env.get('LLM_BASE_URL') ?? 'https://api.groq.com/openai/v1').replace(/\/+$/, '')
   const model = Deno.env.get('LLM_MODEL') ?? 'openai/gpt-oss-120b'
-  // DEBUG_MODEL_SWITCH_v1
 
   const system = [
     'Sei un coach di triathlon per amatori italiani di 30-60 anni (livello base-intermedio, distanze sprint/olimpico).',
@@ -280,10 +396,10 @@ async function renderWithLLM(
     required_schema: {
       title: 'string',
       intro: 'string',
-      swim: [{ discipline: 'swim', title: 'string', day: 'string — copia il giorno dallo scheletro', optional: 'boolean — copia dallo scheletro', duration: 'string', warmup: ['string'], main: ['string'], cooldown: ['string'], tips: ['string'] }],
-      bike: [{ discipline: 'bike', title: 'string', day: 'string — copia il giorno dallo scheletro', optional: 'boolean — copia dallo scheletro', duration: 'string', warmup: ['string'], main: ['string'], cooldown: ['string'], tips: ['string'] }],
-      run: [{ discipline: 'run', title: 'string', day: 'string — copia il giorno dallo scheletro', optional: 'boolean — copia dallo scheletro', duration: 'string', warmup: ['string'], main: ['string'], cooldown: ['string'], tips: ['string'] }],
-      strength: [{ discipline: 'strength', title: 'string', day: 'string — copia il giorno dallo scheletro', optional: 'boolean — copia dallo scheletro', duration: 'string', warmup: ['string'], main: ['string'], cooldown: ['string'], tips: ['string'] }],
+      swim: [{ discipline: 'swim', title: 'string', day: 'string', optional: 'boolean', duration: 'string', warmup: ['string'], main: ['string'], cooldown: ['string'], tips: ['string'] }],
+      bike: [{ discipline: 'bike', title: 'string', day: 'string', optional: 'boolean', duration: 'string', warmup: ['string'], main: ['string'], cooldown: ['string'], tips: ['string'] }],
+      run: [{ discipline: 'run', title: 'string', day: 'string', optional: 'boolean', duration: 'string', warmup: ['string'], main: ['string'], cooldown: ['string'], tips: ['string'] }],
+      strength: [{ discipline: 'strength', title: 'string', day: 'string', optional: 'boolean', duration: 'string', warmup: ['string'], main: ['string'], cooldown: ['string'], tips: ['string'] }],
       notes: 'string',
       tips_by_discipline: { swim: ['string'], bike: ['string'], run: ['string'], strength: ['string'] },
       adaptation_tips: { ftp: 'string (solo percezione/RPE)', vo2max: 'string', pace: 'string' },
@@ -295,14 +411,24 @@ async function renderWithLLM(
     },
   })
 
+  let res: Response
   try {
-    const res = await fetch(`${baseUrl}/chat/completions`, {
+    res = await fetchHttp(`${baseUrl}/chat/completions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
       body: JSON.stringify({
         model,
         temperature: 0.8,
-        max_tokens: 4000,
+        max_completion_tokens: 4000,
+        reasoning_effort: 'low',
+        response_format: {
+          type: 'json_schema',
+          json_schema: {
+            name: 'workout_plan',
+            strict: true,
+            schema: workoutJsonSchema,
+          },
+        },
         messages: [
           { role: 'system', content: system },
           { role: 'user', content: user },
@@ -310,26 +436,88 @@ async function renderWithLLM(
       }),
       signal: AbortSignal.timeout(45000),
     })
-    if (!res.ok) {
-      const errText = await res.text()
-      throw new Error(`Groq HTTP ${res.status}: ${errText.slice(0, 300)}`)
+  } catch (error: any) {
+    const message = error?.name === 'AbortError' ? 'timeout' : error?.message ?? String(error)
+    llmLog('http-error', { model, status: null, message: `fetch-failed: ${message}` })
+    return { kind: 'http-error', status: null, message: `fetch-failed: ${message}` }
+  }
+
+  if (!res.ok) {
+    const errText = await res.text().catch(() => '')
+    const isRateLimit = res.status === 429
+    let retryAfter: number | undefined
+    const ra = res.headers.get('Retry-After')
+    if (ra) retryAfter = parseInt(ra, 10) || undefined
+    llmLog(isRateLimit ? 'rate-limit' : 'http-error', {
+      model,
+      status: res.status,
+      message: errText.slice(0, 300),
+      retryAfter,
+    })
+    return {
+      kind: isRateLimit ? 'rate-limit' : 'http-error',
+      status: res.status,
+      message: errText.slice(0, 300),
+      retryAfter,
     }
-    const data = await res.json()
-    const text: string = data?.choices?.[0]?.message?.content ?? ''
-    if (!text) throw new Error('Groq ha restituito contenuto vuoto')
-    // DEBUG_HTTP_CHECK_v1
-    const { value: parsed, error: parseError } = parseJsonLoose(text)
-    if (!parsed) return null
+  }
+
+  const data = await res.json().catch(() => ({}))
+  const choice = data?.choices?.[0]
+  const message = choice?.message
+  const text: string = typeof message?.content === 'string' ? message.content : ''
+  const finishReason: string | null = choice?.finish_reason ?? null
+  const usage = data?.usage
+  const tokens: LlmTokens = {}
+  if (usage?.prompt_tokens !== undefined) tokens.prompt = usage.prompt_tokens
+  if (usage?.completion_tokens !== undefined) tokens.completion = usage.completion_tokens
+  if (usage?.total_tokens !== undefined) tokens.total = usage.total_tokens
+
+  if (finishReason === 'content_filter') {
+    llmLog('model-refusal', { model, status: res.status, finishReason, tokens })
+    return { kind: 'model-refusal', status: res.status, finishReason, tokens }
+  }
+
+  if (!text) {
+    llmLog('empty-content', { model, status: res.status, finishReason, tokens, contentLength: 0 })
+    return { kind: 'empty-content', status: res.status, finishReason, tokens }
+  }
+
+  if (finishReason === 'length') {
+    llmLog('truncated', { model, status: res.status, finishReason, tokens, contentLength: text.length })
+    return { kind: 'truncated', status: res.status, finishReason, tokens }
+  }
+
+  if (finishReason !== 'stop') {
+    llmLog('unexpected-finish-reason', {
+      model, status: res.status, finishReason, tokens, contentLength: text.length,
+    })
+    return { kind: 'unexpected-finish-reason', status: res.status, finishReason, tokens }
+  }
+
+  try {
+    const parsed = JSON.parse(text)
     const validationError = validateContent(parsed, skeleton)
-    if (validationError) return null
+    if (validationError) {
+      llmLog('validation-failed', {
+        model, status: res.status, finishReason, tokens, contentLength: text.length,
+        validationError,
+      })
+      return { kind: 'validation-failed', status: res.status, finishReason, tokens, validationError }
+    }
     const content = parsed as Record<string, unknown>
     applySkeletonMeta(content, skeleton)
     content.week_number = weekNumber
     content.year = year
     content.title = skeletonTitle(skeleton, year, weekNumber)
-    return { content, model }
-  } catch (error: any) {
-    throw new Error(`LLM errore: ${error.message}`)
+    llmLog('ai-ok', { model, status: res.status, finishReason, tokens, contentLength: text.length })
+    return { kind: 'ai-ok', content, model, status: res.status, finishReason, tokens }
+  } catch (e: any) {
+    llmLog('parse-failed', {
+      model, status: res.status, finishReason, tokens, contentLength: text.length,
+      parseError: e?.message ?? String(e),
+    })
+    return { kind: 'parse-failed', status: res.status, finishReason, tokens, parseError: e?.message ?? String(e) }
   }
 }
 
@@ -415,94 +603,105 @@ function renderBrickMessage(block: RenderBlock): string {
   return msg
 }
 
-serve(async (req) => {
-  const headers = corsHeadersFor(req)
+export async function handleGenerate(
+  supabaseClient: any,
+  year: number,
+  week_number: number,
+  fetchFn?: typeof fetch,
+): Promise<{ data: any }> {
+  if (!Number.isInteger(year) || year < 2020 || year > 2100) throw new Error('Anno non valido')
+  if (!Number.isInteger(week_number) || week_number < 1 || week_number > 53) throw new Error('Settimana non valida')
 
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers })
+  const { data: existing } = await supabaseClient
+    .from('team_workouts')
+    .select('status')
+    .eq('team_id', 'mtt')
+    .eq('year', year)
+    .eq('week_number', week_number)
+    .maybeSingle()
+  if (existing && existing.status !== 'draft') {
+    throw new Error(`Allenamento settimana ${week_number} già in stato «${existing.status}»: rigenerazione consentita solo su bozze`)
   }
 
-  if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Metodo non consentito' }), {
-      headers: { ...headers, 'Content-Type': 'application/json' },
-      status: 405,
-    })
-  }
+  const targetDate = dateFromIsoWeek(year, week_number)
+  const skeleton = buildWeekSkeleton(targetDate)
 
-  try {
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      { auth: { persistSession: false } }
-    )
+  const { data: prevWorkout } = await supabaseClient
+    .from('team_workouts')
+    .select('content')
+    .eq('team_id', 'mtt')
+    .eq('year', year)
+    .eq('week_number', week_number - 1)
+    .maybeSingle()
+  const prevContent = prevWorkout?.content as { title?: unknown } | null
+  const previousTitle = typeof prevContent?.title === 'string' ? prevContent.title : undefined
 
-    await requireMttAdmin(supabaseClient, req)
+  const llmResult = await renderWithLLM(skeleton, year, week_number, previousTitle, fetchFn)
+  const useAI = llmResult?.kind === 'ai-ok'
+  const workoutContent = useAI
+    ? (llmResult.content as Record<string, unknown>)
+    : renderStaticContent(skeleton, year, week_number)
 
-    const { action, year, week_number, workout_id, chat_id, test_email } = await req.json()
+  const { data, error } = await supabaseClient
+    .from('team_workouts')
+    .upsert({
+      team_id: 'mtt',
+      year,
+      week_number,
+      status: 'draft',
+      generated_by: useAI ? 'ai' : 'rules',
+      generated_at: new Date().toISOString(),
+      approved_by: null,
+      approved_at: null,
+      sent_at: null,
+      telegram_message_ids: [],
+      content: workoutContent,
+      images: [],
+      ai_prompt_used: `periodization=${skeleton.macroPhase}/meso${skeleton.weekInMeso}/recovery=${skeleton.isRecovery}; llm=${useAI ? llmResult!.model : `none (${llmResult?.kind ?? 'config-missing'})`}`,
+      sources: [
+        'Periodizzazione a regole: macro-fase stagionale + mesociclo 4 settimane',
+        useAI ? `Rendering LLM: ${llmResult!.model}` : `Rendering statico di fallback (causa: ${llmResult?.kind ?? 'config-missing'})`,
+      ],
+    }, { onConflict: 'team_id,year,week_number' })
+    .select()
+    .single()
 
-    if (action === 'generate') {
-      if (!Number.isInteger(year) || year < 2020 || year > 2100) throw new Error('Anno non valido')
-      if (!Number.isInteger(week_number) || week_number < 1 || week_number > 53) throw new Error('Settimana non valida')
+  if (error) throw error
+  return { data }
+}
 
-      const { data: existing } = await supabaseClient
-        .from('team_workouts')
-        .select('status')
-        .eq('team_id', 'mtt')
-        .eq('year', year)
-        .eq('week_number', week_number)
-        .maybeSingle()
-      if (existing && existing.status !== 'draft') {
-        throw new Error(`Allenamento settimana ${week_number} già in stato «${existing.status}»: rigenerazione consentita solo su bozze`)
-      }
+if (import.meta.main) {
+  serve(async (req) => {
+    const headers = corsHeadersFor(req)
 
-      const targetDate = dateFromIsoWeek(year, week_number)
-      const skeleton = buildWeekSkeleton(targetDate)
+    if (req.method === 'OPTIONS') {
+      return new Response('ok', { headers })
+    }
 
-      const { data: prevWorkout } = await supabaseClient
-        .from('team_workouts')
-        .select('content')
-        .eq('team_id', 'mtt')
-        .eq('year', year)
-        .eq('week_number', week_number - 1)
-        .maybeSingle()
-      const prevContent = prevWorkout?.content as { title?: unknown } | null
-      const previousTitle = typeof prevContent?.title === 'string' ? prevContent.title : undefined
-
-      const llmResult = await renderWithLLM(skeleton, year, week_number, previousTitle)
-      const workoutContent = llmResult
-        ? llmResult.content
-        : renderStaticContent(skeleton, year, week_number)
-
-      const { data, error } = await supabaseClient
-        .from('team_workouts')
-        .upsert({
-          team_id: 'mtt',
-          year,
-          week_number,
-          status: 'draft',
-          generated_by: llmResult ? 'ai' : 'rules',
-          generated_at: new Date().toISOString(),
-          approved_by: null,
-          approved_at: null,
-          sent_at: null,
-          telegram_message_ids: [],
-          content: workoutContent,
-          images: [],
-          ai_prompt_used: `periodization=${skeleton.macroPhase}/meso${skeleton.weekInMeso}/recovery=${skeleton.isRecovery}; llm=${llmResult ? llmResult.model : 'none (fallback statico)'}`,
-          sources: [
-            'Periodizzazione a regole: macro-fase stagionale + mesociclo 4 settimane',
-            llmResult ? `Rendering LLM: ${llmResult.model}` : 'Rendering statico di fallback',
-          ],
-        }, { onConflict: 'team_id,year,week_number' })
-        .select()
-        .single()
-
-      if (error) throw error
-
-      return new Response(JSON.stringify({ success: true, workout: data }), {
+    if (req.method !== 'POST') {
+      return new Response(JSON.stringify({ error: 'Metodo non consentito' }), {
         headers: { ...headers, 'Content-Type': 'application/json' },
+        status: 405,
       })
     }
+
+    try {
+      const supabaseClient = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+        { auth: { persistSession: false } }
+      )
+
+      await requireMttAdmin(supabaseClient, req)
+
+      const { action, year, week_number, workout_id, chat_id, test_email } = await req.json()
+
+      if (action === 'generate') {
+        const { data } = await handleGenerate(supabaseClient, year, week_number)
+        return new Response(JSON.stringify({ success: true, workout: data }), {
+          headers: { ...headers, 'Content-Type': 'application/json' },
+        })
+      }
 
     if (action === 'send') {
       const { data: workout, error: wError } = await supabaseClient
@@ -681,3 +880,4 @@ serve(async (req) => {
     })
   }
 })
+}
