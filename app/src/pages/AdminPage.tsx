@@ -1303,16 +1303,20 @@ const AdminPage: React.FC = () => {
                                 )}
                             </div>
 
-                            {['swim', 'bike', 'run'].map(discipline => {
+                            {(['swim', 'bike', 'run', 'strength'] as const).filter(discipline => (workoutToView.content?.[discipline]?.length ?? 0) > 0).map(discipline => {
                                 const blocks = workoutToView.content?.[discipline] || [];
                                 return (
                                     <div key={discipline} className="space-y-3">
-                                        <h4 className="text-xs font-black uppercase text-slate-400 tracking-widest">{discipline === 'swim' ? '🏊 Nuoto' : discipline === 'bike' ? '🚴 Bici' : '🏃 Corsa'}</h4>
+                                        <h4 className="text-xs font-black uppercase text-slate-400 tracking-widest">{discipline === 'swim' ? '🏊 Nuoto' : discipline === 'bike' ? '🚴 Bici' : discipline === 'run' ? '🏃 Corsa' : '💪 Forza'}</h4>
                                         <div className="space-y-3">
                                             {blocks.map((block: any, i: number) => (
                                                 <div key={i} className="p-3 bg-slate-50 rounded-xl border border-slate-100">
                                                     <div className="flex justify-between items-start mb-2">
-                                                        <div className="font-bold text-slate-800">{block.title}</div>
+                                                        <div className="flex flex-wrap items-center gap-2">
+                                                            <div className="font-bold text-slate-800">{block.title}</div>
+                                                            {block.day && <span className="text-[10px] font-black bg-slate-200 text-slate-600 px-2 py-0.5 rounded uppercase">{block.day}</span>}
+                                                            {block.optional && <span className="text-[10px] font-black bg-violet-100 text-violet-700 px-2 py-0.5 rounded uppercase">Facoltativo</span>}
+                                                        </div>
                                                         {block.duration && <span className="text-[10px] font-black bg-slate-200 text-slate-600 px-2 py-0.5 rounded">{block.duration}</span>}
                                                     </div>
                                                     {block.warmup?.length && (
@@ -1329,6 +1333,12 @@ const AdminPage: React.FC = () => {
                                                         <div className="space-y-1">
                                                             <div className="text-[9px] font-bold text-slate-500 uppercase mb-1">Defaticamento</div>
                                                             <ul className="list-disc list-inside text-sm text-slate-600 space-y-1">{block.cooldown.map((c: string) => <li key={c}>{c}</li>)}</ul>
+                                                        </div>
+                                                    )}
+                                                    {block.brickRun && (
+                                                        <div className="space-y-1">
+                                                            <div className="text-[9px] font-bold text-orange-600 uppercase mb-1">Corsa dopo bici ({block.brickRun.duration})</div>
+                                                            <ul className="list-disc list-inside text-sm text-orange-800 space-y-1">{block.brickRun.main.map((c: string) => <li key={c}>{c}</li>)}</ul>
                                                         </div>
                                                     )}
                                                     {block.tips?.length && (

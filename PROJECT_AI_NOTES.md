@@ -328,3 +328,71 @@ Richiesta utente: newsletter della domenica con spiegazione preparazione allenam
 - **Converter automatico senza rampe numeriche**: l'Edge Function converte warmup/main/cooldown in `E_Normal` con potenze hardcoded (0.55/0.85/0.7), non verificate sulla prescrizione MTT; il flusso a due rampe con `StartPower`/`EndPower` esiste solo nel probe locale.
 - **Merge su `main` eseguito (2026-11-05)**: `origin/main` merged in `main` (merge commit), poi `feat/mtt-mywhoosh-sync` merged in `main` senza conflitti; 2 commit locali non pubblicati (`11977f9`, `f1a694d`) inclusi. Verifiche post-merge: `python3 -m py_compile` OK, 3 suite probe PASS, `npm run build` (tsc + vite) OK. Deno non installato localmente → `supabase/functions/mtt-mywhoosh-sync/index.test.ts` non eseguito in locale.
 - Immagini + testo nei workout e proprietario definitivo del bot ancora da decidere.
+
+## Sessione 12 novembre — archivio allenamenti MTT da Google Drive
+
+### Contesto
+- Luca Bacci ha condiviso la cartella Google Drive **`Allenamenti`** (stesso giorno delle critiche, 09/11). Accesso in locale via `rclone` (remotes `gdrive:` e `Drive ZBN1:`); il MCP `google-drive` non era tra i tool della sessione.
+- Obiettivo: usare lo storico reale come "memoria del club" (step C) e ricavare la struttura settimanale richiesta (step B), invece di inventarla.
+
+### Censimento
+- **298 file** nella cartella: 277 docx, 20 pdf, 1 xlsx. Anni 2016–2026. Dicitura: 274 nomi contengono "nuoto", 19 "corsa", 5 altro.
+- Dal **2023-12** i file sono piani settimanali completi (`allenamento nuoto bici corsa AAAA MM N`), prima sono quasi solo sedute di nuoto (`Allenamento Nuoto MM AAAA N`).
+- **297 file copiati** in `docs/project/allenamenti-archivio/raw/` (gitignored, 35 MB). Un file non scaricabile (`allenamento nuoto bici corsa 2026 10 3.docx`, rclone in timeout) → resta da recuperare.
+- Testo estraibile: **178 file**. **119 scansionati** (docx con immagine interna o pdf senza testo) → serve OCR. Distribuzione: 2023 e 2024 misto tutti testuali (48/48), 2025 31/44 testuali, **2026 34/38 scansionati**.
+- **17 file senza anno o mese nel nome** (serie `CORSA <MESE> N MTT.pdf`, `Week 1_2 Maggio`, `esercizi running`, `ritmi allenamento nuoto MTT.xlsx`).
+
+### Struttura del club confermata dai documenti
+- `allenamento nuoto bici corsa 2024 11 1-2.docx` (testo): «la settimana deve essere composta così: **2 allenamenti in palestra, 1 nuoto, 1 corsa, 1 bici easy o rulli**», più una seduta extra sulla **frazione più debole**. Conferma esatta della richiesta di Luca del 09/11.
+- `Scheda Settimanale Gemini per 11 2026.docx` (testo, riferimento novembre): Lun palestra corpo libero; Mar nuoto tecnica **2.300–2.500 m**; Mer corsa qualità (4x2 km / progressione 8-10 km); Gio circuito forza + corsa; Ven nuoto 2 **facoltativo**; Sab bici Z2 2-3 h o rulli; Dom corsa lunga **facoltativa** o riposo.
+- Piani 2025-11 (scansionati, OCR): tabella a colonne nuoto / nuoto2 / bici indoor / bici outdoor / corsa 1 / corsa 2, con serie nuoto 200 stile + 2x400 easy rec30" + 2x200 medio rec40" + 400/300/200/100.
+- `CORSA NOVEMBRE 1 MTT.pdf`: 15' progressione, andature, 3x (1000 forte + 500 blando rec 1'), defaticamento.
+
+### Incoerenze nei dati di Luca (utili, non bloccanti)
+- **Titolo interno ≠ nome file** in 6 PDF corsa: `CORSA GENNAIO 1/2/3 MTT.pdf` riportano «CORSA NOVEMBRE 2»; `CORSA NOVEMBRE 3` riporta «CORSA NOVEMBRE 2»; `CORSA OTTOBRE 2` riporta «CORSA OTTOBRE 1».
+- `allenamento nuoto bici corsa 2024 12 1.docx` contiene l'intestazione «SETTIMANA 2/2-7/2» (febbraio).
+- Nel manifest queste anomalie sono annotate, non corrette: la verifica spetta a Luca.
+
+### Lavoro prodotto
+- `tools/build_allenamenti_manifest.py` (nuovo): cataloga `raw/`, ricava anno/mese/fase/disciplina dal nome, rileva scansioni e mismatch, popola `link_drive` da `rclone lsjson`, preserva i file già normalizzati. Uso: `python3 tools/build_allenamenti_manifest.py --drive-ids /tmp/mtt_lsjson.json`.
+- `docs/project/allenamenti-archivio/manifest.csv`: **297 righe** (non più solo header), 297/297 link Drive, 2 righe `normalizzato`.
+- `docs/project/allenamenti-archivio/normalizzato/2026-11_base_misto_01.md`: scheda del riferimento novembre 2026 di Luca.
+- `docs/project/allenamenti-archivio/normalizzato/2024-11_base_misto_01.md`: scheda con la regola di struttura del club + due settimane tipo.
+- `docs/project/allenamenti-archivio/README.md`: stato reale, nome corretto della cartella Drive, numeri, procedura di rigenerazione.
+
+### Decisione aperta emersa dai dati
+- Luca colloca **novembre in "transizione + base aerobica + forza"**; la periodizzazione del codice mappa novembre su `base` e usa `transition` per set–ott. La tassonomia va riconciliata nello step B (probabile: transition = set–nov con forza/tecnica, base = dic–feb).
+
+## Sessione 12 novembre — step B: forza e struttura 3+2
+
+### Decisioni
+- **Tassonomia riconciliata senza quinta fase**: `MacroPhase` resta `base|build|peak|transition`. `getMacroPhase`: novembre → `transition` (etichetta **"Forza e tecnica"**), dicembre–febbraio → `base`, marzo–aprile → `build`, maggio–agosto → `peak`, settembre–ottobre → `transition`. Nuova `getPhaseLabel`.
+- **Struttura novembre**: Lun Forza A corpo libero, Mar nuoto tecnica 2.300–2.500 m, Mer corsa qualità, Gio Forza + circuito, Ven nuoto facoltativo, Sab bici Z2 con blocchi forza, Dom corsa lunga facoltativa.
+- **Base dic–feb**: stessa struttura (2 forza, nuoto tecnica/aerobico, corsa qualità/fondo, bici Z2, 2 facoltative). **Build**: 1 forza di mantenimento, soglia e brick. **Peak**: nessuna forza, sedute specifiche gara con brick. **Set–ott**: transizione senza forza.
+- Nuovi tipi `Discipline` e `Weekday`; `SkeletonSession` ha `day`, `optional`; ogni blocco porta giorno e marcatore facoltativo. Scarico: volume −35%, la forza riduce i giri invece di svuotarsi.
+
+### File modificati
+- `supabase/functions/mtt-weekly-workouts/periodization.ts`: riscritto con helper `strengthA`, `strengthCircuit`, `swimTechnique`, `swimAerobic`, `swimOptional`, `runQuality`, `runFondo`, `runLongOptional`, `bikeAerobic`, `bikeWinter`; `makeSession` con `recoveryMain`.
+- `supabase/functions/mtt-weekly-workouts/index.ts`: `DISCIPLINES`, `DAY_ORDER`, `DISCIPLINE_META`, warmup/cooldown per disciplina; `toContentBlock` con `day`/`optional`; `renderStaticContent` con `strength` e `tips_by_discipline.strength`; `validateContent(c, skeleton)` esige forza se nello scheletro; `applySkeletonMeta` ricopia giorno/facoltativo/disciplina sui blocchi LLM; Telegram con agenda per giorno (`📅 LUNEDÌ`) e fallback per disciplina; fix titolo brick.
+- `supabase/functions/mtt-weekly-workouts/newsletter.ts`: `NewsletterBlock` con `day`/`optional`, sezione 💪 Forza in HTML e plain text.
+- `app/src/lib/mttWorkouts.ts`: `strength` nei tipi, `day`/`optional`, `normalizeBlock` e normalizzazione con fallback.
+- `app/src/pages/TeamWorkoutsPage.tsx`: tab dinamici (Forza solo se presente), icone/colori, badge giorno/facoltativo, brick run.
+- `app/src/pages/AdminPage.tsx`: modal dettagli con loop dinamico swim/bike/run/strength, badge giorno/facoltativo, brick.
+- `docs/project/mtt-allenamenti-come-funzionano.md` + `.html` + `.pdf`: aggiornati a step B (tassonomia, struttura, limiti risolti/aperati, stato B/C/D).
+
+### Verifiche
+- `npm run build` in `app/` OK (tsc + vite).
+- `deno check supabase/functions/mtt-weekly-workouts/index.ts` OK con `~/.deno/bin/deno`.
+- PDF rigenerato da HTML con WeasyPrint in venv temporaneo (`/tmp/mdvenv`); `tools/markdown_to_pdf.py` richiede `markdown` + `xhtml2pdf` non installati e ha output di default errato (`GUIDA_UTENTE.pdf`) se non si passano entrambi gli argomenti.
+
+### Da fare
+- **Deploy Edge Function** `mtt-weekly-workouts` e rigenerazione settimana ISO 46 (domenica 15/11/2026) — solo dopo conferma esplicita.
+- Step C: OCR dei 119 scansionati (34/38 del 2026) e iniezione archivio nel prompt/fallback.
+- Step D: ancoraggio gare/periodo.
+
+### Deploy e settimana 46 (12/11/2026)
+- Edge Function `mtt-weekly-workouts` **deployata** su `bwzzvdwiimvdwkiytknc` con le modifiche step B (asset `index.ts`, `newsletter.ts`, `periodization.ts`).
+- Nota operativa: il token in `~/.supabase/access-token` appartiene a un altro account e non vede questo progetto (403). Usare `SUPABASE_ACCESS_TOKEN="$SUPABASE_MCP_TOKEN"` per il deploy; il service role per invocare la funzione si ricava da `GET /v1/projects/<ref>/api-keys`.
+- **Correzione 12/11 (sera)**: il giovedì il gruppo si allena insieme in piscina con un'ora a disposizione. Schema aggiornato: Lun Forza A, Mar nuoto tecnica, Mer corsa qualità, **Gio nuoto gruppo 60'**, Ven Forza B/circuito, Sab bici Z2, Dom corsa lunga facoltativa. Rimossa la seduta nuoto facoltativa del venerdì (secondo nuoto = gruppo).
+- **Settimana ISO 46 rigenerata due volte** (`status=draft`): dopo un fallback statico intermedio, un nuovo tentativo ha prodotto la versione `generated_by=ai`. Titolo «Allenamenti MTT - Settimana 46/2026 · Forza e tecnica (sett. 2/4)», giorno corretto su tutti i blocchi.
+- `periodization_test.ts` aggiornato alla nuova struttura (11 test, tutti passati). Attenzione: la ISO week 9 è ancora febbraio/base; per testare `build` usare almeno la settimana 13.

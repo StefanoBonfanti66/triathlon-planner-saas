@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { buildWeekSkeleton, dateFromIsoWeek, WeekSkeleton, SkeletonSession } from './periodization.ts'
+import { buildWeekSkeleton, dateFromIsoWeek, WeekSkeleton, SkeletonSession, Discipline } from './periodization.ts'
 import {
   buildNewsletterHtml,
   newsletterPlainText,
@@ -11,6 +11,27 @@ import {
 
 const MTT_ADMIN_EMAILS = ['sbonfanti@hotmail.com', 'bonfantistefano4@gmail.com']
 const MTT_FALLBACK_CHAT_ID = '-5117971075'
+
+const DISCIPLINES: Discipline[] = ['swim', 'bike', 'run', 'strength']
+const DAY_ORDER = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica']
+const DISCIPLINE_META: Record<Discipline, { emoji: string; label: string }> = {
+  swim: { emoji: '🏊', label: 'Nuoto' },
+  bike: { emoji: '🚴', label: 'Bici' },
+  run: { emoji: '🏃', label: 'Corsa' },
+  strength: { emoji: '💪', label: 'Forza' },
+}
+const DEFAULT_WARMUP: Record<Discipline, string[]> = {
+  swim: [],
+  bike: ['Riscaldamento graduale 10-15min a ritmo facile'],
+  run: ['Riscaldamento graduale 10-15min a ritmo facile'],
+  strength: ['Riscaldamento 5-10min: mobilità articolare e attivazione'],
+}
+const DEFAULT_COOLDOWN: Record<Discipline, string[]> = {
+  swim: ['Defaticamento 100-200m molto facile + stretching spalle'],
+  bike: ['Defaticamento 5-10min facile + stretching'],
+  run: ['Defaticamento 5-10min facile + stretching'],
+  strength: ['Stretching completo 5-10min'],
+}
 
 const baseCorsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -75,10 +96,14 @@ function toContentBlock(s: SkeletonSession) {
     discipline: s.discipline,
     title: s.title,
     duration: s.duration,
-    warmup: ['Riscaldamento graduale 10-15min a ritmo facile'],
+    ...(s.day ? { day: s.day } : {}),
+    ...(s.optional ? { optional: true } : {}),
+    warmup: DEFAULT_WARMUP[s.discipline],
     main: s.mainOutline,
-    cooldown: ['Defaticamento 5-10min facile + stretching'],
-    tips: [`Intensità: ${s.intensity}`, `Focus: ${s.focus}`],
+    cooldown: DEFAULT_COOLDOWN[s.discipline],
+    tips: s.discipline === 'strength'
+      ? [`Intensità: ${s.intensity}`, `Focus: ${s.focus}`, 'A corpo libero: nessuna attrezzatura, mai a cedimento']
+      : [`Intensità: ${s.intensity}`, `Focus: ${s.focus}`],
     ...(s.brickRun ? { brickRun: s.brickRun } : {}),
   }
 }
@@ -89,22 +114,24 @@ function skeletonTitle(skeleton: WeekSkeleton, year: number, weekNumber: number)
 }
 
 function renderStaticContent(skeleton: WeekSkeleton, year: number, weekNumber: number) {
-  const pick = (d: SkeletonSession['discipline']) =>
+  const pick = (d: Discipline) =>
     skeleton.sessions.filter((s) => s.discipline === d).map(toContentBlock)
 
   return {
     week_number: weekNumber,
     year,
     title: skeletonTitle(skeleton, year, weekNumber),
-    intro: `Fase ${skeleton.phaseLabel} — ${skeleton.mesoProgression}. Allenamenti non personalizzati pensati per amatori 30-60 anni: adatta intensità e volumi in base alle tue sensazioni.`,
+    intro: `Fase ${skeleton.phaseLabel} — ${skeleton.mesoProgression}. Struttura della settimana: 3 sedute obbligatorie (nuoto, bici, corsa) + 2 di forza a corpo libero, più le sedute facoltative. Il giovedì il nuoto è la seduta di gruppo in piscina (60 minuti con il coach). Allenamenti non personalizzati pensati per amatori 30-60 anni: adatta intensità e volumi in base alle tue sensazioni.`,
     swim: pick('swim'),
     bike: pick('bike'),
     run: pick('run'),
-    notes: 'Ricorda: idratazione e alimentazione adatte al tuo tipo di allenamento. In caso di dubbi o fastidi, consulta il tuo medico.',
+    strength: pick('strength'),
+    notes: 'Ricorda: idratazione e alimentazione adatte al tuo tipo di allenamento. Le sedute di forza sono a corpo libero, mai a cedimento. In caso di dubbi o fastidi, consulta il tuo medico.',
     tips_by_discipline: {
-      swim: ['Focus su tecnica > distanza', 'Usa pull/palette con moderazione'],
-      bike: ['Mantenimento + controllo respirazione', 'Idratazione importante per uscite >1h'],
-      run: ['Aumenta gradualmente se riprendi', 'Scarpe adatte e terreni idonei'],
+      swim: ['Focus su tecnica > distanza', 'Usa pull/pinne con moderazione', 'Recuperi completi nelle serie forti'],
+      bike: ['Mantenimento + controllo respirazione', 'Idratazione importante per uscite >1h', 'Nei blocchi in piedi non perdere la cadenza'],
+      run: ['Aumenta gradualmente se riprendi', 'Scarpe adatte e terreni idonei', 'Le andature servono per la tecnica, non per la fatica'],
+      strength: ['Tecnica pulita prima di tutto: meglio meno ripetizioni e ben fatte', 'Mai a cedimento, lascia 2-3 ripetizioni di margine', 'Respira sempre, senza trattenere il fiato'],
     },
     adaptation_tips: {
       ftp: 'Prima di tutto: esegui il test FTP (20 minuti al massimo sostenibile, vedi la guida nel bottone della newsletter). FTP = valore medio della potenza dei 20 minuti × 0,95. È il tuo punto di riferimento per tutte le zone di allenamento: se non lo conosci ancora, usa la Regola della Conversazione (RPE 3-4, devi riuscire a parlare mentre ti alleni). Una volta che hai l\'FTP, lavoriamo tra 65-80% di esso. Rifai il test ogni 6 settimane per aggiornare le zone man mano che migliori.',
@@ -114,8 +141,8 @@ function renderStaticContent(skeleton: WeekSkeleton, year: number, weekNumber: n
     newsletter: {
       subject: `Allenamenti MTT · Settimana ${weekNumber}/${year} — ${skeleton.phaseLabel}`,
       intro: [
-        `Ciao squadra, da questa settimana il team lancia un servizio nuovo: gli allenamenti settimanali personalizzati, pensati per te.`,
-        `Ogni settimana riceverai un piano completo (nuoto, bici, corsa) costruito sulla periodizzazione e adattato alla fase della stagione. In questo momento siamo in fase ${skeleton.phaseLabel.toLowerCase()}: ${skeleton.mesoProgression}. ${skeleton.isRecovery ? 'Questa è una settimana di scarico: riduciamo i volumi per permettere al corpo di assorbire il lavoro delle settimane precedenti.' : 'Stiamo costruendo solide basi aerobiche con volumi e intensità pensati per atleti amatori.'}`,
+        `Ciao squadra, ecco il piano di questa settimana.`,
+        `Nuovo formato: 3 sedute obbligatorie (nuoto, bici, corsa) + 2 di forza a corpo libero, più le facoltative per chi vuole aggiungere. Il giovedì il nuoto è la seduta di gruppo in piscina, con un'ora a disposizione e il lavoro deciso dal coach. In questo momento siamo in fase ${skeleton.phaseLabel.toLowerCase()}: ${skeleton.mesoProgression}. ${skeleton.isRecovery ? 'Questa è una settimana di scarico: riduciamo i volumi per permettere al corpo di assorbire il lavoro delle settimane precedenti.' : 'Stiamo costruendo solide basi aerobiche e di forza con volumi e intensità pensati per atleti amatori.'}`,
         `⚠️ Prima di iniziare: esegui il **test FTP**. È un test di 20 minuti al massimo sostenibile in bici: il risultato (media potenza × 0,95) definisce le tue zone di allenamento, cioè l'intensità giusta per ogni seduta. Senza FTP non sappiamo se RPE 3 per te è troppo facile o troppo duro. Clicca il bottone "Come fare il test FTP" nella email per la guida passo passo. Rifai il test ogni 6 settimane per tenere aggiornate le tue zone man mano che migliori.`,
         `Come regolare l'intensità: usiamo l'RPE (Rate of Perceived Exertion, "sforzo percepito" su scala 1-10). 1-2 = recupero, 3-4 = fondo aerobico (parli mentre ti alleni), 5-6 = soglia (respiro affannato ma sostenibile), 7-8 = duro, 9-10 = massimo. Se leggi un'allenamento con "RPE 3", significa che devi tenere un ritmo molto facile, quasi chiacchierato.`,
         'Gli allenamenti sono un punto di partenza: adatta intensità e durate alle tue sensazioni, senza forzare. Se hai dubbi, chiedi nel gruppo Telegram.',
@@ -140,15 +167,26 @@ function parseJsonLoose(text: string): unknown | null {
   }
 }
 
-function validateContent(c: unknown): string | null {
+function validateContent(c: unknown, skeleton: WeekSkeleton): string | null {
   if (!c || typeof c !== 'object') return 'non è un oggetto'
   const o = c as Record<string, unknown>
   if (typeof o.title !== 'string' || !o.title.trim()) return 'title mancante'
   if (typeof o.intro !== 'string' || !o.intro.trim()) return 'intro mancante'
   if (typeof o.notes !== 'string' || !o.notes.trim()) return 'notes mancante'
-  for (const d of ['swim', 'bike', 'run'] as const) {
+
+  const hasStrength = skeleton.sessions.some((s) => s.discipline === 'strength')
+  const required: Discipline[] = ['swim', 'bike', 'run']
+  if (hasStrength) required.push('strength')
+
+  for (const d of required) {
     const arr = o[d]
     if (!Array.isArray(arr) || arr.length < 1) return `${d} vuoto`
+  }
+
+  for (const d of DISCIPLINES) {
+    const arr = o[d]
+    if (arr === undefined) continue
+    if (!Array.isArray(arr)) return `${d} non è un array`
     for (const block of arr as Array<Record<string, unknown>>) {
       if (typeof block?.title !== 'string' || !block.title.trim()) return `${d}: block title mancante`
       if (!Array.isArray(block.main) || block.main.length < 1 || (block.main as unknown[]).some((x) => typeof x !== 'string')) {
@@ -156,6 +194,7 @@ function validateContent(c: unknown): string | null {
       }
     }
   }
+
   const at = o.adaptation_tips as Record<string, unknown> | undefined
   if (!at || typeof at.ftp !== 'string' || typeof at.vo2max !== 'string' || typeof at.pace !== 'string') {
     return 'adaptation_tips incompleto'
@@ -164,11 +203,34 @@ function validateContent(c: unknown): string | null {
   if (!tbd || !Array.isArray(tbd.swim) || !Array.isArray(tbd.bike) || !Array.isArray(tbd.run)) {
     return 'tips_by_discipline incompleto'
   }
+  if (hasStrength && !Array.isArray(tbd.strength)) {
+    return 'tips_by_discipline.strength mancante'
+  }
   const nl = o.newsletter as Record<string, unknown> | undefined
   if (!nl || typeof nl.subject !== 'string' || !nl.subject.trim()) return 'newsletter.subject mancante'
   if (typeof nl.intro !== 'string' || !nl.intro.trim()) return 'newsletter.intro mancante'
   if (typeof nl.extra !== 'string') return 'newsletter.extra mancante'
   return null
+}
+
+// Il giorno e il carattere facoltativo sono decisi dallo scheletro, non dal LLM:
+// li ricopiamo per garantire una settimana coerente anche se il modello li omette.
+function applySkeletonMeta(content: Record<string, unknown>, skeleton: WeekSkeleton) {
+  for (const d of DISCIPLINES) {
+    const blocks = content[d]
+    if (!Array.isArray(blocks)) continue
+    const sessions = skeleton.sessions.filter((s) => s.discipline === d)
+    blocks.forEach((raw, i) => {
+      const block = raw as Record<string, unknown>
+      const s = sessions[i]
+      if (!s) return
+      block.discipline = d
+      if (s.day) block.day = s.day
+      if (s.optional) block.optional = true
+      if (typeof block.duration !== 'string' || !block.duration.trim()) block.duration = s.duration
+      if (typeof block.title !== 'string' || !block.title.trim()) block.title = s.title
+    })
+  }
 }
 
 async function renderWithLLM(
@@ -186,7 +248,8 @@ async function renderWithLLM(
   const system = [
     'Sei un coach di triathlon per amatori italiani di 30-60 anni (livello base-intermedio, distanze sprint/olimpico).',
     'Devi produrre ESCLUSIVAMENTE un oggetto JSON valido, senza markdown né commenti, che rappresenta il piano allenamenti della settimana.',
-    'Regole: lingua italiana; intensità sempre in RPE (percezione) o %FC, MAI valori FTP assoluti; rispetta la struttura (sessioni, durate, titoli, fase) dello scheletro fornito, espandendo warmup/main/cooldown/tips in modo naturale e concreto;',
+    'Regole: lingua italiana; intensità sempre in RPE (percezione) o %FC, MAI valori FTP assoluti; rispetta la struttura (sessioni, durate, titoli, fase, giorno) dello scheletro fornito, espandendo warmup/main/cooldown/tips in modo naturale e concreto;',
+    'lo scheletro può contenere 4 discipline (nuoto, bici, corsa, forza): non eliminare le sedute di forza e non spostarle di giorno; la forza è a corpo libero, mai a cedimento;',
     'varia le parole rispetto alla settimana precedente se indicata; tono pratico, incoraggiante, senza pretese da elite; ogni block ha warmup/main/cooldown/tips come array di stringhe.',
   ].join(' ')
 
@@ -207,15 +270,16 @@ async function renderWithLLM(
     required_schema: {
       title: 'string',
       intro: 'string',
-      swim: [{ discipline: 'swim', title: 'string', duration: 'string', warmup: ['string'], main: ['string'], cooldown: ['string'], tips: ['string'] }],
-      bike: [{ discipline: 'bike', title: 'string', duration: 'string', warmup: ['string'], main: ['string'], cooldown: ['string'], tips: ['string'] }],
-      run: [{ discipline: 'run', title: 'string', duration: 'string', warmup: ['string'], main: ['string'], cooldown: ['string'], tips: ['string'] }],
+      swim: [{ discipline: 'swim', title: 'string', day: 'string — copia il giorno dallo scheletro', optional: 'boolean — copia dallo scheletro', duration: 'string', warmup: ['string'], main: ['string'], cooldown: ['string'], tips: ['string'] }],
+      bike: [{ discipline: 'bike', title: 'string', day: 'string — copia il giorno dallo scheletro', optional: 'boolean — copia dallo scheletro', duration: 'string', warmup: ['string'], main: ['string'], cooldown: ['string'], tips: ['string'] }],
+      run: [{ discipline: 'run', title: 'string', day: 'string — copia il giorno dallo scheletro', optional: 'boolean — copia dallo scheletro', duration: 'string', warmup: ['string'], main: ['string'], cooldown: ['string'], tips: ['string'] }],
+      strength: [{ discipline: 'strength', title: 'string', day: 'string — copia il giorno dallo scheletro', optional: 'boolean — copia dallo scheletro', duration: 'string', warmup: ['string'], main: ['string'], cooldown: ['string'], tips: ['string'] }],
       notes: 'string',
-      tips_by_discipline: { swim: ['string'], bike: ['string'], run: ['string'] },
+      tips_by_discipline: { swim: ['string'], bike: ['string'], run: ['string'], strength: ['string'] },
       adaptation_tips: { ftp: 'string (solo percezione/RPE)', vo2max: 'string', pace: 'string' },
       newsletter: {
-        subject: 'string — oggetto email newsletter, max 60 char, es. "Allenamenti MTT · Settimana 44 — Transizione"',
-        intro: 'string — 3-5 paragrafi (separati da \\n\\n). PRESENTA IL SERVIZIO COME NOVITÀ: spiega che da questa settimana il team lancia un servizio di allenamenti settimanali personalizzati. Come PRIMA COSA invita gli atleti a eseguire il test FTP (20 min al massimo sostenibile, guida nel bottone della email) perché il risultato definisce le zone di allenamento e senza FTP non si può tarare l\'intensità. Spiega che il test va ripetuto ogni 6 settimane per aggiornare le zone. Spiega cos\'è l\'RPE (Rate of Perceived Exertion, sforzo percepito su scala 1-10: 3-4 = fondo facile, 5-6 = soglia, 7-8 = duro, 9-10 = massimo) e usalo per descrivere l\'intensità delle sedute. Poi entra nel dettaglio della fase attuale e di cosa stiamo costruendo. Tono caldo da coach, entusiasta ma professionale.',
+        subject: 'string — oggetto email newsletter, max 60 char, es. "Allenamenti MTT · Settimana 46 — Forza e tecnica"',
+        intro: 'string — 3-5 paragrafi (separati da \\n\\n). Presenta il formato della settimana: 3 sedute obbligatorie (nuoto, bici, corsa) + 2 di forza a corpo libero, più le facoltative. Come PRIMA COSA invita gli atleti a eseguire il test FTP (20 min al massimo sostenibile, guida nel bottone della email) perché il risultato definisce le zone di allenamento e senza FTP non si può tarare l\'intensità; il test va ripetuto ogni 6 settimane. Spiega cos\'è l\'RPE (sforzo percepito su scala 1-10: 3-4 = fondo facile, 5-6 = soglia, 7-8 = duro, 9-10 = massimo). Poi entra nel dettaglio della fase attuale e di cosa stiamo costruendo. Tono caldo da coach, entusiasta ma professionale.',
         extra: 'string — sempre stringa vuota "" (lo compila l\'admin)',
       },
     },
@@ -241,8 +305,9 @@ async function renderWithLLM(
     const text: string = data?.choices?.[0]?.message?.content ?? ''
     if (!text) return null
     const parsed = parseJsonLoose(text)
-    if (validateContent(parsed)) return null
+    if (validateContent(parsed, skeleton)) return null
     const content = parsed as Record<string, unknown>
+    applySkeletonMeta(content, skeleton)
     content.week_number = weekNumber
     content.year = year
     content.title = skeletonTitle(skeleton, year, weekNumber)
@@ -294,6 +359,44 @@ async function dispatchNewsletter(
     failures: failures.slice(0, 5),
     test: !!testEmail,
   }
+}
+
+interface RenderBlock {
+  title?: string
+  duration?: string
+  day?: string
+  optional?: boolean
+  warmup?: string[]
+  main?: string[]
+  cooldown?: string[]
+  tips?: string[]
+  brickRun?: { title?: string; duration?: string; main?: string[] }
+}
+
+function renderBlockMessage(block: RenderBlock, discipline: Discipline, includeDay: boolean): string {
+  const meta = DISCIPLINE_META[discipline] ?? DISCIPLINE_META.run
+  const dayPrefix = includeDay && block.day ? `${block.day} · ` : ''
+  const optional = block.optional ? ' · _facoltativo_' : ''
+  let msg = `*${meta.emoji} ${dayPrefix}${block.title ?? meta.label}*${block.duration ? ` (${block.duration})` : ''}${optional}\n\n`
+  if (block.warmup?.length) {
+    msg += `*Riscaldamento:*\n${block.warmup.map((x) => `• ${x}`).join('\n')}\n\n`
+  }
+  msg += `*Parte principale:*\n${(block.main ?? []).map((x) => `• ${x}`).join('\n')}\n\n`
+  if (block.cooldown?.length) {
+    msg += `*Defaticamento:*\n${block.cooldown.map((x) => `• ${x}`).join('\n')}\n\n`
+  }
+  if (block.tips?.length) {
+    msg += `*Consigli:*\n${block.tips.map((x) => `💡 ${x}`).join('\n')}\n`
+  }
+  return msg
+}
+
+function renderBrickMessage(block: RenderBlock): string {
+  const brick = block.brickRun
+  if (!brick) return ''
+  let msg = `*🏃 CORSA (dopo bici)*\n\n*Corsa dopo bici*${brick.duration ? ` (${brick.duration})` : ''}\n\n`
+  msg += `*Parte principale:*\n${(brick.main ?? []).map((x) => `• ${x}`).join('\n')}\n`
+  return msg
 }
 
 serve(async (req) => {
@@ -440,65 +543,55 @@ serve(async (req) => {
       }
 
       try {
-        let header = `*🏊🚴🏃 ${content.title}*\n\n`
+        let header = `*🏊🚴🏃💪 ${content.title}*\n\n`
         header += `${content.intro}\n\n`
         await sendMsg(header)
 
-        await sendMsg(`*🏊 NUOTO*\n\n`)
-        for (const block of content.swim) {
-          let msg = `*${block.title}* (${block.duration})\n\n`
-          if (block.warmup?.length) {
-            msg += `*Riscaldamento:*\n${block.warmup.map((x: string) => `• ${x}`).join('\n')}\n\n`
-          }
-          msg += `*Parte principale:*\n${block.main.map((x: string) => `• ${x}`).join('\n')}\n\n`
-          if (block.cooldown?.length) {
-            msg += `*Defaticamento:*\n${block.cooldown.map((x: string) => `• ${x}`).join('\n')}\n\n`
-          }
-          if (block.tips?.length) {
-            msg += `*Consigli:*\n${block.tips.map((x: string) => `💡 ${x}`).join('\n')}\n`
-          }
-          await sendMsg(msg)
-        }
-
-        await sendMsg(`*🚴 BICI*\n\n`)
-        for (const block of content.bike) {
-          let msg = `*${block.title}* (${block.duration})\n\n`
-          if (block.warmup?.length) {
-            msg += `*Riscaldamento:*\n${block.warmup.map((x: string) => `• ${x}`).join('\n')}\n\n`
-          }
-          msg += `*Parte principale:*\n${block.main.map((x: string) => `• ${x}`).join('\n')}\n\n`
-          if (block.cooldown?.length) {
-            msg += `*Defaticamento:*\n${block.cooldown.map((x: string) => `• ${x}`).join('\n')}\n\n`
-          }
-          if (block.tips?.length) {
-            msg += `*Consigli:*\n${block.tips.map((x: string) => `💡 ${x}`).join('\n')}\n`
-          }
-          await sendMsg(msg)
-          if (block.brickRun) {
-            await sendMsg(`*🏃 CORSA (dopo bici)*\n\n*${block.brickRun.title}* (${block.brickRun.duration})\n\n*Parte principale:*\n${block.brickRun.main.map((x: string) => `• ${x}`).join('\n')}\n`)
+        const allBlocks: Array<{ block: RenderBlock; discipline: Discipline }> = []
+        for (const d of DISCIPLINES) {
+          const arr = content?.[d]
+          if (!Array.isArray(arr)) continue
+          for (const raw of arr) {
+            const block = raw as RenderBlock & { discipline?: Discipline }
+            allBlocks.push({ block, discipline: block.discipline ?? d })
           }
         }
 
-        await sendMsg(`*🏃 CORSA*\n\n`)
-        for (const block of content.run) {
-          let msg = `*${block.title}* (${block.duration})\n\n`
-          if (block.warmup?.length) {
-            msg += `*Riscaldamento:*\n${block.warmup.map((x: string) => `• ${x}`).join('\n')}\n\n`
+        const hasDays = allBlocks.some(({ block }) => block.day && DAY_ORDER.includes(block.day))
+
+        if (hasDays) {
+          // Formato agenda: una sezione per giorno, come i piani di Luca.
+          for (const day of DAY_ORDER) {
+            const todays = allBlocks.filter(({ block }) => block.day === day)
+            if (!todays.length) continue
+            await sendMsg(`*📅 ${day.toUpperCase()}*\n\n`)
+            for (const { block, discipline } of todays) {
+              await sendMsg(renderBlockMessage(block, discipline, false))
+              if (block.brickRun) await sendMsg(renderBrickMessage(block))
+            }
           }
-          msg += `*Parte principale:*\n${block.main.map((x: string) => `• ${x}`).join('\n')}\n\n`
-          if (block.cooldown?.length) {
-            msg += `*Defaticamento:*\n${block.cooldown.map((x: string) => `• ${x}`).join('\n')}\n\n`
+        } else {
+          // Fallback per contenuti storici senza giorno: sezioni per disciplina.
+          for (const d of DISCIPLINES) {
+            const blocks = allBlocks.filter((item) => item.discipline === d)
+            if (!blocks.length) continue
+            const meta = DISCIPLINE_META[d]
+            await sendMsg(`*${meta.emoji} ${meta.label.toUpperCase()}*\n\n`)
+            for (const { block } of blocks) {
+              await sendMsg(renderBlockMessage(block, d, true))
+              if (block.brickRun) await sendMsg(renderBrickMessage(block))
+            }
           }
-          if (block.tips?.length) {
-            msg += `*Consigli:*\n${block.tips.map((x: string) => `💡 ${x}`).join('\n')}\n`
-          }
-          await sendMsg(msg)
         }
 
         let tips = `*💡 COME ADATTARE GLI ALLENAMENTI*\n\n`
         tips += `*FTP:* ${content.adaptation_tips.ftp}\n\n`
         tips += `*VO2max:* ${content.adaptation_tips.vo2max}\n\n`
         tips += `*Andature/Velocita:* ${content.adaptation_tips.pace}\n\n`
+        const strengthTips = content.tips_by_discipline?.strength
+        if (Array.isArray(strengthTips) && strengthTips.length) {
+          tips += `*Forza:* ${strengthTips.join(' · ')}\n\n`
+        }
         tips += `_${content.notes}_`
         await sendMsg(tips)
       } catch (sendError) {

@@ -1,7 +1,7 @@
 # Allenamenti MTT — come vengono preparati oggi
 
 > Documento richiesto dal gruppo MTT il 09/11/2026 (Achille, Luca Bacci) per chiarire il funzionamento attuale del servizio allenamenti e definire le modifiche da apportare.
-> Stato: **descrittivo dell'implementazione attuale** (v6.3.3, novembre 2026). Non contiene ancora le modifiche richieste: quelle sono elencate in fondo come decisioni aperte.
+> Stato: **aggiornato il 12/11/2026**. La struttura 3 obbligatorie + 2 forza + facoltative e la disciplina `strength` sono implementate (step B); restano aperti memoria dell'archivio nel prompt (step C) e ancoraggio alle gare (step D).
 
 ## 1. In sintesi
 
@@ -44,12 +44,15 @@ Punti chiave del flusso:
 
 La fase è decisa **solo dal mese**:
 
-| Periodo | Macro-fase | Obiettivo dichiarato |
-|---|---|---|
-| Novembre – Febbraio | `base` | fondo aerobico, tecnica, adattamento |
-| Marzo – Aprile | `build` | soglia, progressione del carico |
-| Maggio – Agosto | `peak` | ritmo gara, simulazioni |
-| Settembre – Ottobre | `transition` | mantenimento, recupero |
+| Periodo | Macro-fase | Etichetta mostrata | Obiettivo |
+|---|---|---|---|
+| Novembre | `transition` | **Forza e tecnica** | transizione + base aerobica + forza, tecnica nuoto |
+| Dicembre – Febbraio | `base` | Base | fondo aerobico, tecnica, adattamento |
+| Marzo – Aprile | `build` | Build | soglia, progressione del carico |
+| Maggio – Agosto | `peak` | Peak / Gara | ritmo gara, simulazioni |
+| Settembre – Ottobre | `transition` | Transizione | mantenimento, recupero |
+
+Novembre usa la macro-fase `transition` (come nel modello storico del club) ma con etichetta e contenuti dedicati: è il mese in cui si costruisce la forza e si riprende la tecnica, non un semplice mantenimento.
 
 ### 3.2 Mesociclo di 4 settimane
 
@@ -62,13 +65,25 @@ La settimana dell'anno è calcolata in formato ISO 8601. La posizione nel mesoci
 
 ### 3.3 Struttura settimanale attuale
 
-Ogni settimana contiene **6 sedute**, due per disciplina:
+La settimana segue il modello del club: **3 sedute obbligatorie (1 nuoto, 1 bici, 1 corsa) + 2 sedute di forza + facoltative** sulla disciplina più debole.
 
-- 2 × nuoto
-- 2 × bici
-- 2 × corsa
+In novembre (fase **Forza e tecnica**) la settimana è:
 
-Ogni seduta ha: titolo, durata, focus, intensità in **RPE** (percezione dello sforzo, scala 1–10) e una traccia del lavoro principale. Nelle fasi `build` e `peak` alcune sedute bici includono un **brick run** (corsa facile subito dopo la bici). L'intensità non usa mai valori FTP assoluti: si lavora per RPE finché l'atleta non ha un FTP misurato.
+| Giorno | Seduta | Note |
+|---|---|---|
+| Lunedì | Forza A — corpo libero | squat, affondi, piegamenti, plank, ponti |
+| Martedì | Nuoto — tecnica | 2.300–2.500 m con blocchi tecnica/ritmo |
+| Mercoledì | Corsa — qualità | 4×2 km medio oppure progressione 8–10 km |
+| Giovedì | Nuoto — gruppo in piscina | seduta di gruppo con il coach, 60 minuti |
+| Venerdì | Forza + circuito | circuito forza con richiami di corsa |
+| Sabato | Bici — fondo Z2 | blocchi di forza in bici |
+| Domenica | Corsa — lunga | **facoltativa** (12–16 km Z2 o riposo) |
+
+Da dicembre a febbraio la struttura resta la stessa (2 forza, nuoto tecnica/aerobico, corsa qualità/fondo, bici Z2, due facoltative); in `build` la forza scende a una seduta di mantenimento e compaiono soglia e brick; in `peak` la forza scompare e le sedute diventano specifiche gara.
+
+Ogni seduta ha: **giorno**, titolo, durata, focus, intensità in **RPE** (scala 1–10) e traccia del lavoro principale. Le sedute facoltative sono marcate come tali. Nelle fasi `build` e `peak` alcune bici includono un **brick run**. L'intensità non usa mai valori FTP assoluti: si lavora per RPE finché l'atleta non ha un FTP misurato.
+
+La quarta settimana del mesociclo è scarico: il volume scende del ~35%, la forza riduce i giri ma non sparisce.
 
 ### 3.4 Ruolo del LLM
 
@@ -84,33 +99,31 @@ Se il LLM non risponde o la risposta non è valida, il sistema usa il rendering 
 
 ## 4. Cosa arriva agli atleti
 
-- **Telegram** (gruppo MTT): un messaggio per disciplina/seduta, con struttura riscaldamento / lavoro principale / defaticamento / consigli, e la corsa post-bici dove prevista.
-- **Newsletter email** (Resend, mittente `allenamenti@zetabytenexus.it`): spiegazione della settimana, fase attuale, spiegazione dell'RPE, invito al test FTP (da ripetere ogni 6 settimane), sintesi delle sedute e link al gruppo Telegram.
+- **Telegram** (gruppo MTT): agenda per giorno (`📅 LUNEDÌ`, `📅 MARTEDÌ`, …) con per ogni seduta riscaldamento / lavoro principale / defaticamento / consigli, la corsa post-bici dove prevista e il marcatore `facoltativo`. Le sedute di forza hanno il loro blocco dedicato.
+- **Newsletter email** (Resend, mittente `allenamenti@zetabytenexus.it`): spiegazione della settimana, fase attuale, struttura 3 obbligatorie + 2 forza + facoltative, spiegazione dell'RPE, invito al test FTP (da ripetere ogni 6 settimane), sintesi per disciplina (inclusa la forza) e link al gruppo Telegram.
 
-## 5. Limiti attuali (motivo delle critiche del 09/11/2026)
+## 5. Limiti e stato delle critiche del 09/11/2026
 
-Questi punti sono il divario tra il sistema attuale e le esigenze espresse dal gruppo:
+Stato al 12/11/2026:
 
-1. **Manca la palestra / il lavoro a corpo libero.** Oggi esistono solo nuoto, bici e corsa. Il riferimento del club prevede invece 2 sessioni di forza/palestra a settimana.
-2. **Struttura diversa da quella del club.** Il club indica 3 sedute obbligatorie (1 nuoto, 1 bici, 1 corsa) + 2 palestra, con sedute facoltative sulla disciplina più debole. Noi produciamo 6 sedute, 2 per ogni disciplina, tutte equivalenti.
-3. **Novembre non è trattato come "base + tecnica + forza".** La fase è decisa dal mese, ma i contenuti (soprattutto nuoto) non seguono il modello storico del club: volumi in minuti e non in metri, nessun blocco di tecnica strutturato tipo 2300–2500 m.
-4. **Nessuna "memoria" degli allenamenti passati.** L'archivio storico non viene usato: il LLM non ha esempi dello stile MTT.
-5. **Nessun ancoraggio a gare o periodo obiettivo.** La periodizzazione è generica e calendariale; manca la decisione "per quali gare ci prepariamo".
-6. **Piano uguale per tutti.** Le note lo dichiarano esplicitamente: nessuna personalizzazione per livello o disciplina debole.
-7. **Revisione prima dell'invio**: già possibile oggi (bozza → modifica → approva), ma va resa esplicita e usata come prassi dal gruppo admin.
+1. **Palestra / corpo libero — risolto (step B).** Esiste la disciplina `strength`, con 2 sedute a settimana in novembre/base e 1 di mantenimento in build.
+2. **Struttura diversa da quella del club — risolto (step B).** La settimana è 3 obbligatorie + 2 forza + facoltative sulla disciplina debole.
+3. **Novembre non "base + tecnica + forza" — risolto (step B).** Novembre ha etichetta "Forza e tecnica", nuoto in metri con blocchi tecnica (2.300–2.500 m) e due sedute di forza.
+4. **Nessuna "memoria" degli allenamenti passati — aperto (step C).** L'archivio storico è ora disponibile e catalogato (`docs/project/allenamenti-archivio/`), ma non è ancora iniettato nel prompt del LLM né nel fallback statico.
+5. **Nessun ancoraggio a gare o periodo obiettivo — aperto (step D).** La periodizzazione resta calendariale.
+6. **Piano uguale per tutti — aperto.** Le note continuano a dichiararlo: nessuna personalizzazione per livello.
+7. **Revisione prima dell'invio — disponibile.** Bozza → modifica → approva → invia, con anteprima e prova a se stessi.
 
 ## 6. Modifiche proposte e decisioni aperte
 
-### 6.1 Da decidere con il gruppo (prima di toccare il codice)
+### 6.1 Da decidere con il gruppo
 
 - **Periodo/gare obiettivo**: la preparazione va ancorata a gare concrete o a un periodo (es. "base invernale fino a febbraio, poi build verso le gare di primavera")? Senza questa decisione la periodizzazione resta generica.
-- **Struttura settimanale target**: confermare 3 sedute obbligatorie + 2 palestra + facoltative sulla disciplina debole.
-- **Archivio storico**: dove sono e in che formato gli allenamenti degli anni passati (file, documenti, chat)? Servono per costruire la "memoria" del club.
+- **Conferma struttura**: 3 obbligatorie + 2 forza + facoltative è stata implementata sulla base dei documenti del club; va confermata da Luca.
+- **Archivio storico**: la cartella Drive `Allenamenti` è disponibile e catalogata (297 file, 2016–2026). Restano da confermare i 17 file senza anno/mese, i 6 PDF corsa con titolo interno diverso dal nome e la tassonomia "novembre = transizione".
 
-### 6.2 Modifiche tecniche conseguenti
+### 6.2 Modifiche tecniche
 
-- **B**: aggiungere la disciplina `strength` (palestra/corpo libero) allo scheletro e ristrutturare la settimana secondo il modello del club; aggiornare rendering Telegram, newsletter, tipi dell'app e editor admin.
-- **C**: normalizzare l'archivio storico in un riferimento per mese/fase e iniettarlo nel prompt del LLM e nel fallback statico.
-- **D**: introdurre l'ancoraggio alle gare/periodo e, in prospettiva, la priorità alla disciplina più debole.
-
-> Nota: questo documento descrive il sistema **così com'è oggi**. Le modifiche B/C/D saranno oggetto di interventi separati e verificabili, dopo le decisioni del punto 6.1.
+- **B — fatto (12/11/2026)**: disciplina `strength`, struttura 3+2, nuoto in metri, agenda Telegram per giorno, sezione Forza in newsletter e app, editor admin.
+- **C — prossimo**: normalizzare l'archivio (OCR dei 119 file scansionati, in primis il 2026) e iniettarlo nel prompt del LLM e nel fallback statico.
+- **D — dopo**: ancoraggio alle gare/periodo e, in prospettiva, priorità alla disciplina più debole.

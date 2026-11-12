@@ -156,7 +156,7 @@
   </div>
 
   <h1>Allenamenti MTT — come vengono preparati oggi</h1>
-  <p class="subtitle">Documento richiesto dal gruppo MTT il 9 novembre 2026 · versione 6.3.3</p>
+  <p class="subtitle">Documento richiesto dal gruppo MTT il 9 novembre 2026 · aggiornato il 12 novembre 2026</p>
 
   <div class="lead">
     <strong>In sintesi.</strong> Gli allenamenti settimanali MTT vengono prodotti da un sistema a due livelli:
@@ -188,13 +188,14 @@
   <p>La fase è decisa <strong>solo dal mese</strong>:</p>
   <table>
     <thead>
-      <tr><th>Periodo</th><th>Macro-fase</th><th>Obiettivo dichiarato</th></tr>
+      <tr><th>Periodo</th><th>Macro-fase</th><th>Etichetta</th><th>Obiettivo</th></tr>
     </thead>
     <tbody>
-      <tr><td>Novembre – Febbraio</td><td><code>base</code></td><td>fondo aerobico, tecnica, adattamento</td></tr>
-      <tr><td>Marzo – Aprile</td><td><code>build</code></td><td>soglia, progressione del carico</td></tr>
-      <tr><td>Maggio – Agosto</td><td><code>peak</code></td><td>ritmo gara, simulazioni</td></tr>
-      <tr><td>Settembre – Ottobre</td><td><code>transition</code></td><td>mantenimento, recupero</td></tr>
+      <tr><td>Novembre</td><td><code>transition</code></td><td>Forza e tecnica</td><td>transizione + base aerobica + forza, tecnica nuoto</td></tr>
+      <tr><td>Dicembre – Febbraio</td><td><code>base</code></td><td>Base</td><td>fondo aerobico, tecnica, adattamento</td></tr>
+      <tr><td>Marzo – Aprile</td><td><code>build</code></td><td>Build</td><td>soglia, progressione del carico</td></tr>
+      <tr><td>Maggio – Agosto</td><td><code>peak</code></td><td>Peak / Gara</td><td>ritmo gara, simulazioni</td></tr>
+      <tr><td>Settembre – Ottobre</td><td><code>transition</code></td><td>Transizione</td><td>mantenimento, recupero</td></tr>
     </tbody>
   </table>
 
@@ -208,14 +209,20 @@
   </ul>
 
   <h3>2.3 Struttura settimanale attuale</h3>
-  <p>Ogni settimana contiene <strong>6 sedute</strong>, due per disciplina:</p>
-  <div class="grid2">
-    <div class="card"><h4>Nuoto</h4>2 sedute</div>
-    <div class="card"><h4>Bici</h4>2 sedute</div>
-    <div class="card"><h4>Corsa</h4>2 sedute</div>
-    <div class="card"><h4>Palestra / forza</h4>Non prevista</div>
-  </div>
-  <p style="margin-top:12px">Ogni seduta ha titolo, durata, focus, intensità in <strong>RPE</strong> (percezione dello sforzo, scala 1–10) e una traccia del lavoro principale. Nelle fasi <code>build</code> e <code>peak</code> alcune sedute bici includono un <strong>brick run</strong> (corsa facile subito dopo la bici). L'intensità non usa mai valori FTP assoluti: si lavora per RPE finché l'atleta non ha un FTP misurato.</p>
+  <p>La settimana segue il modello del club: <strong>3 sedute obbligatorie</strong> (1 nuoto, 1 bici, 1 corsa) <strong>+ 2 sedute di forza</strong> <strong>+ facoltative</strong> sulla disciplina più debole.</p>
+  <table>
+    <thead><tr><th>Giorno</th><th>Seduta</th><th>Note</th></tr></thead>
+    <tbody>
+      <tr><td>Lunedì</td><td>Forza A — corpo libero</td><td>squat, affondi, piegamenti, plank, ponti</td></tr>
+      <tr><td>Martedì</td><td>Nuoto — tecnica</td><td>2.300–2.500 m con blocchi tecnica/ritmo</td></tr>
+      <tr><td>Mercoledì</td><td>Corsa — qualità</td><td>4×2 km medio oppure progressione 8–10 km</td></tr>
+      <tr><td>Giovedì</td><td>Nuoto — gruppo in piscina</td><td>seduta di gruppo con il coach, 60 minuti</td></tr>
+      <tr><td>Venerdì</td><td>Forza + circuito</td><td>circuito forza con richiami di corsa</td></tr>
+      <tr><td>Sabato</td><td>Bici — fondo Z2</td><td>blocchi di forza in bici</td></tr>
+      <tr><td>Domenica</td><td>Corsa — lunga</td><td><strong>facoltativa</strong> (12–16 km Z2 o riposo)</td></tr>
+    </tbody>
+  </table>
+  <p style="margin-top:12px">Da dicembre a febbraio la struttura resta la stessa (2 forza, nuoto tecnica/aerobico, corsa qualità/fondo, bici Z2, due facoltative); in <code>build</code> la forza scende a una seduta di mantenimento e compaiono soglia e brick; in <code>peak</code> la forza scompare e le sedute diventano specifiche gara. Ogni seduta ha <strong>giorno</strong>, titolo, durata, focus, intensità in <strong>RPE</strong> (scala 1–10) e traccia del lavoro principale. Nelle fasi <code>build</code> e <code>peak</code> alcune bici includono un <strong>brick run</strong>. L'intensità non usa mai valori FTP assoluti.</p>
 
   <h3>2.4 Ruolo del LLM</h3>
   <p>Il modello (oggi Groq, <code>openai/gpt-oss-120b</code>, una chiamata a settimana) riceve lo scheletro della settimana, il titolo della settimana precedente e le regole di stile/formato JSON.</p>
@@ -224,20 +231,19 @@
 
   <h2>3. Cosa arriva agli atleti</h2>
   <ul>
-    <li><strong>Telegram</strong> (gruppo MTT): un messaggio per disciplina/seduta, con struttura riscaldamento / lavoro principale / defaticamento / consigli, e la corsa post-bici dove prevista.</li>
-    <li><strong>Newsletter email</strong> (Resend, mittente <code>allenamenti@zetabytenexus.it</code>): spiegazione della settimana, fase attuale, spiegazione dell'RPE, invito al test FTP (da ripetere ogni 6 settimane), sintesi delle sedute e link al gruppo Telegram.</li>
+    <li><strong>Telegram</strong> (gruppo MTT): agenda per giorno (<code>📅 LUNEDÌ</code>, <code>📅 MARTEDÌ</code>, …) con per ogni seduta riscaldamento / lavoro principale / defaticamento / consigli, la corsa post-bici dove prevista e il marcatore <em>facoltativo</em>. Le sedute di forza hanno il loro blocco dedicato.</li>
+    <li><strong>Newsletter email</strong> (Resend, mittente <code>allenamenti@zetabytenexus.it</code>): spiegazione della settimana, fase attuale, struttura 3 obbligatorie + 2 forza + facoltative, spiegazione dell'RPE, invito al test FTP (ogni 6 settimane), sintesi per disciplina (inclusa la forza) e link al gruppo Telegram.</li>
   </ul>
 
-  <h2>4. Limiti attuali</h2>
-  <p>Questi punti sono il divario tra il sistema attuale e le esigenze espresse dal gruppo il 9 novembre 2026:</p>
+  <h2>4. Limiti e stato delle critiche del 9 novembre 2026</h2>
   <ol>
-    <li><strong>Manca la palestra / il lavoro a corpo libero.</strong> Oggi esistono solo nuoto, bici e corsa. Il riferimento del club prevede invece 2 sessioni di forza/palestra a settimana.</li>
-    <li><strong>Struttura diversa da quella del club.</strong> Il club indica 3 sedute obbligatorie (1 nuoto, 1 bici, 1 corsa) + 2 palestra, con sedute facoltative sulla disciplina più debole. Noi produciamo 6 sedute, 2 per ogni disciplina, tutte equivalenti.</li>
-    <li><strong>Novembre non è trattato come “base + tecnica + forza”.</strong> La fase è decisa dal mese, ma i contenuti (soprattutto nuoto) non seguono il modello storico del club: volumi in minuti e non in metri, nessun blocco di tecnica strutturato tipo 2.300–2.500 m.</li>
-    <li><strong>Nessuna “memoria” degli allenamenti passati.</strong> L'archivio storico non viene usato: il LLM non ha esempi dello stile MTT.</li>
-    <li><strong>Nessun ancoraggio a gare o periodo obiettivo.</strong> La periodizzazione è generica e calendariale; manca la decisione “per quali gare ci prepariamo”.</li>
-    <li><strong>Piano uguale per tutti.</strong> Le note lo dichiarano esplicitamente: nessuna personalizzazione per livello o disciplina debole.</li>
-    <li><strong>Revisione prima dell'invio</strong> — già possibile oggi (bozza → modifica → approva), ma va resa prassi esplicita per il gruppo admin.</li>
+    <li><strong>Palestra / corpo libero — risolto.</strong> Esiste la disciplina <code>strength</code>, con 2 sedute a settimana in novembre/base e 1 di mantenimento in build.</li>
+    <li><strong>Struttura diversa da quella del club — risolto.</strong> La settimana è 3 obbligatorie + 2 forza + facoltative sulla disciplina debole.</li>
+    <li><strong>Novembre non “base + tecnica + forza” — risolto.</strong> Novembre ha etichetta “Forza e tecnica”, nuoto in metri con blocchi tecnica (2.300–2.500 m) e due sedute di forza.</li>
+    <li><strong>Nessuna “memoria” degli allenamenti passati — aperto.</strong> L'archivio storico è disponibile e catalogato (<code>docs/project/allenamenti-archivio/</code>), ma non ancora iniettato nel prompt del LLM né nel fallback statico.</li>
+    <li><strong>Nessun ancoraggio a gare o periodo obiettivo — aperto.</strong> La periodizzazione resta calendariale.</li>
+    <li><strong>Piano uguale per tutti — aperto.</strong> Nessuna personalizzazione per livello.</li>
+    <li><strong>Revisione prima dell'invio — disponibile.</strong> Bozza → modifica → approva → invia, con anteprima e prova a se stessi.</li>
   </ol>
 
   <h2>5. Modifiche proposte e decisioni aperte</h2>
@@ -245,20 +251,20 @@
   <h3>5.1 Da decidere con il gruppo</h3>
   <ul>
     <li><strong>Periodo / gare obiettivo:</strong> ancorare la preparazione a gare concrete o a un periodo (es. base invernale fino a febbraio, poi build verso le gare di primavera). Senza questa decisione la periodizzazione resta generica.</li>
-    <li><strong>Struttura settimanale target:</strong> confermare 3 sedute obbligatorie + 2 palestra + facoltative sulla disciplina debole.</li>
-    <li><strong>Archivio storico:</strong> dove sono e in che formato gli allenamenti degli anni passati (file, documenti, chat). Servono per costruire la “memoria” del club.</li>
+    <li><strong>Conferma struttura:</strong> 3 obbligatorie + 2 forza + facoltative è stata implementata sulla base dei documenti del club; va confermata da Luca.</li>
+    <li><strong>Archivio storico:</strong> la cartella Drive <code>Allenamenti</code> è disponibile e catalogata (297 file, 2016–2026). Restano da confermare i 17 file senza anno/mese, i 6 PDF corsa con titolo interno diverso dal nome e la tassonomia “novembre = transizione”.</li>
   </ul>
 
-  <h3>5.2 Modifiche tecniche conseguenti</h3>
+  <h3>5.2 Modifiche tecniche</h3>
   <ul>
-    <li><strong>B</strong> — aggiungere la disciplina <code>strength</code> (palestra/corpo libero) allo scheletro e ristrutturare la settimana secondo il modello del club; aggiornare rendering Telegram, newsletter, tipi dell'app e editor admin.</li>
-    <li><strong>C</strong> — normalizzare l'archivio storico in un riferimento per mese/fase e iniettarlo nel prompt del LLM e nel fallback statico.</li>
-    <li><strong>D</strong> — introdurre l'ancoraggio alle gare/periodo e, in prospettiva, la priorità alla disciplina più debole.</li>
+    <li><strong>B — fatto (12/11/2026)</strong> — disciplina <code>strength</code>, struttura 3+2, nuoto in metri, agenda Telegram per giorno, sezione Forza in newsletter e app, editor admin.</li>
+    <li><strong>C — prossimo</strong> — normalizzare l'archivio (OCR dei 119 file scansionati, in primis il 2026) e iniettarlo nel prompt del LLM e nel fallback statico.</li>
+    <li><strong>D — dopo</strong> — ancoraggio alle gare/periodo e, in prospettiva, priorità alla disciplina più debole.</li>
   </ul>
 
   <div class="footer">
     <span>MTT · Allenamenti — documento interno</span>
-    <span>Stato: descrittivo dell'implementazione attuale · 9 novembre 2026</span>
+    <span>Stato: aggiornato al 12 novembre 2026 · step B implementato</span>
   </div>
 
 </div>

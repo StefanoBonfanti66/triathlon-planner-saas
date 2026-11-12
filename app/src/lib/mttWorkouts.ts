@@ -1,9 +1,11 @@
 import { supabase } from '../supabaseClient';
 
 export interface WorkoutBlock {
-  discipline: 'swim' | 'bike' | 'run';
+  discipline: 'swim' | 'bike' | 'run' | 'strength';
   title: string;
   duration?: string;
+  day?: string;
+  optional?: boolean;
   warmup?: string[];
   main: string[];
   cooldown?: string[];
@@ -26,11 +28,13 @@ export interface WeeklyWorkoutContent {
   swim: WorkoutBlock[];
   bike: WorkoutBlock[];
   run: WorkoutBlock[];
+  strength?: WorkoutBlock[];
   notes: string;
   tips_by_discipline: {
     swim: string[];
     bike: string[];
     run: string[];
+    strength?: string[];
   };
   adaptation_tips: {
     ftp: string;
@@ -196,58 +200,41 @@ function normalizeStringArray(arr: string[] | undefined): string[] {
   return arr.map((s) => normalizeNewlines(s));
 }
 
+function normalizeBlock(b: WorkoutBlock): WorkoutBlock {
+  return {
+    ...b,
+    title: normalizeNewlines(b.title),
+    duration: b.duration ? normalizeNewlines(b.duration) : undefined,
+    day: b.day ? normalizeNewlines(b.day) : undefined,
+    warmup: normalizeStringArray(b.warmup),
+    main: normalizeStringArray(b.main),
+    cooldown: normalizeStringArray(b.cooldown),
+    tips: normalizeStringArray(b.tips),
+    notes: normalizeStringArray(b.notes),
+    brickRun: b.brickRun
+      ? {
+          duration: normalizeNewlines(b.brickRun.duration),
+          main: normalizeStringArray(b.brickRun.main),
+        }
+      : undefined,
+  };
+}
+
 export function normalizeWorkoutContent(content: WeeklyWorkoutContent): WeeklyWorkoutContent {
   return {
     ...content,
     title: normalizeNewlines(content.title),
     intro: normalizeNewlines(content.intro),
     notes: normalizeNewlines(content.notes),
-    swim: content.swim.map((b) => ({
-      ...b,
-      title: normalizeNewlines(b.title),
-      duration: b.duration ? normalizeNewlines(b.duration) : undefined,
-      warmup: normalizeStringArray(b.warmup),
-      main: normalizeStringArray(b.main),
-      cooldown: normalizeStringArray(b.cooldown),
-      tips: normalizeStringArray(b.tips),
-      notes: normalizeStringArray(b.notes),
-      brickRun: b.brickRun
-        ? {
-            duration: normalizeNewlines(b.brickRun.duration),
-            main: normalizeStringArray(b.brickRun.main),
-          }
-        : undefined,
-    })),
-    bike: content.bike.map((b) => ({
-      ...b,
-      title: normalizeNewlines(b.title),
-      duration: b.duration ? normalizeNewlines(b.duration) : undefined,
-      warmup: normalizeStringArray(b.warmup),
-      main: normalizeStringArray(b.main),
-      cooldown: normalizeStringArray(b.cooldown),
-      tips: normalizeStringArray(b.tips),
-      notes: normalizeStringArray(b.notes),
-      brickRun: b.brickRun
-        ? {
-            duration: normalizeNewlines(b.brickRun.duration),
-            main: normalizeStringArray(b.brickRun.main),
-          }
-        : undefined,
-    })),
-    run: content.run.map((b) => ({
-      ...b,
-      title: normalizeNewlines(b.title),
-      duration: b.duration ? normalizeNewlines(b.duration) : undefined,
-      warmup: normalizeStringArray(b.warmup),
-      main: normalizeStringArray(b.main),
-      cooldown: normalizeStringArray(b.cooldown),
-      tips: normalizeStringArray(b.tips),
-      notes: normalizeStringArray(b.notes),
-    })),
+    swim: (content.swim ?? []).map(normalizeBlock),
+    bike: (content.bike ?? []).map(normalizeBlock),
+    run: (content.run ?? []).map(normalizeBlock),
+    strength: (content.strength ?? []).map(normalizeBlock),
     tips_by_discipline: {
-      swim: normalizeStringArray(content.tips_by_discipline.swim),
-      bike: normalizeStringArray(content.tips_by_discipline.bike),
-      run: normalizeStringArray(content.tips_by_discipline.run),
+      swim: normalizeStringArray(content.tips_by_discipline?.swim),
+      bike: normalizeStringArray(content.tips_by_discipline?.bike),
+      run: normalizeStringArray(content.tips_by_discipline?.run),
+      strength: normalizeStringArray(content.tips_by_discipline?.strength),
     },
     adaptation_tips: {
       ftp: normalizeNewlines(content.adaptation_tips.ftp),

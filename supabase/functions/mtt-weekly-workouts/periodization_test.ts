@@ -4,6 +4,7 @@ import {
   dateFromIsoWeek,
   getMacroPhase,
   getMesoWeek,
+  getPhaseLabel,
   isoWeekNumber,
 } from './periodization.ts'
 
@@ -21,13 +22,19 @@ Deno.test('dateFromIsoWeek roundtrip', () => {
 
 Deno.test('macro phases by month (northern season)', () => {
   assertEquals(getMacroPhase(new Date(2026, 0, 15)), 'base')
-  assertEquals(getMacroPhase(new Date(2026, 10, 15)), 'base')
+  assertEquals(getMacroPhase(new Date(2026, 10, 15)), 'transition')
   assertEquals(getMacroPhase(new Date(2026, 2, 15)), 'build')
   assertEquals(getMacroPhase(new Date(2026, 3, 15)), 'build')
   assertEquals(getMacroPhase(new Date(2026, 5, 15)), 'peak')
   assertEquals(getMacroPhase(new Date(2026, 7, 15)), 'peak')
   assertEquals(getMacroPhase(new Date(2026, 8, 15)), 'transition')
   assertEquals(getMacroPhase(new Date(2026, 9, 5)), 'transition')
+})
+
+Deno.test('november label is forza e tecnica', () => {
+  const nov = new Date(2026, 10, 15)
+  assertEquals(getPhaseLabel('transition', nov), 'Forza e tecnica')
+  assertEquals(getPhaseLabel('base', new Date(2026, 0, 15)), 'Base')
 })
 
 Deno.test('mesocycle: 4th week is recovery', () => {
@@ -39,13 +46,30 @@ Deno.test('mesocycle: 4th week is recovery', () => {
   assertEquals(w1.isRecovery, false)
 })
 
-Deno.test('skeleton has 2 sessions per discipline', () => {
-  for (const week of [43, 44, 45, 46, 47]) {
+Deno.test('november/base: 3 mandatory + 2 strength + optional', () => {
+  for (const week of [45, 46, 2, 6]) {
     const s = buildWeekSkeleton(dateFromIsoWeek(2026, week))
-    for (const d of ['swim', 'bike', 'run'] as const) {
-      assertEquals(s.sessions.filter((x) => x.discipline === d).length, 2, `week ${week} ${d}`)
-    }
+    assertEquals(s.sessions.filter((x) => x.discipline === 'strength').length, 2, `week ${week} strength`)
+    assertEquals(s.sessions.filter((x) => x.discipline === 'swim').length, 2, `week ${week} swim`)
+    assertEquals(s.sessions.filter((x) => x.discipline === 'run').length, 2, `week ${week} run`)
+    assertEquals(s.sessions.filter((x) => x.discipline === 'bike').length, 1, `week ${week} bike`)
+    assertEquals(s.sessions.filter((x) => x.optional).length, 1, `week ${week} optional`)
+    assertEquals(s.sessions.filter((x) => x.day === 'Giovedì' && x.discipline === 'swim').length, 1, `week ${week} group swim`)
+  }
+})
+
+Deno.test('build has maintenance strength, peak has none', () => {
+  const build = buildWeekSkeleton(dateFromIsoWeek(2026, 13))
+  assertEquals(build.sessions.filter((x) => x.discipline === 'strength').length, 1)
+  const peak = buildWeekSkeleton(dateFromIsoWeek(2026, 20))
+  assertEquals(peak.sessions.filter((x) => x.discipline === 'strength').length, 0)
+})
+
+Deno.test('every session has day, duration, intensity and content', () => {
+  for (const week of [44, 45, 46, 9, 20, 38]) {
+    const s = buildWeekSkeleton(dateFromIsoWeek(2026, week))
     for (const session of s.sessions) {
+      assert(session.day, `week ${week} ${session.title} day`)
       assert(session.mainOutline.length >= 1, `week ${week} ${session.title}`)
       assert(session.duration.length > 0)
       assert(session.intensity.length > 0)
@@ -53,10 +77,16 @@ Deno.test('skeleton has 2 sessions per discipline', () => {
   }
 })
 
+Deno.test('november swim technique targets 2300-2500m', () => {
+  const s = buildWeekSkeleton(dateFromIsoWeek(2026, 46))
+  const swim = s.sessions.find((x) => x.discipline === 'swim' && !x.optional)!
+  assert(swim.mainOutline.join(' ').includes('2.300'))
+})
+
 Deno.test('recovery week scales volume down', () => {
   const normal = buildWeekSkeleton(dateFromIsoWeek(2026, 45))
   const recovery = buildWeekSkeleton(dateFromIsoWeek(2026, 44))
-  const normalBike = normal.sessions.find((s) => s.discipline === 'bike' && s.title.includes('Fondo'))!
+  const normalBike = normal.sessions.find((s) => s.discipline === 'bike')!
   const recoveryBike = recovery.sessions.find((s) => s.discipline === 'bike')!
   const parseMin = (t: string) => parseInt(t.match(/^(\d+)/)![1], 10)
   assert(parseMin(recoveryBike.duration) <= parseMin(normalBike.duration))
@@ -66,8 +96,8 @@ Deno.test('recovery week scales volume down', () => {
 Deno.test('hard week (3) is longest in base phase', () => {
   const w1 = buildWeekSkeleton(dateFromIsoWeek(2026, 45))
   const w3 = buildWeekSkeleton(dateFromIsoWeek(2026, 47))
-  const bike1 = w1.sessions.find((s) => s.discipline === 'bike' && s.title.includes('Fondo aerobico'))!
-  const bike3 = w3.sessions.find((s) => s.discipline === 'bike' && s.title.includes('Fondo aerobico'))!
+  const bike1 = w1.sessions.find((s) => s.discipline === 'bike')!
+  const bike3 = w3.sessions.find((s) => s.discipline === 'bike')!
   const parseMin = (t: string) => parseInt(t.match(/^(\d+)/)![1], 10)
   assert(parseMin(bike3.duration) >= parseMin(bike1.duration))
   assert(w3.weekInMeso === 3)

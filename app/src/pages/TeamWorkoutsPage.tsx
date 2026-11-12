@@ -1,15 +1,30 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
-import { getTeamWorkouts, TeamWorkout } from '../lib/mttWorkouts';
-import { Calendar, Waves, Bike, Activity, ChevronDown, ChevronUp, Image as ImageIcon } from 'lucide-react';
+import { getTeamWorkouts, TeamWorkout, WeeklyWorkoutContent, WorkoutBlock } from '../lib/mttWorkouts';
+import { Calendar, Waves, Bike, Activity, Dumbbell, ChevronDown, ChevronUp, Image as ImageIcon } from 'lucide-react';
+
+type WorkoutDiscipline = WorkoutBlock['discipline'];
+
+const DISCIPLINE_ORDER: WorkoutDiscipline[] = ['swim', 'bike', 'run', 'strength'];
+
+const DISCIPLINE_LABELS: Record<WorkoutDiscipline, string> = {
+  swim: 'Nuoto',
+  bike: 'Bici',
+  run: 'Corsa',
+  strength: 'Forza',
+};
+
+function getAvailableDisciplines(content: WeeklyWorkoutContent): WorkoutDiscipline[] {
+  return DISCIPLINE_ORDER.filter(d => (content[d]?.length ?? 0) > 0);
+}
 
 export default function TeamWorkoutsPage() {
   const navigate = useNavigate();
   const [workouts, setWorkouts] = useState<TeamWorkout[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedWorkout, setExpandedWorkout] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<Record<string, 'swim' | 'bike' | 'run'>>({});
+  const [activeTab, setActiveTab] = useState<Record<string, WorkoutDiscipline>>({});
 
   useEffect(() => {
     loadWorkouts();
@@ -20,9 +35,9 @@ export default function TeamWorkoutsPage() {
       const data = await getTeamWorkouts('mtt');
       setWorkouts(data);
       // Set default tab for each workout
-      const defaultTabs: Record<string, 'swim' | 'bike' | 'run'> = {};
+      const defaultTabs: Record<string, WorkoutDiscipline> = {};
       data.forEach(w => {
-        defaultTabs[w.id] = 'run';
+        defaultTabs[w.id] = getAvailableDisciplines(w.content)[0] ?? 'run';
       });
       setActiveTab(defaultTabs);
     } catch (error) {
@@ -32,15 +47,17 @@ export default function TeamWorkoutsPage() {
     }
   };
 
-  const getDisciplineIcon = (discipline: string) => {
+  const getDisciplineIcon = (discipline: WorkoutDiscipline) => {
     if (discipline === 'swim') return <Waves className="w-4 h-4" />;
     if (discipline === 'bike') return <Bike className="w-4 h-4" />;
+    if (discipline === 'strength') return <Dumbbell className="w-4 h-4" />;
     return <Activity className="w-4 h-4" />;
   };
 
-  const getDisciplineColor = (discipline: string) => {
+  const getDisciplineColor = (discipline: WorkoutDiscipline) => {
     if (discipline === 'swim') return 'bg-cyan-100 text-cyan-700 border-cyan-200';
     if (discipline === 'bike') return 'bg-orange-100 text-orange-700 border-orange-200';
+    if (discipline === 'strength') return 'bg-violet-100 text-violet-700 border-violet-200';
     return 'bg-green-100 text-green-700 border-green-200';
   };
 
@@ -100,8 +117,8 @@ export default function TeamWorkoutsPage() {
                       <p className="text-slate-700 mb-6">{workout.content.intro}</p>
 
                       {/* Tabs discipline */}
-                      <div className="flex gap-2 mb-6">
-                        {(['swim', 'bike', 'run'] as const).map((disc) => (
+                      <div className="flex flex-wrap gap-2 mb-6">
+                        {getAvailableDisciplines(workout.content).map((disc) => (
                           <button
                             key={disc}
                             onClick={() => setActiveTab({ ...activeTab, [workout.id]: disc })}
@@ -112,15 +129,19 @@ export default function TeamWorkoutsPage() {
                             }`}
                           >
                             {getDisciplineIcon(disc)}
-                            {disc === 'swim' ? 'Nuoto' : disc === 'bike' ? 'Bici' : 'Corsa'}
+                            {DISCIPLINE_LABELS[disc]}
                           </button>
                         ))}
                       </div>
 
                       {/* Content per disciplina */}
-                      {workout.content[activeTab[workout.id]]?.map((block, idx) => (
+                      {(workout.content[activeTab[workout.id]] ?? []).map((block, idx) => (
                         <div key={idx} className="mb-6 bg-slate-50 rounded-xl p-4">
-                          <h4 className="font-bold text-slate-900 mb-2">{block.title}</h4>
+                          <div className="flex flex-wrap items-center gap-2 mb-2">
+                            <h4 className="font-bold text-slate-900">{block.title}</h4>
+                            {block.day && <span className="text-[10px] font-bold uppercase tracking-wide bg-slate-200 text-slate-600 px-2 py-0.5 rounded">{block.day}</span>}
+                            {block.optional && <span className="text-[10px] font-bold uppercase tracking-wide bg-violet-100 text-violet-700 px-2 py-0.5 rounded">Facoltativo</span>}
+                          </div>
                           {block.duration && <p className="text-sm text-slate-600 mb-3">Durata: {block.duration}</p>}
                           
                           {block.warmup && block.warmup.length > 0 && (
@@ -149,6 +170,17 @@ export default function TeamWorkoutsPage() {
                               <ul className="space-y-1">
                                 {block.cooldown.map((item, i) => (
                                   <li key={i} className="text-sm text-slate-600">• {item}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
+                          {block.brickRun && (
+                            <div className="mb-3 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                              <p className="font-semibold text-sm text-orange-900 mb-1">Corsa dopo bici ({block.brickRun.duration})</p>
+                              <ul className="space-y-1">
+                                {block.brickRun.main.map((item, i) => (
+                                  <li key={i} className="text-sm text-orange-800">• {item}</li>
                                 ))}
                               </ul>
                             </div>

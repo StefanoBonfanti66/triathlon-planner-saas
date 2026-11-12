@@ -6,7 +6,7 @@
 - Follow existing code style.
 - Update PROJECT_AI_NOTES.md at meaningful checkpoints.
 
-## Current Focus — 2026-11-09
+## Current Focus — 2026-11-12
 
 ### Completato
 - **Integrazione MyWhoosh — deploy e DB verificati (2026-11-05)**: Edge Function `mtt-mywhoosh-sync` **deployata** su Supabase `bwzzvdwiimvdwkiytknc` (v26, 2026-11-03T20:17Z, allineata a `e6063a2`); secrets `MYWHOOSH_USERNAME`/`MYWHOOSH_PASSWORD` **presenti**; migration `tools/2026-10-31_mtt_mywhoosh_sync.sql` **applicata** (colonna `team_workouts.mywhoosh_workout_id` + indice presenti).
@@ -24,18 +24,21 @@
 - **Dashboard ZBN** riallineata: `zbn-ops-dashboard` fast-forward a `994d5d8`.
 - **Calcolo settimana ISO 8601**: `isoWeekNumber()`/`getCurrentWeek()` in `app/src/lib/mttWorkouts.ts`, `getISOWeek()` nel workflow, AdminPage usa `getCurrentWeek()` (commit `ad8631a`).
 - **Modifica workout admin nella modal dettagli** (`app/src/pages/AdminPage.tsx`, commit `f838831`, pushto su `main`): pulsante 'Modifica' solo per admin (`isMttAdmin()`), textarea editabili per Introduzione/Note, salvataggio su `team_workouts.content` (title/intro/notes) con `tsc --noEmit` pulito.
-- **Critiche MTT agli allenamenti (09/11)**: il gruppo (Achille, Luca) chiede palestra/corpo libero, struttura 3 obbligatorie + 2 forza + facoltative sulla disciplina debole, memoria degli allenamenti storici e ancoraggio a periodo/gare. Creato il documento di ricostruzione `docs/project/mtt-allenamenti-come-funzionano.{md,html,pdf}` (PDF per WhatsApp) e preparata la struttura `docs/project/allenamenti-archivio/` (README, `manifest.csv`, template, `raw/` gitignored).
+- **Critiche MTT agli allenamenti (09/11)**: il gruppo (Achille, Luca) chiede palestra/corpo libero, struttura 3 obbligatorie + 2 forza + facoltative sulla disciplina debole, memoria degli allenamenti storici e ancoraggio a periodo/gare. Creato il documento di ricostruzione `docs/project/mtt-allenamenti-come-funzionano.{md,html,pdf}` (PDF per WhatsApp) e preparata la struttura `docs/project/allenamenti-archivio/`.
+- **Archivio storico MTT catalogato (12/11)**: Luca ha condiviso la cartella Drive `Allenamenti` (298 file, 2016–2026). Copiati 297 in `raw/` (gitignored, 35 MB), generato `manifest.csv` (297 righe, link Drive 297/297) con `tools/build_allenamenti_manifest.py`. 178 file hanno testo estraibile, **119 sono scansionati** (serve OCR; 34/38 del 2026), 17 senza anno/mese. Normalizzate 2 schede: `2026-11_base_misto_01.md` (riferimento novembre di Luca: 2 palestra + nuoto 2.300–2.500 m + corsa qualità + bici Z2) e `2024-11_base_misto_01.md` (regola di struttura del club: 2 palestra + 1 nuoto + 1 corsa + 1 bici + extra sulla disciplina debole). README dell'archivio aggiornato.
+- **Step B implementato (12/11)**: disciplina `strength`, struttura 3 obbligatorie + 2 forza + facoltative, novembre come "Forza e tecnica" (transition), agenda Telegram per giorno, sezione Forza in newsletter/app, editor admin. Modificati `periodization.ts`, `index.ts`, `newsletter.ts`, `mttWorkouts.ts`, `TeamWorkoutsPage.tsx`, `AdminPage.tsx`; doc `.md/.html/.pdf` aggiornati. Verifiche: `npm run build` OK, `deno check` OK, `deno test` 11/11 OK. **Deployata** su Supabase e **settimana ISO 46 rigenerata** (bozza AI) il 12/11.
 
 ### Da completare
+- **Validare la settimana 46** (bozza AI già generata) e fare una prova con `send-newsletter` test prima dell'invio domenicale 15/11/2026.
 - **Automazione push MyWhoosh**: nessun workflow chiama l'azione `push` di `mtt-mywhoosh-sync`; oggi il push è manuale (probe/curl). Valutare il wiring in `mtt-weekly-workouts.yml`.
 - **Rampe reali nel converter automatico**: l'Edge Function converte warmup/main/cooldown in `E_Normal` con potenze hardcoded (0.55/0.85/0.7, non verificate sulla prescrizione MTT); il flusso a due rampe numeriche esiste solo nel probe locale.
-- Decisioni MTT: **periodo/gare target**, conferma **struttura 3+2**, dove/formato dello **storico di Luca**.
-- **Step B**: aggiungere la disciplina `strength` e ristrutturare `periodization.ts`, rendering Telegram, newsletter, tipi app ed editor admin.
-- **Step C**: catalogare e normalizzare l'archivio storico e iniettarlo nel prompt LLM + fallback statico.
+- Decisioni MTT: **periodo/gare target**; conferma **struttura 3+2** (i documenti di Luca la confermano già).
+- **Step C**: completare la normalizzazione (OCR dei 119 scansionati, in primis 2026) e iniettare l'archivio nel prompt LLM + fallback statico. Il parso dei docx testuali può partire dai piani `allenamento nuoto bici corsa` 2023-12 → 2025.
 - **Immagini + testo** nei workout (oggi solo testo); proprietario definitivo del bot.
 - Screening **36 atleti MTT senza `user_plan`**; verifica DMARC e warning Resend (link esterni, prime email in spam).
 
 ### Prossimo step
-- Chiedere a Luca dove tiene e in che formato lo storico; appena disponibile catalogarlo in `manifest.csv` e normalizzare novembre. In parallelo chiudere le decisioni periodo/gare e struttura, poi partire con lo step B.
+- Chiedere a Luca conferma su: 17 file senza anno/mese, 6 PDF corsa con titolo interno diverso dal nome, e struttura/settimana tipo di novembre (step B già implementato).
+- Validare la bozza della settimana 46 e fare una prova newsletter prima dell'invio domenicale.
 - Verifica end-to-end MyWhoosh su una settimana nuova (45): durate e step corretti e `mywhoosh_workout_id` valorizzato.
 - Monitorare invio domenicale; valutare il wiring del push MyWhoosh nel workflow domenicale.

@@ -6,12 +6,22 @@ export interface NewsletterContent {
   extra: string
 }
 
+export interface NewsletterBlock {
+  title: string
+  duration?: string
+  day?: string
+  optional?: boolean
+  main: string[]
+  brickRun?: { duration?: string; main: string[] }
+}
+
 export interface NewsletterWorkoutContent {
   title: string
   intro: string
-  swim: Array<{ title: string; duration?: string; main: string[] }>
-  bike: Array<{ title: string; duration?: string; main: string[]; brickRun?: { duration?: string; main: string[] } }>
-  run: Array<{ title: string; duration?: string; main: string[] }>
+  swim: NewsletterBlock[]
+  bike: NewsletterBlock[]
+  run: NewsletterBlock[]
+  strength?: NewsletterBlock[]
   notes: string
   newsletter?: NewsletterContent
 }
@@ -38,11 +48,11 @@ function textToHtml(s: unknown): string {
   return esc(normalizeNewlines(s)).replace(/\n/g, '<br>')
 }
 
-function disciplineSection(label: string, emoji: string, blocks: NewsletterWorkoutContent['swim'], brickRuns?: Array<{ duration?: string; main: string[] }>): string {
+function disciplineSection(label: string, emoji: string, blocks: NewsletterBlock[], brickRuns?: Array<{ duration?: string; main: string[] }>): string {
   if (!blocks?.length) return ''
   const rows = blocks.map((b) => `
     <tr><td colspan="2" style="padding:12px 0 4px;font-size:14px;font-weight:bold;color:#0f172a;">
-      ${esc(b.title)}${b.duration ? ` <span style="color:#64748b;font-weight:normal;">(${esc(b.duration)})</span>` : ''}
+      ${b.day ? `<span style="color:#64748b;font-weight:normal;">${esc(b.day)} · </span>` : ''}${esc(b.title)}${b.duration ? ` <span style="color:#64748b;font-weight:normal;">(${esc(b.duration)})</span>` : ''}${b.optional ? ' <span style="color:#b45309;font-weight:normal;">(facoltativo)</span>' : ''}
     </td></tr>
     ${b.main.map((line) => `
     <tr><td width="12" style="padding:2px 0 2px 12px;color:#3b82f6;font-size:13px;">•</td>
@@ -106,6 +116,7 @@ export function buildNewsletterHtml(
           ${disciplineSection('Nuoto', '🏊', content.swim)}
           ${disciplineSection('Bici', '🚴', content.bike, content.bike.filter((b) => !!b.brickRun).map((b) => b.brickRun!))}
           ${disciplineSection('Corsa', '🏃', content.run)}
+          ${disciplineSection('Forza', '💪', content.strength ?? [])}
         </td></tr>
         <tr><td style="padding:8px 36px 0;">
           <div style="background:#f8fafc;border-radius:16px;padding:20px 24px;margin:8px 0 16px;">
@@ -136,11 +147,13 @@ export function newsletterPlainText(content: NewsletterWorkoutContent, weekNumbe
   const subject = nl?.subject?.trim() || `Allenamenti MTT — Settimana ${weekNumber}/${year}`
   const lines: string[] = [subject, '', normalizeNewlines(nl?.intro?.trim() || content.intro), '']
   if (nl?.extra?.trim()) lines.push('📣 Altro dalla squadra:', normalizeNewlines(nl.extra.trim()), '')
-  const addBlocks = (label: string, blocks: NewsletterWorkoutContent['swim']) => {
+  const addBlocks = (label: string, blocks: NewsletterBlock[]) => {
     if (!blocks?.length) return
     lines.push(label.toUpperCase())
     for (const b of blocks) {
-      lines.push(`• ${b.title}${b.duration ? ` (${b.duration})` : ''}`)
+      const day = b.day ? `${b.day} · ` : ''
+      const optional = b.optional ? ' (facoltativo)' : ''
+      lines.push(`• ${day}${b.title}${b.duration ? ` (${b.duration})` : ''}${optional}`)
       for (const m of b.main) lines.push(`   - ${m}`)
     }
     lines.push('')
@@ -148,6 +161,7 @@ export function newsletterPlainText(content: NewsletterWorkoutContent, weekNumbe
   addBlocks('Nuoto', content.swim)
   addBlocks('Bici', content.bike)
   addBlocks('Corsa', content.run)
+  addBlocks('Forza', content.strength ?? [])
   lines.push(normalizeNewlines(content.notes), '', `Gruppo Telegram: ${TELEGRAM_INVITE_URL}`, `Guida test FTP: ${FTP_GUIDE_URL}`)
   return lines.join('\n')
 }

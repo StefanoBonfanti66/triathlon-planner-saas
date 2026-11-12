@@ -1,12 +1,23 @@
 export type MacroPhase = 'base' | 'build' | 'peak' | 'transition'
+export type Discipline = 'swim' | 'bike' | 'run' | 'strength'
+export type Weekday =
+  | 'Lunedì'
+  | 'Martedì'
+  | 'Mercoledì'
+  | 'Giovedì'
+  | 'Venerdì'
+  | 'Sabato'
+  | 'Domenica'
 
 export interface SkeletonSession {
-  discipline: 'swim' | 'bike' | 'run'
+  discipline: Discipline
   title: string
   duration: string
   focus: string
   intensity: string
   mainOutline: string[]
+  day?: Weekday
+  optional?: boolean
   brickRun?: { duration: string; main: string[] }
 }
 
@@ -27,12 +38,21 @@ const PHASE_LABELS: Record<MacroPhase, string> = {
   transition: 'Transizione',
 }
 
+// Ottobre–novembre sono il passaggio stagionale: settembre–ottobre è recupero
+// attivo, novembre apre il blocco invernale (forza + tecnica + base aerobica).
+// Dicembre–febbraio è base, marzo–aprile build, maggio–agosto peak.
 export function getMacroPhase(date: Date): MacroPhase {
   const m = date.getMonth()
-  if (m >= 10 || m <= 1) return 'base'
+  if (m === 10) return 'transition'
+  if (m === 11 || m <= 1) return 'base'
   if (m === 2 || m === 3) return 'build'
   if (m >= 4 && m <= 7) return 'peak'
   return 'transition'
+}
+
+export function getPhaseLabel(phase: MacroPhase, date: Date): string {
+  if (phase === 'transition' && date.getMonth() === 10) return 'Forza e tecnica'
+  return PHASE_LABELS[phase]
 }
 
 export function isoWeekNumber(date: Date): number {
@@ -63,68 +83,336 @@ function scaled(duration: string, recovery: boolean): string {
   return `${Math.round((parseInt(match[1], 10) * 0.65) / 5) * 5}min`
 }
 
-function easySession(
-  discipline: SkeletonSession['discipline'],
-  title: string,
-  duration: string,
-  focus: string,
-  main: string[],
-  recovery: boolean,
-  brickRun?: { duration: string; main: string[] },
-): SkeletonSession {
+interface SessionInput {
+  discipline: Discipline
+  title: string
+  duration: string
+  focus: string
+  intensity: string
+  main: string[]
+  day?: Weekday
+  optional?: boolean
+  recoveryMain?: string[]
+  brickRun?: { duration: string; main: string[] }
+}
+
+function makeSession(input: SessionInput, recovery: boolean): SkeletonSession {
   return {
-    discipline,
-    title: recovery ? `${title} (scarico)` : title,
-    duration: scaled(duration, recovery),
-    focus,
-    intensity: 'RPE 3-4 su 10, conversazione possibile',
-    mainOutline: recovery ? ['Volume ridotto del ~35%', 'Tutto facile, zero fatica percepita'] : main,
-    ...(brickRun ? { brickRun } : {}),
+    discipline: input.discipline,
+    title: recovery ? `${input.title} (scarico)` : input.title,
+    duration: scaled(input.duration, recovery),
+    focus: input.focus,
+    intensity: recovery ? 'RPE 3-4 su 10, tutto facile' : input.intensity,
+    mainOutline: recovery
+      ? input.recoveryMain ?? ['Volume ridotto del ~35%', 'Tutto facile, zero fatica percepita']
+      : input.main,
+    ...(input.day ? { day: input.day } : {}),
+    ...(input.optional ? { optional: true } : {}),
+    ...(input.brickRun && !recovery ? { brickRun: input.brickRun } : {}),
   }
 }
 
-function buildSessions(phase: MacroPhase, weekInMeso: number, isRecovery: boolean): SkeletonSession[] {
+function strengthA(recovery: boolean, weeks = 3): SkeletonSession {
+  const rounds = weeks === 2 ? '2 giri' : '3 giri'
+  return makeSession({
+    discipline: 'strength',
+    title: 'Forza - Corpo libero (A)',
+    duration: '40min',
+    focus: 'forza generale e stabilità',
+    intensity: 'RPE 5-6 su 10, tecnica pulita senza cedimento',
+    day: 'Lunedì',
+    main: [
+      'Riscaldamento 5-10min: mobilità di anche, spalle e caviglie',
+      `${rounds}: 12 squat a corpo libero, 10 affondi per lato, 10 piegamenti sulle braccia`,
+      `${rounds}: 30" plank frontale, 20" plank laterale per lato, 15 ponti glutei`,
+      'Recupero 60-90" tra i giri, respiro sempre controllato',
+      'Defaticamento 5min: stretching di quadricipiti, femorali e petto',
+    ],
+    recoveryMain: [
+      '2 giri leggeri invece di 3',
+      'Solo mobilità e tecnica, nessun cedimento muscolare',
+      'Stretching finale più lungo',
+    ],
+  }, recovery)
+}
+
+function strengthCircuit(recovery: boolean, weeks = 3): SkeletonSession {
+  return makeSession({
+    discipline: 'strength',
+    title: 'Forza + corsa - Circuito (B)',
+    duration: '45min',
+    focus: 'forza funzionale e appoggio',
+    intensity: 'RPE 6-7 su 10 sul circuito, corsa sempre controllata',
+    day: 'Venerdì',
+    main: [
+      '10min di corsa facile + mobilità dinamica',
+      `${weeks === 2 ? '2' : '3'} serie: 10 squat, 200m corsa progressiva, 10 affondi per lato, 200m corsa progressiva, 10 balzi, 100m scatto`,
+      'Recupero 60-90" tra le serie, mai a secco',
+      '5min defaticamento + stretching',
+    ],
+    recoveryMain: [
+      '2 serie leggere invece di 3',
+      'Corsa solo facile, nessuno scatto',
+      'Defaticamento e stretching completi',
+    ],
+  }, recovery)
+}
+
+function swimTechnique(recovery: boolean, weeks = 3): SkeletonSession {
+  return makeSession({
+    discipline: 'swim',
+    title: 'Nuoto - Tecnica e variazioni',
+    duration: '60min',
+    focus: 'tecnica, catch e sensibilità',
+    intensity: 'RPE 4-6 su 10, mai a tutta',
+    day: 'Martedì',
+    main: [
+      '400m sciolti misto',
+      '8x50m tecnica (bipodalico, bilanciato, catch) rec 15"',
+      '400m pull + 400m pinne + 400m libero continuo (oppure 10x100m rec 15")',
+      '8x50m forti rec 20"',
+      '100-200m dorso o remate per chiudere',
+      'Totale: 2.300-2.500m',
+    ],
+    recoveryMain: [
+      '400m sciolti + 4x50m tecnica',
+      '400m pull facili + 4x100m aerobici rec 20"',
+      '200m defaticamento',
+      'Totale: ~1.500m',
+    ],
+  }, recovery)
+}
+
+function swimAerobic(recovery: boolean, weekInMeso: number): SkeletonSession {
+  const reps = weekInMeso <= 2 ? '6x100m' : '8x100m'
+  return makeSession({
+    discipline: 'swim',
+    title: 'Nuoto - Tecnica + aerobico',
+    duration: '60min',
+    focus: 'tecnica e volume aerobico',
+    intensity: 'RPE 4-5 su 10, ritmo costante',
+    day: 'Martedì',
+    main: [
+      '400m sciolti misto',
+      '8x50m tecnica (bipodalico, bilanciato, catch) rec 15"',
+      '400m pull con palette',
+      `${reps} aerobico rec 15"`,
+      '200m defaticamento',
+      `Totale: ${weekInMeso <= 2 ? '2.000-2.200m' : '2.200-2.400m'}`,
+    ],
+  }, recovery)
+}
+
+function swimGroup(recovery: boolean): SkeletonSession {
+  return makeSession({
+    discipline: 'swim',
+    title: 'Nuoto - Gruppo in piscina',
+    duration: '60min',
+    focus: 'seduta di gruppo con il coach',
+    intensity: 'RPE 4-6 su 10, segui le indicazioni del coach',
+    day: 'Giovedì',
+    main: [
+      'Seduta di gruppo in piscina: 60 minuti a disposizione',
+      'Segui il lavoro proposto dal coach in vasca (tecnica e ritmo)',
+      'Se il coach non è presente: 400m sciolti + 8x100m aerobico rec 15" + 200m defaticamento',
+    ],
+    recoveryMain: [
+      'Seduta di gruppo in scarico: segui il coach e resta facile',
+      'Nessuna serie forte, priorità a tecnica e recupero',
+    ],
+  }, recovery)
+}
+
+function runQuality(recovery: boolean, weekInMeso: number): SkeletonSession {
+  const progression = weekInMeso === 2 || weekInMeso === 4
+  return makeSession({
+    discipline: 'run',
+    title: 'Corsa - Qualità',
+    duration: '50min',
+    focus: 'capacità aerobica e ritmo',
+    intensity: 'RPE 6-7 su 10 nella parte principale',
+    day: 'Mercoledì',
+    main: [
+      '1-2km riscaldamento facile + mobilità',
+      'Andature: 4x20" (skip, tallonate, allunghi) rec completo',
+      progression
+        ? 'Principale: 8-10km in progressione (-2-3"/km ogni km)'
+        : 'Principale: 4x2km a ritmo medio rec 2min di corsa facile',
+      '1km defaticamento facile',
+    ],
+    recoveryMain: [
+      '1km riscaldamento + andature leggere',
+      'Principale: 20-25min facili a ritmo conversazione',
+      '1km defaticamento',
+    ],
+  }, recovery)
+}
+
+function runFondo(recovery: boolean, hard: boolean): SkeletonSession {
+  return makeSession({
+    discipline: 'run',
+    title: 'Corsa - Fondo e andature',
+    duration: '45min',
+    focus: 'adattamento muscolare e tecnica',
+    intensity: 'RPE 3-4 su 10, conversazione possibile',
+    day: 'Mercoledì',
+    main: [
+      '10min camminata + corsa leggera + skip',
+      `Principale: ${hard ? '35-40' : '30'}min corsa continua a ritmo confortevole`,
+      '4x20s allunghi progressivi (non massimali)',
+      '5-10min camminata + stretching',
+    ],
+  }, recovery)
+}
+
+function runLongOptional(recovery: boolean, km: string): SkeletonSession {
+  return makeSession({
+    discipline: 'run',
+    title: 'Corsa - Lunga facile (facoltativa)',
+    duration: '80min',
+    focus: 'resistenza aerobica',
+    intensity: 'RPE 3-4 su 10, ritmo chiacchierato',
+    day: 'Domenica',
+    optional: true,
+    main: [
+      `Corsa lunga easy ${km} in Z2, oppure riposo se sei stanco`,
+      'Ritmo costante, nessuna forzatura: meglio fermarsi prima che esagerare',
+      'Stretching completo a fine seduta',
+    ],
+    recoveryMain: [
+      'Corsa facile 40-50min oppure riposo',
+      'Solo se le gambe rispondono bene',
+    ],
+  }, recovery)
+}
+
+function bikeAerobic(recovery: boolean, hard: boolean, weekInMeso: number): SkeletonSession {
+  const duration = hard ? '100min' : weekInMeso >= 2 ? '90min' : '75min'
+  return makeSession({
+    discipline: 'bike',
+    title: 'Bici - Fondo Z2',
+    duration,
+    focus: 'fondo aerobico e forza specifica',
+    intensity: 'RPE 3-4 su 10 (Z2), blocchi in piedi RPE 6',
+    day: 'Sabato',
+    main: [
+      '15min riscaldamento progressivo',
+      `Principale: ${duration.replace('min', '')}min outdoor in Z2, oppure 80-120min sui rulli a 80-90rpm`,
+      'Inserisci 4-6 blocchi: 9min facile + 1min al massimo rapporto in piedi',
+      'Defaticamento 10min',
+    ],
+  }, recovery)
+}
+
+function bikeWinter(recovery: boolean, weekInMeso: number): SkeletonSession {
+  return makeSession({
+    discipline: 'bike',
+    title: 'Bici - Fondo Z2 con blocchi di forza',
+    duration: weekInMeso >= 2 ? '120min' : '100min',
+    focus: 'fondo aerobico e forza specifica',
+    intensity: 'RPE 3-4 su 10 (Z2), blocchi in piedi RPE 6',
+    day: 'Sabato',
+    main: [
+      '15min riscaldamento progressivo',
+      `Principale: ${weekInMeso >= 2 ? '2-3h' : '100min'} outdoor in Z2 (RPE 3-4), oppure 80-120min sui rulli a 80-90rpm`,
+      'Inserisci 4-6 blocchi: 9min facile + 1min al massimo rapporto in piedi',
+      'Defaticamento 10min',
+    ],
+    recoveryMain: [
+      '60-70min facili in Z2, senza blocchi di forza',
+      'Cadenza agile, zero fatica',
+    ],
+  }, recovery)
+}
+
+function buildSessions(phase: MacroPhase, weekInMeso: number, isRecovery: boolean, month: number): SkeletonSession[] {
   const hard = !isRecovery && weekInMeso === 3
+
+  // Novembre: blocco invernale. Luca lo chiama "transizione + base aerobica +
+  // forza": 2 sedute di forza, 1 nuoto tecnica, 1 corsa qualità, 1 bici Z2,
+  // più nuoto e corsa facoltativi.
+  if (phase === 'transition' && month === 10) {
+    return [
+      strengthA(isRecovery),
+      swimTechnique(isRecovery),
+      runQuality(isRecovery, weekInMeso),
+      swimGroup(isRecovery),
+      strengthCircuit(isRecovery, weekInMeso === 4 ? 2 : 3),
+      bikeWinter(isRecovery, weekInMeso),
+      runLongOptional(isRecovery, '12-15km'),
+    ]
+  }
+
+  // Settembre–ottobre: recupero attivo post-stagione, nessuna forza.
+  if (phase === 'transition') {
+    return [
+      makeSession({
+        discipline: 'swim',
+        title: 'Nuoto - Tecnica e divertimento',
+        duration: '50min',
+        focus: 'tecnica',
+        intensity: 'RPE 3-5 su 10',
+        day: 'Martedì',
+        main: [
+          '300m misto facile',
+          'Drill a piacere + 4x50m stile vario',
+          '4x75m a ritmo libero divertito',
+          '200m sciolti',
+        ],
+      }, isRecovery),
+      makeSession({
+        discipline: 'run',
+        title: 'Corsa - Facile / trail',
+        duration: '40min',
+        focus: 'recupero attivo',
+        intensity: 'RPE 3-4 su 10',
+        day: 'Mercoledì',
+        main: [
+          '10min camminata/corsa',
+          '25min a ritmo libero su terreno morbido',
+          '5min camminata',
+        ],
+      }, isRecovery),
+      makeSession({
+        discipline: 'bike',
+        title: 'Bici - Uscita libera',
+        duration: '60min',
+        focus: 'gusto e recupero',
+        intensity: 'RPE 3-5 su 10, senza obiettivi',
+        day: 'Sabato',
+        main: [
+          'Riscaldamento libero',
+          'Uscita a ritmo piacevole, senza obiettivi',
+          'Defaticamento libero',
+        ],
+      }, isRecovery),
+      swimGroup(isRecovery),
+      makeSession({
+        discipline: 'run',
+        title: 'Corsa - Andature e sprint (facoltativa)',
+        duration: '35min',
+        focus: 'forma',
+        intensity: 'RPE 5-6 su 10',
+        day: 'Domenica',
+        optional: true,
+        main: [
+          '10min facile con drill',
+          '6x20s sprint con recupero completo',
+          '10min facile + stretching',
+        ],
+      }, isRecovery),
+    ]
+  }
 
   if (phase === 'base') {
     return [
-      easySession('swim', 'Nuoto - Tecnica + fondamenta', '60min', 'tecnica e catch', [
-        'Riscaldamento 400m misto con tavoletta',
-        '4x50m drill (bipodalico, bilanciato)',
-        '6-8x100m a ritmo costante (15" rec)',
-        '200m pull con palette',
-        'Defaticamento 200m sciolti',
-      ], isRecovery),
-      easySession('swim', 'Nuoto - Aerobico continuato', '60min', 'respirazione e volume', [
-        '300m sciolti',
-        '400-600m continui a ritmo facile con boe',
-        '4x75m variazioni di ritmo (non massimali)',
-        '200m molto facile',
-      ], isRecovery),
-      easySession('bike', 'Bici - Fondo aerobico', hard ? '90min' : weekInMeso >= 2 ? '75min' : '60min', 'fondo Z2', [
-        'Riscaldamento 15min progressivo',
-        `Principale: ${hard ? '90' : weekInMeso >= 2 ? '75' : '60'}min a ritmo aerobico (RPE 3-4)`,
-        'Ultimi 10min leggermente più sostenuti',
-        'Defaticamento 5min sciolti',
-      ], isRecovery),
-      easySession('bike', 'Bici - Fondo con variazioni', weekInMeso >= 2 ? '70min' : '60min', 'elasticità e rotazione', [
-        '15min progressivo',
-        `Principale: ${weekInMeso === 1 ? '40min' : '50-60min'} Z2 con 3x5min progressive`,
-        '10min a ritmo libero',
-        'Defaticamento 10min',
-      ], isRecovery),
-      easySession('run', 'Corsa - Fondo', hard ? '50min' : '40-45min', 'adattamento muscolare', [
-        '10min camminata + corsa leggera + skip',
-        `Principale: ${hard ? '35-40' : '30'}min corsa continua a ritmo confortevole`,
-        '5-10min camminata + stretching',
-      ], isRecovery),
-      easySession('run', 'Corsa - Fondamenta + andature', '45min', 'tecnica di corsa', [
-        '10min camminata/corsa',
-        'Drill: skip, tallonate, cadence 4x20s',
-        'Principale: 30min facile',
-        '4x20s progressivi (non massimali)',
-        '10min camminata + stretching',
-      ], isRecovery),
+      strengthA(isRecovery),
+      swimAerobic(isRecovery, weekInMeso),
+      runFondo(isRecovery, hard),
+      swimGroup(isRecovery),
+      strengthCircuit(isRecovery, weekInMeso === 4 ? 2 : 3),
+      bikeAerobic(isRecovery, hard, weekInMeso),
+      runLongOptional(isRecovery, weekInMeso >= 2 ? '14-16km' : '12-14km'),
     ]
   }
 
@@ -132,164 +420,169 @@ function buildSessions(phase: MacroPhase, weekInMeso: number, isRecovery: boolea
     const bikeReps = weekInMeso === 1 ? '3x10min' : weekInMeso === 2 ? '3x12min' : '4x10min'
     const runReps = weekInMeso === 1 ? '4x5min' : weekInMeso === 2 ? '5x5min' : '6x5min'
     return [
-      easySession('swim', 'Nuoto - Lavoro di soglia', '60min', 'soglia respiratoria', [
-        '400m misto riscaldamento',
-        `${weekInMeso >= 2 ? '6' : '5'}x200m a ritmo costante sostenuto (15" rec)`,
-        '4x50m veloci (10" rec)',
-        '200m defaticamento',
-      ], isRecovery),
-      easySession('swim', 'Nuoto - Volume aerobico', '60min', 'resistenza', [
-        '300m sciolti',
-        '5x150m pull con palette (10" rec)',
-        '4x100m misto a ritmo libero (15" rec)',
-        '200m molto facile',
-      ], isRecovery),
-      {
-        discipline: 'bike',
-        title: isRecovery ? 'Bici - Recupero (scarico)' : 'Bici - Lavoro di soglia',
-        duration: scaled(isRecovery ? '70min' : '90min', isRecovery),
-        focus: 'soglia / FTP percettivo',
-        intensity: isRecovery ? 'RPE 3-4' : 'RPE 6-7, fatica controllata',
-        mainOutline: isRecovery
-          ? ['Volume ridotto del ~35%', 'Tutto facile']
-          : [
-              '15min progressivo + 3x1min di attivazione',
-              `Principale: ${bikeReps} a RPE 6-7 con 3min recupero facile`,
-              '15min a ritmo aerobico',
-              'Defaticamento 10min',
-            ],
-      },
-      easySession('bike', 'Bici - Fondo attivo', weekInMeso >= 2 ? '80min' : '70min', 'resistenza di base', [
-        '15min progressivo',
-        'Principale: 45-55min Z2 con 2 blocchi da 10min a ritmo leggermente più sostenuto',
-        'Defaticamento 10min',
-      ], isRecovery, !isRecovery && weekInMeso >= 2 ? {
-        duration: '15min',
-        main: ['15min corsa facile subito dopo la bici (transizione T2)', 'Ritmo molto facile, solo per abituare le gambe alla corsa dopo la bici'],
-      } : undefined),
-      {
+      makeSession({
+        discipline: 'swim',
+        title: 'Nuoto - Lavoro di soglia',
+        duration: '60min',
+        focus: 'soglia respiratoria',
+        intensity: 'RPE 6-7 su 10 nella parte principale',
+        day: 'Martedì',
+        main: [
+          '400m misto riscaldamento',
+          `${weekInMeso >= 2 ? '6' : '5'}x200m a ritmo costante sostenuto (15" rec)`,
+          '4x50m veloci (10" rec)',
+          '200m defaticamento',
+        ],
+      }, isRecovery),
+      makeSession({
         discipline: 'run',
-        title: isRecovery ? 'Corsa - Recupero (scarico)' : 'Corsa - Lavoro di soglia',
-        duration: scaled(isRecovery ? '40min' : '50min', isRecovery),
+        title: 'Corsa - Lavoro di soglia',
+        duration: '50min',
         focus: 'soglia di corsa',
-        intensity: isRecovery ? 'RPE 3-4' : 'RPE 6-7',
-        mainOutline: isRecovery
-          ? ['Volume ridotto del ~35%', 'Tutto facile, anche a camminare se serve']
-          : [
-              '15min riscaldamento facile con drill',
-              `Principale: ${runReps} a RPE 6-7 con 2min di recupero camminata/corsa leggera`,
-              '15min ritmo facile',
-              '10min camminata + stretching',
-            ],
-      },
-      easySession('run', 'Corsa - Fondo', '45-50min', 'adattamento', [
-        '10min camminata/corsa',
-        'Principale: 35min a ritmo conversazione',
-        '10min camminata + stretching',
-      ], isRecovery),
+        intensity: 'RPE 6-7 su 10',
+        day: 'Mercoledì',
+        main: [
+          '15min riscaldamento facile con drill',
+          `Principale: ${runReps} a RPE 6-7 con 2min di recupero camminata/corsa leggera`,
+          '15min ritmo facile',
+          '10min camminata + stretching',
+        ],
+      }, isRecovery),
+      makeSession({
+        discipline: 'strength',
+        title: 'Forza - Mantenimento',
+        duration: '40min',
+        focus: 'forza generale e prevenzione',
+        intensity: 'RPE 5-6 su 10, mai a cedimento',
+        day: 'Venerdì',
+        main: [
+          '5-10min mobilità',
+          '2-3 giri: 12 squat, 10 affondi per lato, 10 piegamenti, 30" plank',
+          '10 ponti glutei per lato + stretching',
+        ],
+        recoveryMain: [
+          '1-2 giri leggeri',
+          'Solo mobilità e core',
+        ],
+      }, isRecovery),
+      makeSession({
+        discipline: 'bike',
+        title: 'Bici - Lavoro di soglia',
+        duration: '90min',
+        focus: 'soglia / FTP percettivo',
+        intensity: 'RPE 6-7 su 10, fatica controllata',
+        day: 'Sabato',
+        main: [
+          '15min progressivo + 3x1min di attivazione',
+          `Principale: ${bikeReps} a RPE 6-7 con 3min recupero facile`,
+          '15min a ritmo aerobico',
+          'Defaticamento 10min',
+        ],
+        brickRun: !isRecovery && weekInMeso >= 2
+          ? {
+              duration: '15min',
+              main: [
+                '15min corsa facile subito dopo la bici (transizione T2)',
+                'Ritmo molto facile, solo per abituare le gambe alla corsa dopo la bici',
+              ],
+            }
+          : undefined,
+      }, isRecovery),
+      swimGroup(isRecovery),
+      makeSession({
+        discipline: 'run',
+        title: 'Corsa - Fondo (facoltativa)',
+        duration: '45min',
+        focus: 'adattamento',
+        intensity: 'RPE 3-4 su 10',
+        day: 'Domenica',
+        optional: true,
+        main: [
+          '10min camminata/corsa',
+          'Principale: 35min a ritmo conversazione',
+          '10min camminata + stretching',
+        ],
+      }, isRecovery),
     ]
   }
 
-  if (phase === 'peak') {
-    const bikeRace = weekInMeso === 1 ? '2x15min' : weekInMeso === 2 ? '2x20min' : '3x15min'
-    const runRaceMin = weekInMeso === 1 ? '20min' : weekInMeso === 2 ? '25min' : '30min'
-    return [
-      easySession('swim', 'Nuoto - Simulazione gara', '60min', 'ritmo gara in vasca', [
+  // Peak / gara
+  const bikeRace = weekInMeso === 1 ? '2x15min' : weekInMeso === 2 ? '2x20min' : '3x15min'
+  const runRaceMin = weekInMeso === 1 ? '20min' : weekInMeso === 2 ? '25min' : '30min'
+  return [
+    makeSession({
+      discipline: 'swim',
+      title: 'Nuoto - Simulazione gara',
+      duration: '60min',
+      focus: 'ritmo gara in vasca',
+      intensity: 'RPE 6-7 su 10',
+      day: 'Martedì',
+      main: [
         '400m misto riscaldamento',
-        `Principale: 800-1000m continui al ritmo previsto in gara`,
+        'Principale: 800-1000m continui al ritmo previsto in gara',
         '6x25m sprint in acqua (non massimali)',
         '200m defaticamento',
-      ], isRecovery),
-      easySession('swim', 'Nuoto - Velocità + tecnica', '50min', 'scatti e catch', [
-        '300m sciolti',
-        '8x50m veloci (15" rec)',
-        '4x100m tecnica con tavoletta',
-        '200m molto facile',
-      ], isRecovery),
-      {
-        discipline: 'bike',
-        title: isRecovery ? 'Bici - Mantenimento (scarico)' : 'Bici - Simulazione ritmo gara',
-        duration: scaled(isRecovery ? '60min' : '90min', isRecovery),
-        focus: 'ritmo gara / forza specifica',
-        intensity: isRecovery ? 'RPE 3-4' : 'RPE 7-8, specifico gara',
-        mainOutline: isRecovery
-          ? ['Volume ridotto, intensità solo adattativa']
-          : [
-              '20min progressivo con 2x1min di attivazione',
-              `Principale: ${bikeRace} al ritmo gara previsto (RPE 7-8) con 5min facili`,
-              '15min a ritmo aerobico',
-              'Defaticamento 10min',
-            ],
-      },
-      easySession('bike', 'Bici - Fondo con ritmo', '70min', 'resistenza', [
-        '15min progressivo',
-        'Principale: 40min Z2 con 2x8min a ritmo sostenuto',
+      ],
+    }, isRecovery),
+    makeSession({
+      discipline: 'run',
+      title: 'Corsa - Ritmo gara',
+      duration: '50min',
+      focus: 'ritmo gara',
+      intensity: 'RPE 7-8 su 10',
+      day: 'Mercoledì',
+      main: [
+        '15min riscaldamento facile',
+        `Principale: ${runRaceMin} al ritmo gara previsto con 5min facili (x2 se possibile)`,
+        '10min ritmo facile',
+        '10min camminata + stretching',
+      ],
+    }, isRecovery),
+    makeSession({
+      discipline: 'bike',
+      title: 'Bici - Simulazione ritmo gara',
+      duration: '90min',
+      focus: 'ritmo gara / forza specifica',
+      intensity: 'RPE 7-8 su 10, specifico gara',
+      day: 'Sabato',
+      main: [
+        '20min progressivo con 2x1min di attivazione',
+        `Principale: ${bikeRace} al ritmo gara previsto (RPE 7-8) con 5min facili`,
+        '15min a ritmo aerobico',
         'Defaticamento 10min',
-      ], isRecovery, !isRecovery && weekInMeso <= 2 ? {
-        duration: '20min',
-        main: ['20min corsa a ritmo gara (simula la frazione di corsa post-bici)', 'RPE 7-8, concentrati sulla frequenza di pedalata e sulla corsa sciolta'],
-      } : undefined),
-      {
-        discipline: 'run',
-        title: isRecovery ? 'Corsa - Mantenimento (scarico)' : 'Corsa - Ritmo gara',
-        duration: scaled(isRecovery ? '40min' : '50min', isRecovery),
-        focus: 'ritmo gara',
-        intensity: isRecovery ? 'RPE 3-4' : 'RPE 7-8',
-        mainOutline: isRecovery
-          ? ['Volume ridotto del ~35%', 'Tutto facile']
-          : [
-              '15min riscaldamento facile',
-              `Principale: ${runRaceMin} al ritmo gara previsto con 5min facili (x2 se possibile)`,
-              '10min ritmo facile',
-              '10min camminata + stretching',
+      ],
+      brickRun: !isRecovery && weekInMeso <= 2
+        ? {
+            duration: '20min',
+            main: [
+              '20min corsa a ritmo gara (simula la frazione di corsa post-bici)',
+              'RPE 7-8, concentrati sulla frequenza di pedalata e sulla corsa sciolta',
             ],
-      },
-      easySession('run', 'Corsa - Fondamenta + brick', '45min', 'recupero attivo', [
+          }
+        : undefined,
+    }, isRecovery),
+    swimGroup(isRecovery),
+    makeSession({
+      discipline: 'run',
+      title: 'Corsa - Fondo (facoltativa)',
+      duration: '45min',
+      focus: 'recupero attivo',
+      intensity: 'RPE 3-4 su 10',
+      day: 'Domenica',
+      optional: true,
+      main: [
         '10min camminata/corsa',
         'Principale: 30min facile (ideale dopo uscita bici)',
         '4x20s progressivi',
         '10min camminata + stretching',
-      ], isRecovery),
-    ]
-  }
-
-  return [
-    easySession('swim', 'Nuoto - Tecnica e divertimento', '50min', 'tecnica', [
-      '300m misto facile',
-      'Drill a piacere + 4x50m stile vario',
-      '4x75m a ritmo libero divertito',
-      '200m sciolti',
-    ], isRecovery),
-    easySession('swim', 'Nuoto - Aerobico facile', '50min', 'mantenimento', [
-      '200m sciolti',
-      '300-400m continui a ritmo facile',
-      '200m molto facile',
-    ], isRecovery),
-    easySession('bike', 'Bici - Uscita libero', '60min', 'gusto e recupero', [
-      'Riscaldamento libero',
-      'Uscita a ritmo piacevole, RPE 3-5, senza obiettivi',
-      'Defaticamento libero',
-    ], isRecovery),
-    easySession('bike', 'Bici - Tappe brevi', '45min', 'mantenimento', [
-      '20min facile',
-      '2x10min leggermente più sostenuti',
-      '10min facili',
-    ], isRecovery),
-    easySession('run', 'Corsa - Facile / trail', '40min', 'piazzere', [
-      '10min camminata/corsa',
-      '25min a ritmo libero su terreno morbido',
-      '5min camminata',
-    ], isRecovery),
-    easySession('run', 'Corsa - Andature e sprint', '35min', 'forma', [
-      '10min facile con drill',
-      '6x20s sprint con recupero completo',
-      '10min facile + stretching',
-    ], isRecovery),
+      ],
+    }, isRecovery),
   ]
 }
 
 export function buildWeekSkeleton(date: Date): WeekSkeleton {
   const macroPhase = getMacroPhase(date)
+  const phaseLabel = getPhaseLabel(macroPhase, date)
   const { weekInMeso, isRecovery } = getMesoWeek(date)
   const progression = isRecovery
     ? 'Settimana di scarico (4a del mesociclo): volume -35%, tutto facile'
@@ -297,12 +590,15 @@ export function buildWeekSkeleton(date: Date): WeekSkeleton {
 
   return {
     macroPhase,
-    phaseLabel: PHASE_LABELS[macroPhase],
+    phaseLabel,
     weekInMeso,
     isRecovery,
     mesoProgression: progression,
-    sessions: buildSessions(macroPhase, weekInMeso, isRecovery),
+    sessions: buildSessions(macroPhase, weekInMeso, isRecovery, date.getMonth()),
     weeklyNotes: [
+      'Struttura della settimana: 3 sedute obbligatorie (nuoto, bici, corsa) + 2 di forza; le sedute facoltative sono un extra',
+      'Il giovedì è la seduta di gruppo in piscina: 60 minuti con il coach, seguite il lavoro proposto in vasca',
+      'Le sedute di forza sono a corpo libero: nessuna attrezzatura, tecnica pulita e mai a cedimento',
       'Adatta sempre intensità e volumi alle tue sensazioni',
       'Allenamenti non personalizzati: pensati per amatori 30-60 anni',
       isRecovery

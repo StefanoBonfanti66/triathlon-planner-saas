@@ -13,6 +13,7 @@ backups/
 
 deno.lock
 supabase/.temp/
+**/supabase/.temp/
 __pycache__/
 *.pyc
 tools/attempts/
