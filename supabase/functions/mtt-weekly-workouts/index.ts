@@ -21,7 +21,7 @@ const DISCIPLINE_META: Record<Discipline, { emoji: string; label: string }> = {
   strength: { emoji: '💪', label: 'Forza' },
 }
 const DEFAULT_WARMUP: Record<Discipline, string[]> = {
-  swim: [],
+  swim: ['Riscaldamento in vasca graduale (secondo le indicazioni del coach)'],
   bike: ['Riscaldamento graduale 10-15min a ritmo facile'],
   run: ['Riscaldamento graduale 10-15min a ritmo facile'],
   strength: ['Riscaldamento 5-10min: mobilità articolare e attivazione'],

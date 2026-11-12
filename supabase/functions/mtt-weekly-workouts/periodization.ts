@@ -236,7 +236,7 @@ function swimGroup(recovery: boolean): SkeletonSession {
     main: [
       'Seduta di gruppo in piscina: 60 minuti a disposizione',
       'Segui il lavoro proposto dal coach in vasca (tecnica e ritmo)',
-      'Se il coach non è presente: 400m sciolti + 8x100m aerobico rec 15" + 200m defaticamento',
+      'Se non puoi venire al gruppo: 400m sciolti + 8x100m aerobico rec 15" + 200m defaticamento',
     ],
     recoveryMain: [
       'Seduta di gruppo in scarico: segui il coach e resta facile',
@@ -299,13 +299,13 @@ function runGroup(recovery: boolean): SkeletonSession {
     duration: '60min',
     focus: 'qualità di corsa guidata dal coach',
     intensity: 'RPE 5-7 su 10, segui le indicazioni del coach',
-    day: 'Martedì',
-    main: [
-      'Seduta di gruppo con il coach: conduce il suo allenamento, seguite le sue indicazioni',
-      'Se non potete venire martedì sera: 1-2km riscaldamento + andature, poi 4x2km a ritmo medio rec 2min di corsa facile, 1km defaticamento (proposta dell\'app)',
-      'Ritmo controllato: l\'obiettivo è la qualità, non la gara',
-    ],
-    recoveryMain: [
+      day: 'Martedì',
+      main: [
+        'Seduta di gruppo con il coach: conduce il suo allenamento, seguite le sue indicazioni',
+        'Ritmo controllato: l\'obiettivo è la qualità, non la gara',
+        'Se non puoi venire martedì sera: 1-2km riscaldamento + andature, poi 4x2km a ritmo medio rec 2min di corsa facile, 1km defaticamento (proposta dell\'app)',
+      ],
+      recoveryMain: [
       'Seduta di gruppo in scarico: il coach guida, seguitelo e restate facile',
       'Nessuna serie forte, priorità a tecnica e recupero',
     ],
