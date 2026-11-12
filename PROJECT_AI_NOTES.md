@@ -411,3 +411,12 @@ Regola: una sola disciplina cardio principale per giorno; le varianti facoltativ
 - **Settimana ISO 46 rigenerata due volte** (`status=draft`): dopo un fallback statico intermedio, un nuovo tentativo ha prodotto la versione `generated_by=ai`. Titolo «Allenamenti MTT - Settimana 46/2026 · Forza e tecnica (sett. 2/4)», giorno corretto su tutti i blocchi.
 - `periodization_test.ts` aggiornato alla nuova struttura (11 test, tutti passati). Attenzione: la ISO week 9 è ancora febbraio/base; per testare `build` usare almeno la settimana 13.
 - **Correzione 12/11 (notte)**: il **martedì sera** il gruppo fa la **corsa con il coach**, quindi la corsa di gruppo sostituisce la corsa qualità del mercoledì. Il nuoto tecnica 2.300–2.500 m si sposta al **mercoledì**. Schema definitivo: Lun Forza A, **Mar corsa gruppo con coach**, **Mer nuoto tecnica**, Gio nuoto gruppo piscina 60', Ven Forza B/circuito, Sab bici Z2 con blocchi forza, Dom corsa lunga facoltativa. Codice: `runGroup` al posto di `runQuality`, `swimTechnique.day = Mercoledì`, intro/newsletter aggiornate, 12 test PASS. **Da fare**: deploy Edge Function e nuova rigenerazione della settimana 46.
+
+### LLM Groq — stato attuale (12/11/2026)
+- `LLM_API_KEY` impostata su Supabase Edge `mtt-weekly-workouts` (chiave Groq fornita dall'utente, presente in `~/.config/opencode/secrets/mtt/llm.env`).
+- Modello default: `openai/gpt-oss-120b` (l'unico modello Groq funzionante con questa chiave; `llama-3.1-8b-instant`, `llama-3.3-70b-versatile`, `gemma2-9b-it`, `llama3-8b-8192` → model_not_found o model_decommissioned).
+- L'LLM si attiva (`renderWithLLM` chiama Groq, riceve HTTP 200) ma il JSON prodotto non passa `parseJsonLoose`/`validateContent` → `generated_by='rules'` (fallback statico).
+- `parseJsonLoose` ripara già BOM e virgole trailing; errori residui: virgolette non escapate dentro stringhe, caratteri di controllo.
+- Rate limit Groq free tier: 8000 TPM per `openai/gpt-oss-120b` (errore 429 su test ravvicinati; attendere ~10-30s tra i tentativi).
+- Per attivare l'LLM in modo affidabile servirebbe: modello Groq diverso con JSON più stabile, oppure parsing JSON più tollerante, oppure prompt LLM più stringente sul formato JSON.
+- Fallback statico funziona correttamente: bozza settimana 46 generata con tutti i blocchi (forza lun/ven, corsa gruppo mar, nuoto gruppo gio, nuoto a secco gio, bici tecnica mer, bici su rullo mer/sab, bici Z2 sab, corsa lunga dom, tapis mar/dom facoltativi).
