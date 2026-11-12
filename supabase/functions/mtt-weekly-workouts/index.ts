@@ -34,7 +34,7 @@ const DEFAULT_COOLDOWN: Record<Discipline, string[]> = {
 }
 
 const baseCorsHeaders = {
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  // DEBUG_FORCE_REDEPLOY_v2  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Vary': 'Origin',
 }
@@ -153,17 +153,26 @@ function renderStaticContent(skeleton: WeekSkeleton, year: number, weekNumber: n
   }
 }
 
-function parseJsonLoose(text: string): unknown | null {
+function parseJsonLoose(text: string): { value: unknown | null; error: string | null } {
   let t = text.trim()
+  // Rimuovi BOM e caratteri di controllo iniziali
+  t = t.replace(/^\uFEFF|\u0000/g, '')
   const fence = t.match(/```(?:json)?\s*([\s\S]*?)```/i)
   if (fence) t = fence[1].trim()
   const start = t.indexOf('{')
   const end = t.lastIndexOf('}')
-  if (start === -1 || end === -1 || end <= start) return null
+  if (start === -1 || end === -1 || end <= start) return { value: null, error: 'nessuna parentesi graffa trovata' }
+  const jsonStr = t.slice(start, end + 1)
   try {
-    return JSON.parse(t.slice(start, end + 1))
+    return { value: JSON.parse(jsonStr), error: null }
   } catch {
-    return null
+    // Tentativo di riparazione: rimuovi virgole trailing prima di } o ]
+    const fixed = jsonStr.replace(/,\s*}/g, '}').replace(/,\s*]/g, ']')
+    try {
+      return { value: JSON.parse(fixed), error: null }
+    } catch {
+      return { value: null, error: 'JSON non valido dopo riparazione' }
+    }
   }
 }
 
@@ -244,6 +253,7 @@ async function renderWithLLM(
 
   const baseUrl = (Deno.env.get('LLM_BASE_URL') ?? 'https://api.groq.com/openai/v1').replace(/\/+$/, '')
   const model = Deno.env.get('LLM_MODEL') ?? 'openai/gpt-oss-120b'
+  // DEBUG_MODEL_SWITCH_v1
 
   const system = [
     'Sei un coach di triathlon per amatori italiani di 30-60 anni (livello base-intermedio, distanze sprint/olimpico).',
@@ -300,20 +310,26 @@ async function renderWithLLM(
       }),
       signal: AbortSignal.timeout(45000),
     })
-    if (!res.ok) return null
+    if (!res.ok) {
+      const errText = await res.text()
+      throw new Error(`Groq HTTP ${res.status}: ${errText.slice(0, 300)}`)
+    }
     const data = await res.json()
     const text: string = data?.choices?.[0]?.message?.content ?? ''
-    if (!text) return null
-    const parsed = parseJsonLoose(text)
-    if (validateContent(parsed, skeleton)) return null
+    if (!text) throw new Error('Groq ha restituito contenuto vuoto')
+    // DEBUG_HTTP_CHECK_v1
+    const { value: parsed, error: parseError } = parseJsonLoose(text)
+    if (!parsed) return null
+    const validationError = validateContent(parsed, skeleton)
+    if (validationError) return null
     const content = parsed as Record<string, unknown>
     applySkeletonMeta(content, skeleton)
     content.week_number = weekNumber
     content.year = year
     content.title = skeletonTitle(skeleton, year, weekNumber)
     return { content, model }
-  } catch {
-    return null
+  } catch (error: any) {
+    throw new Error(`LLM errore: ${error.message}`)
   }
 }
 
