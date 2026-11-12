@@ -158,7 +158,7 @@ function strengthCircuit(recovery: boolean, weeks = 3): SkeletonSession {
   }, recovery)
 }
 
-function swimTechnique(recovery: boolean, weeks = 3): SkeletonSession {
+function swimTechnique(recovery: boolean, weeks = 3, optional = false): SkeletonSession {
   return makeSession({
     discipline: 'swim',
     title: 'Nuoto - Tecnica e variazioni',
@@ -166,6 +166,7 @@ function swimTechnique(recovery: boolean, weeks = 3): SkeletonSession {
     focus: 'tecnica, catch e sensibilità',
     intensity: 'RPE 4-6 su 10, mai a tutta',
     day: 'Mercoledì',
+    optional,
     main: [
       '400m sciolti misto',
       '8x50m tecnica (bipodalico, bilanciato, catch) rec 15"',
@@ -203,6 +204,27 @@ function swimAerobic(recovery: boolean, weekInMeso: number): SkeletonSession {
   }, recovery)
 }
 
+function bikeTecnica(recovery: boolean): SkeletonSession {
+  return makeSession({
+    discipline: 'bike',
+    title: 'Bici - Tecnica e fondo',
+    duration: '60min',
+    focus: 'tecnica di pedalata e fondo aerobico',
+    intensity: 'RPE 3-4 su 10',
+    day: 'Mercoledì',
+    main: [
+      '15min riscaldamento graduale',
+      '30-40min fondo in Z2, cadenza 85-95rpm',
+      '4x30s allunghi di cadenza con 1min facile',
+      '10min defaticamento',
+    ],
+    recoveryMain: [
+      '45min molto facili in Z1-Z2',
+      'Cadenza agile, zero sforzo',
+    ],
+  }, recovery)
+}
+
 function swimGroup(recovery: boolean): SkeletonSession {
   return makeSession({
     discipline: 'swim',
@@ -215,10 +237,58 @@ function swimGroup(recovery: boolean): SkeletonSession {
       'Seduta di gruppo in piscina: 60 minuti a disposizione',
       'Segui il lavoro proposto dal coach in vasca (tecnica e ritmo)',
       'Se il coach non è presente: 400m sciolti + 8x100m aerobico rec 15" + 200m defaticamento',
+      'Se non puoi venire in piscina: 30-40min lavoro a secco per il nuoto (proposta dell\'app): 10min mobilità spalle (circonduzioni, petto e dorso), 3 serie di 12 remate con banda elastica (simulazione pull), 1 min plank + 1 min side-plank per lato + 20 superman (core/lombari), 5min stretching globale. In alternativa: nuoto in acque libere se disponibile.',
     ],
     recoveryMain: [
       'Seduta di gruppo in scarico: segui il coach e resta facile',
       'Nessuna serie forte, priorità a tecnica e recupero',
+    ],
+  }, recovery)
+}
+
+function swimDry(recovery: boolean): SkeletonSession {
+  return makeSession({
+    discipline: 'swim',
+    title: 'Nuoto a secco (alternativa piscina)',
+    duration: '30-40min',
+    focus: 'lavoro a secco per il nuoto',
+    intensity: 'RPE 4-6 su 10',
+    day: 'Giovedì',
+    optional: true,
+    main: [
+      '10min mobilità spalle (circonduzioni, petto e dorso)',
+      '3 serie di 12 remate con banda elastica (simulazione pull)',
+      '1 min plank + 1 min side-plank per lato',
+      '20 superman (core/lombari)',
+      '5min stretching globale',
+      'In alternativa: nuoto in acque libere se disponibile.',
+    ],
+    recoveryMain: [
+      '10min mobilità spalle',
+      '2 serie leggere di remate con banda elastica',
+      'Stretching globale 5min',
+    ],
+  }, recovery)
+}
+
+function bikeRoller(recovery: boolean): SkeletonSession {
+  return makeSession({
+    discipline: 'bike',
+    title: 'Bici su rullo (alternativa outdoor)',
+    duration: '80-120min',
+    focus: 'fondo aerobico su rullo',
+    intensity: 'RPE 3-4 su 10 (Z2), cadenza 80-90rpm',
+    day: 'Mercoledì',
+    optional: true,
+    main: [
+      '15min riscaldamento graduale',
+      '80-120min sui rulli a 80-90rpm, Z2',
+      '4-6 blocchi: 9min facile + 1min al massimo rapporto in piedi',
+      'Defaticamento 10min',
+    ],
+    recoveryMain: [
+      '60-70min facili in Z2, senza blocchi di forza',
+      'Cadenza agile, zero fatica',
     ],
   }, recovery)
 }
@@ -232,13 +302,34 @@ function runGroup(recovery: boolean): SkeletonSession {
     intensity: 'RPE 5-7 su 10, segui le indicazioni del coach',
     day: 'Martedì',
     main: [
-      'Ritrovo serale con il gruppo: segui il lavoro proposto dal coach',
-      'Se il coach non è presente: 1-2km riscaldamento + andature, poi 4x2km a ritmo medio rec 2min di corsa facile, 1km defaticamento',
+      'Seduta di gruppo con il coach: conduce il suo allenamento, seguite le sue indicazioni',
+      'Se non potete venire martedì sera: 1-2km riscaldamento + andature, poi 4x2km a ritmo medio rec 2min di corsa facile, 1km defaticamento (proposta dell\'app)',
       'Ritmo controllato: l\'obiettivo è la qualità, non la gara',
     ],
     recoveryMain: [
-      'Seduta di gruppo in scarico: segui il coach e resta facile',
+      'Seduta di gruppo in scarico: il coach guida, seguitelo e restate facile',
       'Nessuna serie forte, priorità a tecnica e recupero',
+    ],
+  }, recovery)
+}
+
+function treadmillRun(recovery: boolean): SkeletonSession {
+  return makeSession({
+    discipline: 'run',
+    title: 'Corsa su tapis (alternativa corsa outdoor)',
+    duration: '45min',
+    focus: 'corsa indoor su tapis',
+    intensity: 'RPE 3-5 su 10',
+    day: 'Martedì',
+    optional: true,
+    main: [
+      '10min riscaldamento facile',
+      '30min corsa continua a ritmo moderato (pendenza 1-2% se disponibile)',
+      '5min defaticamento camminata',
+    ],
+    recoveryMain: [
+      '30min molto facile, camminata/corsa alternata',
+      'Nessuno sforzo intenso',
     ],
   }, recovery)
 }
@@ -252,11 +343,12 @@ function runFondo(recovery: boolean, hard: boolean): SkeletonSession {
     intensity: 'RPE 3-4 su 10, conversazione possibile',
     day: 'Martedì',
     main: [
-      'Seduta in gruppo con il coach: segui il lavoro proposto',
+      'Seduta di gruppo con il coach: conduce il suo allenamento, seguite le sue indicazioni',
       '10min camminata + corsa leggera + skip',
       `Principale: ${hard ? '35-40' : '30'}min corsa continua a ritmo confortevole`,
       '4x20s allunghi progressivi (non massimali)',
       '5-10min camminata + stretching',
+      'Se non potete venire martedì sera: 10min riscaldamento facile + 20min corsa continua in Z2 (RPE 3-4, conversazione possibile) + 10min defaticamento camminata/corsa molto facile (proposta dell\'app)',
     ],
   }, recovery)
 }
@@ -324,18 +416,27 @@ function bikeWinter(recovery: boolean, weekInMeso: number): SkeletonSession {
 function buildSessions(phase: MacroPhase, weekInMeso: number, isRecovery: boolean, month: number): SkeletonSession[] {
   const hard = !isRecovery && weekInMeso === 3
 
-  // Novembre: blocco invernale. Luca lo chiama "transizione + base aerobica +
-  // forza": 2 sedute di forza, 1 nuoto tecnica, 1 corsa qualità, 1 bici Z2,
-  // più nuoto e corsa facoltativi.
+// Novembre: blocco invernale. Struttura:
+//   Lun  Forza A
+//   Mar  Corsa gruppo coach + Tapis (facoltativo)
+//   Mer  Bici tecnica e fondo
+//   Gio  Nuoto gruppo piscina + Nuoto a secco (facoltativo)
+//   Ven  Forza + corsa circuito
+//   Sab  Bici fondo Z2 + Bici su rullo (facoltativo)
+//   Dom  Corsa lunga (facoltativa) + Tapis (facoltativo, pendenza regolabile)
   if (phase === 'transition' && month === 10) {
     return [
       strengthA(isRecovery),
       runGroup(isRecovery),
-      swimTechnique(isRecovery),
+      treadmillRun(isRecovery),
+      bikeTecnica(isRecovery),
       swimGroup(isRecovery),
+      swimDry(isRecovery),
       strengthCircuit(isRecovery, weekInMeso === 4 ? 2 : 3),
       bikeWinter(isRecovery, weekInMeso),
+      bikeRoller(isRecovery),
       runLongOptional(isRecovery, '12-15km'),
+      treadmillRun(isRecovery),
     ]
   }
 
@@ -364,11 +465,12 @@ function buildSessions(phase: MacroPhase, weekInMeso: number, isRecovery: boolea
         intensity: 'RPE 3-4 su 10',
         day: 'Martedì',
         main: [
-          'Seduta in gruppo con il coach: segui il lavoro proposto',
-          '10min camminata/corsa',
-          '25min a ritmo libero su terreno morbido',
-          '5min camminata',
-        ],
+      'Seduta di gruppo con il coach: conduce il suo allenamento, seguite le sue indicazioni',
+      '10min camminata/corsa',
+      '25min a ritmo libero su terreno morbido',
+      '5min camminata',
+      'Se non potete venire martedì sera: 40min corsa molto facile su terreno morbido, RPE 2-3 senza guardare il ritmo, priorità al recupero (proposta dell\'app)',
+    ],
       }, isRecovery),
       makeSession({
         discipline: 'bike',
@@ -439,11 +541,12 @@ function buildSessions(phase: MacroPhase, weekInMeso: number, isRecovery: boolea
         intensity: 'RPE 6-7 su 10',
         day: 'Martedì',
         main: [
-          'Seduta in gruppo con il coach: segui il lavoro proposto',
+          'Seduta di gruppo con il coach: conduce il suo allenamento, seguite le sue indicazioni',
           '15min riscaldamento facile con drill',
           `Principale: ${runReps} a RPE 6-7 con 2min di recupero camminata/corsa leggera`,
           '15min ritmo facile',
           '10min camminata + stretching',
+          'Se non potete venire martedì sera: 10min riscaldamento facile + 4x5min a RPE 6-7 con 2min di recupero camminata/corsa leggera + 10min defaticamento (proposta dell\'app)',
         ],
       }, isRecovery),
       makeSession({
@@ -530,11 +633,12 @@ function buildSessions(phase: MacroPhase, weekInMeso: number, isRecovery: boolea
       intensity: 'RPE 7-8 su 10',
       day: 'Martedì',
       main: [
-        'Seduta in gruppo con il coach: segui il lavoro proposto',
+        'Seduta di gruppo con il coach: conduce il suo allenamento, seguite le sue indicazioni',
         '15min riscaldamento facile',
         `Principale: ${runRaceMin} al ritmo gara previsto con 5min facili (x2 se possibile)`,
         '10min ritmo facile',
         '10min camminata + stretching',
+        'Se non potete venire martedì sera: 15min riscaldamento facile + 25min al ritmo gara previsto (RPE 7-8) + 10min defaticamento facile (proposta dell\'app)',
       ],
     }, isRecovery),
     makeSession({

@@ -385,6 +385,20 @@ Richiesta utente: newsletter della domenica con spiegazione preparazione allenam
 - `deno check supabase/functions/mtt-weekly-workouts/index.ts` OK con `~/.deno/bin/deno`.
 - PDF rigenerato da HTML con WeasyPrint in venv temporaneo (`/tmp/mdvenv`); `tools/markdown_to_pdf.py` richiede `markdown` + `xhtml2pdf` non installati e ha output di default errato (`GUIDA_UTENTE.pdf`) se non si passano entrambi gli argomenti.
 
+### Struttura settimanale standard (novembre / fase transizione «Forza e tecnica»)
+
+| Giorno | Obbligatorio | Facoltativo (stessa giornata) |
+|---|---|---|
+| Lunedì | Forza - Corpo libero (A) | — |
+| Martedì | Corsa - Gruppo con il coach | Tapis (corsa indoor, pendenza 1-2%) |
+| Mercoledì | Bici - Tecnica e fondo | Bici su rullo (80-120min Z2) |
+| Giovedì | Nuoto - Gruppo in piscina (coach) | Nuoto a secco (30-40min) |
+| Venerdì | Forza + corsa - Circuito (B) | — |
+| Sabato | Bici - Fondo Z2 con blocchi forza | Bici su rullo (alternativa outdoor) |
+| Domenica | Corsa - Lunga facile (facoltativa) | Tapis (alternativa outdoor, pendenza regolabile) |
+
+Regola: una sola disciplina cardio principale per giorno; le varianti facoltative sono alternative reciproche, non aggiuntive. Il tapis si può inclinare (pendenza 1-2%). File: `supabase/functions/mtt-weekly-workouts/periodization.ts`, blocco `transition && month === 10`.
+
 ### Da fare
 - **Deploy Edge Function** `mtt-weekly-workouts` e rigenerazione settimana ISO 46 (domenica 15/11/2026) — solo dopo conferma esplicita.
 - Step C: OCR dei 119 scansionati (34/38 del 2026) e iniezione archivio nel prompt/fallback.

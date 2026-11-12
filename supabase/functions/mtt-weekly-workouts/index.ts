@@ -250,7 +250,7 @@ async function renderWithLLM(
     'Devi produrre ESCLUSIVAMENTE un oggetto JSON valido, senza markdown né commenti, che rappresenta il piano allenamenti della settimana.',
     'Regole: lingua italiana; intensità sempre in RPE (percezione) o %FC, MAI valori FTP assoluti; rispetta la struttura (sessioni, durate, titoli, fase, giorno) dello scheletro fornito, espandendo warmup/main/cooldown/tips in modo naturale e concreto;',
     'lo scheletro può contenere 4 discipline (nuoto, bici, corsa, forza): non eliminare le sedute di forza e non spostarle di giorno; la forza è a corpo libero, mai a cedimento;',
-    'varia le parole rispetto alla settimana precedente se indicata; tono pratico, incoraggiante, senza pretese da elite; ogni block ha warmup/main/cooldown/tips come array di stringhe.',
+    'varia le parole rispetto alla settimana precedente se indicata; tono pratico, incoraggiante, simpatico ma non troppo, senza pretese da elite; ogni block ha warmup/main/cooldown/tips come array di stringhe.',
   ].join(' ')
 
   const user = JSON.stringify({
