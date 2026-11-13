@@ -46,25 +46,42 @@ Deno.test('mesocycle: 4th week is recovery', () => {
   assertEquals(w1.isRecovery, false)
 })
 
-Deno.test('november/base: 3 mandatory + 2 strength + optional', () => {
-  for (const week of [45, 46, 2, 6]) {
+Deno.test('november: 3+2 structure with variants', () => {
+  for (const week of [45, 46]) {
+    const s = buildWeekSkeleton(dateFromIsoWeek(2026, week))
+    assertEquals(s.sessions.filter((x) => x.discipline === 'strength').length, 2, `week ${week} strength`)
+    assertEquals(s.sessions.filter((x) => x.discipline === 'swim' && !x.optional).length, 1, `week ${week} swim`)
+    assertEquals(s.sessions.filter((x) => x.discipline === 'run' && !x.optional).length, 1, `week ${week} run`)
+    assertEquals(s.sessions.filter((x) => x.discipline === 'bike' && !x.optional).length, 2, `week ${week} bike`)
+    assertEquals(s.sessions.filter((x) => x.optional).length, 5, `week ${week} optional`)
+    assertEquals(s.sessions.filter((x) => x.day === 'Giovedì' && x.discipline === 'swim' && !x.optional).length, 1, `week ${week} group swim`)
+    assertEquals(s.sessions.filter((x) => x.day === 'Giovedì' && x.title.includes('Tecnica') && x.optional).length, 1, `week ${week} thursday swim technique alternative`)
+    assertEquals(s.sessions.filter((x) => x.day === 'Mercoledì' && x.discipline === 'swim').length, 0, `week ${week} no wednesday swim`)
+    assertEquals(s.sessions.filter((x) => x.day === 'Mercoledì' && x.discipline === 'bike' && !x.optional).length, 1, `week ${week} wednesday bike`)
+    const keys = s.sessions.map((x) => `${x.day}|${x.discipline}|${x.title}`)
+    assertEquals(new Set(keys).size, keys.length, `week ${week} duplicates`)
+  }
+})
+
+Deno.test('base: 3 mandatory + 2 strength + 1 optional', () => {
+  for (const week of [2, 6]) {
     const s = buildWeekSkeleton(dateFromIsoWeek(2026, week))
     assertEquals(s.sessions.filter((x) => x.discipline === 'strength').length, 2, `week ${week} strength`)
     assertEquals(s.sessions.filter((x) => x.discipline === 'swim').length, 2, `week ${week} swim`)
     assertEquals(s.sessions.filter((x) => x.discipline === 'run').length, 2, `week ${week} run`)
     assertEquals(s.sessions.filter((x) => x.discipline === 'bike').length, 1, `week ${week} bike`)
     assertEquals(s.sessions.filter((x) => x.optional).length, 1, `week ${week} optional`)
-    assertEquals(s.sessions.filter((x) => x.day === 'Giovedì' && x.discipline === 'swim').length, 1, `week ${week} group swim`)
   }
 })
 
-Deno.test('november: tuesday group run, wednesday swim technique', () => {
+Deno.test('november: tuesday group run, thursday swim technique alternative', () => {
   const s = buildWeekSkeleton(dateFromIsoWeek(2026, 46))
-  const tueRun = s.sessions.filter((x) => x.day === 'Martedì' && x.discipline === 'run')
+  const tueRun = s.sessions.filter((x) => x.day === 'Martedì' && x.discipline === 'run' && !x.optional)
   assertEquals(tueRun.length, 1, 'tuesday run')
   assert(tueRun[0].title.toLowerCase().includes('gruppo'), 'tuesday run is group')
-  const wedSwim = s.sessions.filter((x) => x.day === 'Mercoledì' && x.discipline === 'swim')
-  assertEquals(wedSwim.length, 1, 'wednesday swim')
+  const thuSwim = s.sessions.filter((x) => x.day === 'Giovedì' && x.discipline === 'swim')
+  assertEquals(thuSwim.length, 3, 'thursday group + technique + dry swim')
+  assertEquals(thuSwim.filter((x) => x.optional).length, 2, 'technique and dry are optional')
 })
 
 Deno.test('build has maintenance strength, peak has none', () => {
@@ -88,7 +105,7 @@ Deno.test('every session has day, duration, intensity and content', () => {
 
 Deno.test('november swim technique targets 2300-2500m', () => {
   const s = buildWeekSkeleton(dateFromIsoWeek(2026, 46))
-  const swim = s.sessions.find((x) => x.discipline === 'swim' && !x.optional)!
+  const swim = s.sessions.find((x) => x.discipline === 'swim' && x.title.includes('Tecnica'))!
   assert(swim.mainOutline.join(' ').includes('2.300'))
 })
 

@@ -398,16 +398,15 @@ Richiesta utente: newsletter della domenica con spiegazione preparazione allenam
 |---|---|---|
 | Lunedì | Forza - Corpo libero (A) | — |
 | Martedì | Corsa - Gruppo con il coach | Tapis (corsa indoor, pendenza 1-2%) |
-| Mercoledì | Bici - Tecnica e fondo | Bici su rullo (80-120min Z2) |
-| Giovedì | Nuoto - Gruppo in piscina (coach) | Nuoto a secco (30-40min) |
+| Mercoledì | Bici - Tecnica e fondo (uscita) | Bici su rullo (80-120min Z2) |
+| Giovedì | Nuoto - Gruppo in piscina (coach) | Nuoto - Tecnica e variazioni 2.300–2.500 m (alternativa per chi non può venire con il coach), Nuoto a secco (30-40min) |
 | Venerdì | Forza + corsa - Circuito (B) | — |
-| Sabato | Bici - Fondo Z2 con blocchi forza | Bici su rullo (alternativa outdoor) |
-| Domenica | Corsa - Lunga facile (facoltativa) | Tapis (alternativa outdoor, pendenza regolabile) |
+| Sabato | Bici - Fondo Z2 con blocchi forza | — |
+| Domenica | Corsa - Lunga facile (facoltativa) | — |
 
-Regola: una sola disciplina cardio principale per giorno; le varianti facoltative sono alternative reciproche, non aggiuntive. Il tapis si può inclinare (pendenza 1-2%). File: `supabase/functions/mtt-weekly-workouts/periodization.ts`, blocco `transition && month === 10`.
+Regola: una sola disciplina cardio principale per giorno, con l'eccezione del giovedì (nuoto gruppo con coach oppure nuoto tecnica autogestito, per chi non può venire in piscina con il coach). Le varianti facoltative sono alternative reciproche, non aggiuntive. Il tapis si può inclinare (pendenza 1-2%). File: `supabase/functions/mtt-weekly-workouts/periodization.ts`, blocco `transition && month === 10`.
 
 ### Da fare
-- **Deploy Edge Function** `mtt-weekly-workouts` e rigenerazione settimana ISO 46 (domenica 15/11/2026) — solo dopo conferma esplicita.
 - Step C: OCR dei 119 scansionati (34/38 del 2026) e iniezione archivio nel prompt/fallback.
 - Step D: ancoraggio gare/periodo.
 
@@ -427,3 +426,20 @@ Regola: una sola disciplina cardio principale per giorno; le varianti facoltativ
 - Rate limit Groq free tier: 8000 TPM per `openai/gpt-oss-120b` (errore 429 su test ravvicinati; attendere ~10-30s tra i tentativi).
 - Per attivare l'LLM in modo affidabile servirebbe: modello Groq diverso con JSON più stabile, oppure parsing JSON più tollerante, oppure prompt LLM più stringente sul formato JSON.
 - Fallback statico funziona correttamente: bozza settimana 46 generata con tutti i blocchi (forza lun/ven, corsa gruppo mar, nuoto gruppo gio, nuoto a secco gio, bici tecnica mer, bici su rullo mer/sab, bici Z2 sab, corsa lunga dom, tapis mar/dom facoltativi).
+
+### Deploy e rigenerazione settimana 46 (13/11/2026)
+- Allineato il codice allo schema definitivo: blocco `transition && month === 10` ora usa `bikeTecnica` (Mer), `swimTechnique` (Gio, facoltativa, alternativa al gruppo per chi non può venire con il coach) + `swimGroup` (Gio), `bikeRoller` come alternativa del mercoledì; rimossa la doppia `treadmillRun`; Sab solo bici Z2; Dom corsa lunga facoltativa.
+- Copy corretta: «3 discipline obbligatorie (nuoto, bici, corsa)» al posto di «3 sedute» in `index.ts` (intro, newsletter, prompt LLM) e `periodization.ts` (`weeklyNotes`).
+- `applySkeletonMeta` ricopia day/optional/durata/titolo dallo scheletro e, per la seduta «Nuoto - Gruppo in piscina», **reintegra in modo deterministico** il rimando «Se non puoi venire al gruppo, scegli la seduta "Nuoto - Tecnica e variazioni" di oggi» quando il LLM lo omette (verificato in app e newsletter).
+- Test aggiornati (`periodization_test.ts`, `index.test.ts`): **33/33 PASS**; `deno check` pulito; `npm run build` in `app/` OK.
+- Edge Function deployata, versione finale **v70** (13/11 11:30 UTC), asset allineati al codice locale.
+- Settimana ISO 46 rigenerata: `generated_by=ai`, `llm=openai/gpt-oss-120b`, `status=draft`, `updated_at=2026-11-13T10:30:26Z`. Verificati i blocchi: Mar corsa gruppo + tapis facoltativo, Mer bici tecnica (+ rullo facoltativo), Gio nuoto gruppo + nuoto tecnica alternativa + nuoto a secco facoltativo, Sab bici Z2, Dom corsa lunga facoltativa, Lun/Ven forza.
+- Prova `send-newsletter` inviata a bonfantistefano4@gmail.com (`{success:true,total:1,sent:1,failed:0,test:true}`), record `status=approved`, `newsletter_sent_at=null` (la prova non marca l'invio). Resta la validazione della bozza prima dell'invio domenicale 15/11.
+
+### Parità app / Telegram / newsletter (13/11/2026)
+- **Intro unica**: `content.intro` è l'unico testo mostrato in app, inviato su Telegram e nella newsletter. `newsletter.intro` viene allineato automaticamente a `content.intro` in `renderWithLLM` e nel handler `generate`; `buildNewsletterHtml`/`newsletterPlainText` ignorano `newsletter.intro`. Il campo `intro` del pannello newsletter in Admin ora scrive anche `content.intro` (`updateNewsletter` in `app/src/lib/mttWorkouts.ts`).
+- **Newsletter con dettaglio completo** (`newsletter.ts`): ogni blocco mostra Riscaldamento / Parte principale / Defaticamento / Corsa dopo bici / Consigli, più «Consigli <disciplina>» da `tips_by_discipline` e blocco «Come adattare in base alle tue capacità» (`adaptation_tips`), come in app. `NewsletterBlock` esteso con `warmup/cooldown/tips`.
+- **Telegram**: il blocco finale mostra i consigli di tutte le discipline (`tips_by_discipline`), non solo Forza.
+- **App** (`TeamWorkoutsPage.tsx`): aggiunto box «Consigli <disciplina>» nel tab attivo, prima del blocco adattamento.
+- **Prompt LLM**: la descrizione di `content.intro` incorpora le indicazioni prima date a `newsletter.intro` (FTP, RPE, fase); `newsletter.intro` è descritto come «stesso testo di intro».
+- Verifiche: **34/34 test PASS** (nuovo test parità newsletter), `deno check` pulito, `npm run build` OK. Edge Function **v73** deployata; settimana 46 rigenerata (`generated_by=ai`, `status=draft`, intro == newsletter.intro) e prova newsletter inviata a bonfantistefano4@gmail.com, poi record riportato a `draft`.

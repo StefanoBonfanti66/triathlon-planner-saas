@@ -3,6 +3,7 @@ import {
   buildWeekSkeleton,
   dateFromIsoWeek,
 } from './periodization.ts'
+import { buildNewsletterHtml, newsletterPlainText } from './newsletter.ts'
 import {
   renderWithLLM,
   handleGenerate,
@@ -221,6 +222,35 @@ Deno.test('risposta completa valida → percorso AI, body con max_completion_tok
   Deno.env.delete('LLM_API_KEY')
 })
 
+Deno.test('newsletter: stessa intro e stesso dettaglio dell\'app', () => {
+  const html = buildNewsletterHtml(validContent, 46, 2026)
+  assert(html.includes('Intro di test'), 'deve usare content.intro')
+  assert(!html.includes('nl intro'), 'non deve usare newsletter.intro')
+  assert(html.includes('Riscaldamento'))
+  assert(html.includes('Defaticamento'))
+  assert(html.includes('Come adattare in base alle tue capacità'))
+  assert(html.includes('Consigli Nuoto'))
+
+  const text = newsletterPlainText(validContent, 46, 2026)
+  assert(text.includes('Intro di test'))
+  assert(!text.includes('nl intro'))
+  assert(text.includes('Riscaldamento:'))
+  assert(text.includes('Defaticamento:'))
+  assert(text.includes('COME ADATTARE IN BASE ALLE TUE CAPACITÀ'))
+})
+
+Deno.test('applySkeletonMeta reintegra il rimando alla seduta alternativa di nuoto', async () => {
+  Deno.env.set('LLM_API_KEY', 'test-key')
+  const fetchMock = mockFetchFactory({ body: choice(JSON.stringify(validContent)) })
+  const result = await renderWithLLM(skeleton, 2026, 46, undefined, fetchMock) as LlmResult
+  assertEquals(result.kind, 'ai-ok')
+  const swim = (result.content as { swim: Array<{ title: string; main: string[] }> }).swim
+  const group = swim.find((b) => /gruppo/i.test(b.title))!
+  assertExists(group)
+  assertEquals(group.main.filter((l) => l.includes('Tecnica e variazioni')).length, 1)
+  Deno.env.delete('LLM_API_KEY')
+})
+
 Deno.test('finish_reason length → truncated, rifiuto contenuto incompleto', async () => {
   Deno.env.set('LLM_API_KEY', 'test-key')
   const fetchMock = mockFetchFactory({ body: choice(JSON.stringify(validContent), 'length') })
@@ -340,7 +370,7 @@ Deno.test('handleGenerate: validazione applicativa fallita → generated_by=rule
   assertEquals(data.generated_by, 'rules')
   assert(data.ai_prompt_used.includes('validation-failed'), 'causa deve essere validation-failed: ' + data.ai_prompt_used)
   // Contenuto statico, non il JSON invalido dell'LLM
-  assertEquals(((data.content as Record<string, unknown>).swim as unknown[]).length, 2)
+  assertEquals(((data.content as Record<string, unknown>).swim as unknown[]).length, 3)
   Deno.env.delete('LLM_API_KEY')
 })
 

@@ -156,12 +156,14 @@ export async function updateNewsletter(workoutId: string, newsletter: Partial<Ne
 
   const merged = {
     ...current.content,
+    ...(newsletter.intro !== undefined ? { intro: newsletter.intro } : {}),
     newsletter: {
       subject: '',
       intro: '',
       extra: '',
       ...current.content.newsletter,
       ...newsletter,
+      ...(newsletter.intro !== undefined ? { intro: newsletter.intro } : {}),
     },
   };
 

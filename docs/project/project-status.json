@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
-  "updated_at": "2026-11-09",
+  "updated_at": "2026-11-13",
   "state": "active",
   "phase": "delivery",
-  "next_action": "Raccogliere da Luca lo storico allenamenti (luogo/formato), catalogarlo in docs/project/allenamenti-archivio/manifest.csv, chiudere decisioni periodo/gare e struttura 3+2, poi step B (strength)"
+  "next_action": "Validare la bozza della settimana 46 (app/Telegram/newsletter allineati) e monitorare l'invio domenicale del 15/11; poi OCR dei 119 file scansionati 2026 e wiring del push MyWhoosh nel workflow domenicale"
 }

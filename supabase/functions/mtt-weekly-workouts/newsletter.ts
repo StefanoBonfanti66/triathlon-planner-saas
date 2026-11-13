@@ -11,7 +11,10 @@ export interface NewsletterBlock {
   duration?: string
   day?: string
   optional?: boolean
+  warmup?: string[]
   main: string[]
+  cooldown?: string[]
+  tips?: string[]
   brickRun?: { duration?: string; main: string[] }
 }
 
@@ -23,6 +26,8 @@ export interface NewsletterWorkoutContent {
   run: NewsletterBlock[]
   strength?: NewsletterBlock[]
   notes: string
+  tips_by_discipline?: Record<string, string[]>
+  adaptation_tips?: { ftp: string; vo2max: string; pace: string }
   newsletter?: NewsletterContent
 }
 
@@ -48,27 +53,38 @@ function textToHtml(s: unknown): string {
   return esc(normalizeNewlines(s)).replace(/\n/g, '<br>')
 }
 
-function disciplineSection(label: string, emoji: string, blocks: NewsletterBlock[], brickRuns?: Array<{ duration?: string; main: string[] }>): string {
+function bulletRows(label: string, lines: string[] | undefined, color: string): string {
+  if (!lines?.length) return ''
+  return `<tr><td colspan="2" style="padding:8px 0 2px;font-size:12px;font-weight:bold;color:#475569;">${label}</td></tr>
+    ${lines.map((line) => `
+    <tr><td width="12" style="padding:2px 0 2px 12px;color:${color};font-size:13px;">•</td>
+        <td style="padding:2px 0;color:#334155;font-size:13px;line-height:1.5;">${esc(line)}</td></tr>`).join('')}`
+}
+
+function disciplineSection(
+  label: string,
+  emoji: string,
+  blocks: NewsletterBlock[],
+  tips?: string[],
+): string {
   if (!blocks?.length) return ''
   const rows = blocks.map((b) => `
-    <tr><td colspan="2" style="padding:12px 0 4px;font-size:14px;font-weight:bold;color:#0f172a;">
+    <tr><td colspan="2" style="padding:14px 0 4px;font-size:14px;font-weight:bold;color:#0f172a;">
       ${b.day ? `<span style="color:#64748b;font-weight:normal;">${esc(b.day)} · </span>` : ''}${esc(b.title)}${b.duration ? ` <span style="color:#64748b;font-weight:normal;">(${esc(b.duration)})</span>` : ''}${b.optional ? ' <span style="color:#b45309;font-weight:normal;">(facoltativo)</span>' : ''}
     </td></tr>
-    ${b.main.map((line) => `
-    <tr><td width="12" style="padding:2px 0 2px 12px;color:#3b82f6;font-size:13px;">•</td>
-        <td style="padding:2px 0;color:#334155;font-size:13px;line-height:1.5;">${esc(line)}</td></tr>`).join('')}`).join('')
-
-  const brickRows = brickRuns?.map((b) => `
-    <tr><td width="12" style="padding:2px 0 2px 12px;color:#2563eb;font-size:13px;">•</td>
-        <td style="padding:2px 0;color:#334155;font-size:13px;line-height:1.5;">${esc(b.main.join(' → '))} ${b.duration ? `(${esc(b.duration)})` : ''}</td></tr>`).join('')
+    ${bulletRows('Riscaldamento', b.warmup, '#3b82f6')}
+    ${bulletRows('Parte principale', b.main, '#3b82f6')}
+    ${bulletRows('Defaticamento', b.cooldown, '#3b82f6')}
+    ${b.brickRun ? bulletRows(`Corsa dopo bici${b.brickRun.duration ? ` (${b.brickRun.duration})` : ''}`, b.brickRun.main, '#c2410c') : ''}
+    ${bulletRows('Consigli', b.tips, '#2563eb')}`).join('')
 
   return `
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 8px;">
       <tr><td style="padding:16px 0 4px;font-size:15px;font-weight:900;color:#1e40af;letter-spacing:0.05em;text-transform:uppercase;">
-        ${emoji} ${esc(label)}${brickRuns?.length ? ` <span style="color:#94a3b8;font-weight:normal;">(+${brickRuns.length} corsa dopo bici)</span>` : ''}
+        ${emoji} ${esc(label)}
       </td></tr>
       ${rows}
-      ${brickRows ? `<tr><td colspan="2" style="padding:14px 0 4px;font-size:13px;font-weight:bold;color:#c2410c;">🏃 Corsa dopo bici (brick)</td></tr>${brickRows}` : ''}
+      ${bulletRows(`Consigli ${label}`, tips, '#1e40af')}
     </table>`
 }
 
@@ -79,8 +95,10 @@ export function buildNewsletterHtml(
 ): string {
   const nl = content.newsletter
   const subject = nl?.subject?.trim() || `Allenamenti MTT — Settimana ${weekNumber}/${year}`
-  const intro = nl?.intro?.trim() || content.intro
+  const intro = content.intro
   const extra = nl?.extra?.trim() || ''
+  const tips = content.tips_by_discipline ?? {}
+  const at = content.adaptation_tips
 
   const button = (href: string, label: string, bg: string) => `
     <table role="presentation" cellpadding="0" cellspacing="0" style="margin:8px 0;">
@@ -110,14 +128,24 @@ export function buildNewsletterHtml(
           </div>
         </td></tr>` : ''}
         <tr><td style="padding:16px 36px 0;">
-          <div style="font-size:12px;font-weight:900;color:#64748b;letter-spacing:0.1em;text-transform:uppercase;border-bottom:2px solid #e2e8f0;padding-bottom:8px;">Questa settimana in sintesi</div>
+          <div style="font-size:12px;font-weight:900;color:#64748b;letter-spacing:0.1em;text-transform:uppercase;border-bottom:2px solid #e2e8f0;padding-bottom:8px;">Questa settimana</div>
         </td></tr>
         <tr><td style="padding:0 36px;">
-          ${disciplineSection('Nuoto', '🏊', content.swim)}
-          ${disciplineSection('Bici', '🚴', content.bike, content.bike.filter((b) => !!b.brickRun).map((b) => b.brickRun!))}
-          ${disciplineSection('Corsa', '🏃', content.run)}
-          ${disciplineSection('Forza', '💪', content.strength ?? [])}
+          ${disciplineSection('Nuoto', '🏊', content.swim, tips.swim)}
+          ${disciplineSection('Bici', '🚴', content.bike, tips.bike)}
+          ${disciplineSection('Corsa', '🏃', content.run, tips.run)}
+          ${disciplineSection('Forza', '💪', content.strength ?? [], tips.strength)}
         </td></tr>
+        ${at ? `<tr><td style="padding:8px 36px 0;">
+          <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:16px;padding:20px 24px;margin:8px 0 16px;">
+            <div style="font-size:13px;font-weight:900;color:#92400e;margin-bottom:8px;">Come adattare in base alle tue capacità</div>
+            <div style="font-size:13px;color:#78350f;line-height:1.6;">
+              <p style="margin:0 0 6px;"><strong>FTP:</strong> ${textToHtml(at.ftp)}</p>
+              <p style="margin:0 0 6px;"><strong>VO2max:</strong> ${textToHtml(at.vo2max)}</p>
+              <p style="margin:0;"><strong>Andature/Velocità:</strong> ${textToHtml(at.pace)}</p>
+            </div>
+          </div>
+        </td></tr>` : ''}
         <tr><td style="padding:8px 36px 0;">
           <div style="background:#f8fafc;border-radius:16px;padding:20px 24px;margin:8px 0 16px;">
             <div style="font-size:13px;color:#475569;line-height:1.6;margin:0;">${textToHtml(content.notes)}</div>
@@ -145,23 +173,42 @@ export function buildNewsletterHtml(
 export function newsletterPlainText(content: NewsletterWorkoutContent, weekNumber: number, year: number): string {
   const nl = content.newsletter
   const subject = nl?.subject?.trim() || `Allenamenti MTT — Settimana ${weekNumber}/${year}`
-  const lines: string[] = [subject, '', normalizeNewlines(nl?.intro?.trim() || content.intro), '']
+  const lines: string[] = [subject, '', normalizeNewlines(content.intro), '']
   if (nl?.extra?.trim()) lines.push('📣 Altro dalla squadra:', normalizeNewlines(nl.extra.trim()), '')
-  const addBlocks = (label: string, blocks: NewsletterBlock[]) => {
+  const addLines = (label: string, values?: string[]) => {
+    if (!values?.length) return
+    lines.push(`  ${label}:`)
+    for (const v of values) lines.push(`   - ${v}`)
+  }
+  const addBlocks = (label: string, blocks: NewsletterBlock[], tips?: string[]) => {
     if (!blocks?.length) return
     lines.push(label.toUpperCase())
     for (const b of blocks) {
       const day = b.day ? `${b.day} · ` : ''
       const optional = b.optional ? ' (facoltativo)' : ''
       lines.push(`• ${day}${b.title}${b.duration ? ` (${b.duration})` : ''}${optional}`)
+      addLines('Riscaldamento', b.warmup)
+      lines.push('  Parte principale:')
       for (const m of b.main) lines.push(`   - ${m}`)
+      addLines('Defaticamento', b.cooldown)
+      if (b.brickRun) {
+        lines.push(`  Corsa dopo bici${b.brickRun.duration ? ` (${b.brickRun.duration})` : ''}:`)
+        for (const m of b.brickRun.main) lines.push(`   - ${m}`)
+      }
+      addLines('Consigli', b.tips)
     }
+    addLines(`Consigli ${label}`, tips)
     lines.push('')
   }
-  addBlocks('Nuoto', content.swim)
-  addBlocks('Bici', content.bike)
-  addBlocks('Corsa', content.run)
-  addBlocks('Forza', content.strength ?? [])
+  const tips = content.tips_by_discipline ?? {}
+  addBlocks('Nuoto', content.swim, tips.swim)
+  addBlocks('Bici', content.bike, tips.bike)
+  addBlocks('Corsa', content.run, tips.run)
+  addBlocks('Forza', content.strength ?? [], tips.strength)
+  const at = content.adaptation_tips
+  if (at) {
+    lines.push('COME ADATTARE IN BASE ALLE TUE CAPACITÀ', `- FTP: ${at.ftp}`, `- VO2max: ${at.vo2max}`, `- Andature/Velocità: ${at.pace}`, '')
+  }
   lines.push(normalizeNewlines(content.notes), '', `Gruppo Telegram: ${TELEGRAM_INVITE_URL}`, `Guida test FTP: ${FTP_GUIDE_URL}`)
   return lines.join('\n')
 }

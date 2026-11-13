@@ -165,9 +165,10 @@ function swimTechnique(recovery: boolean, weeks = 3, optional = false): Skeleton
     duration: '60min',
     focus: 'tecnica, catch e sensibilità',
     intensity: 'RPE 4-6 su 10, mai a tutta',
-    day: 'Mercoledì',
+    day: 'Giovedì',
     optional,
     main: [
+      'Alternativa al gruppo in piscina, per chi non può venire con il coach',
       '400m sciolti misto',
       '8x50m tecnica (bipodalico, bilanciato, catch) rec 15"',
       '400m pull + 400m pinne + 400m libero continuo (oppure 10x100m rec 15")',
@@ -236,7 +237,7 @@ function swimGroup(recovery: boolean): SkeletonSession {
     main: [
       'Seduta di gruppo in piscina: 60 minuti a disposizione',
       'Segui il lavoro proposto dal coach in vasca (tecnica e ritmo)',
-      'Se non puoi venire al gruppo: 400m sciolti + 8x100m aerobico rec 15" + 200m defaticamento',
+      'Se non puoi venire al gruppo, scegli la seduta "Nuoto - Tecnica e variazioni" di oggi',
     ],
     recoveryMain: [
       'Seduta di gruppo in scarico: segui il coach e resta facile',
@@ -418,16 +419,17 @@ function buildSessions(phase: MacroPhase, weekInMeso: number, isRecovery: boolea
 // Novembre: blocco invernale. Struttura:
 //   Lun  Forza A
 //   Mar  Corsa gruppo coach + Tapis (facoltativo)
-//   Mer  Bici tecnica e fondo
-//   Gio  Nuoto gruppo piscina + Nuoto a secco (facoltativo)
+//   Mer  Bici uscita (rulli in alternativa)
+//   Gio  Nuoto gruppo piscina + Nuoto tecnica (alternativa al gruppo) + Nuoto a secco (facoltativo)
 //   Ven  Forza + corsa circuito
-//   Sab  Bici fondo Z2 + Bici su rullo (facoltativo)
-//   Dom  Corsa lunga (facoltativa) + Tapis (facoltativo, pendenza regolabile)
+//   Sab  Bici fondo Z2
+//   Dom  Corsa lunga (facoltativa)
   if (phase === 'transition' && month === 10) {
     return [
       strengthA(isRecovery),
       runGroup(isRecovery),
       treadmillRun(isRecovery),
+      swimTechnique(isRecovery, 3, true),
       bikeTecnica(isRecovery),
       swimGroup(isRecovery),
       swimDry(isRecovery),
@@ -435,7 +437,6 @@ function buildSessions(phase: MacroPhase, weekInMeso: number, isRecovery: boolea
       bikeWinter(isRecovery, weekInMeso),
       bikeRoller(isRecovery),
       runLongOptional(isRecovery, '12-15km'),
-      treadmillRun(isRecovery),
     ]
   }
 
@@ -698,7 +699,7 @@ export function buildWeekSkeleton(date: Date): WeekSkeleton {
     mesoProgression: progression,
     sessions: buildSessions(macroPhase, weekInMeso, isRecovery, date.getMonth()),
     weeklyNotes: [
-      'Struttura della settimana: 3 sedute obbligatorie (nuoto, bici, corsa) + 2 di forza; le sedute facoltative sono un extra',
+      'Struttura della settimana: 3 discipline obbligatorie (nuoto, bici, corsa) + 2 di forza; le sedute facoltative sono un extra',
       'Il giovedì è la seduta di gruppo in piscina: 60 minuti con il coach, seguite il lavoro proposto in vasca',
       'Il martedì sera la corsa è la seduta di gruppo con il coach, con il lavoro deciso da lui',
       'Le sedute di forza sono a corpo libero: nessuna attrezzatura, tecnica pulita e mai a cedimento',

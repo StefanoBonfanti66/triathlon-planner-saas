@@ -6,9 +6,10 @@
 - Follow existing code style.
 - Update PROJECT_AI_NOTES.md at meaningful checkpoints.
 
-## Current Focus — 2026-11-12
+## Current Focus — 2026-11-13
 
 ### Completato
+- **Parità app/Telegram/newsletter e settimana 46 (13/11)**: intro unica (`content.intro`) usata da app, Telegram e newsletter (`newsletter.intro` allineato automaticamente e ignorato in rendering; l'editor admin aggiorna l'intro condivisa). Newsletter con dettaglio completo (riscaldamento/parte principale/defaticamento/consigli + consigli per disciplina + come adattare), Telegram con consigli di tutte le discipline, app con box consigli per disciplina. Nuoto tecnica spostato al giovedì come alternativa facoltativa al gruppo; rimando reintegrato deterministicamente da `applySkeletonMeta`. **34/34 test PASS**, `deno check` e `npm run build` OK, Edge Function **v73** deployata, settimana 46 rigenerata (`generated_by=ai`, `status=draft`), prova newsletter inviata a bonfantistefano4@gmail.com e record riportato a `draft`.
 - **Integrazione MyWhoosh — deploy e DB verificati (2026-11-05)**: Edge Function `mtt-mywhoosh-sync` **deployata** su Supabase `bwzzvdwiimvdwkiytknc` (v26, 2026-11-03T20:17Z, allineata a `e6063a2`); secrets `MYWHOOSH_USERNAME`/`MYWHOOSH_PASSWORD` **presenti**; migration `tools/2026-10-31_mtt_mywhoosh_sync.sql` **applicata** (colonna `team_workouts.mywhoosh_workout_id` + indice presenti).
 - **Push MTT→MyWhoosh reale**: record week 44 `c1619f13` → `status='sent'`, `sent_at=2026-11-01T21:50:14Z`, `mywhoosh_workout_id='1793737031433'` (HTTP 200, accepted:1).
 - **Converter corretto**: durata minuti→secondi (`535e7c9`), warmup/main/cooldown come step `E_Normal` separati (0.5/0.85/0.4, `a2dc402`), parsing durata sul primo gruppo di cifre (`e6063a2`).
@@ -29,7 +30,7 @@
 - **Step B implementato (12/11)**: disciplina `strength`, struttura 3 obbligatorie + 2 forza + facoltative, novembre come "Forza e tecnica" (transition), agenda Telegram per giorno, sezione Forza in newsletter/app, editor admin. Modificati `periodization.ts`, `index.ts`, `newsletter.ts`, `mttWorkouts.ts`, `TeamWorkoutsPage.tsx`, `AdminPage.tsx`; doc `.md/.html/.pdf` aggiornati. Verifiche: `npm run build` OK, `deno check` OK, `deno test` 11/11 OK. **Deployata** su Supabase e **settimana ISO 46 rigenerata** (bozza AI) il 12/11.
 
 ### Da completare
-- **Validare la settimana 46** e fare una prova con `send-newsletter` test prima dell'invio domenicale 15/11/2026. Schema aggiornato il 12/11: Mar corsa gruppo con coach, Mer nuoto tecnica, Gio nuoto gruppo piscina → **deploy + rigenerazione** della bozza ancora da fare.
+- **Settimana 46 (13/11)**: bozza pronta e verificata (34/34 test, Edge v73, parità app/Telegram/newsletter, prova email inviata). Resta la validazione finale del contenuto e l'invio domenicale 15/11.
 - **Automazione push MyWhoosh**: nessun workflow chiama l'azione `push` di `mtt-mywhoosh-sync`; oggi il push è manuale (probe/curl). Valutare il wiring in `mtt-weekly-workouts.yml`.
 - **Rampe reali nel converter automatico**: l'Edge Function converte warmup/main/cooldown in `E_Normal` con potenze hardcoded (0.55/0.85/0.7, non verificate sulla prescrizione MTT); il flusso a due rampe numeriche esiste solo nel probe locale.
 - Decisioni MTT: **periodo/gare target**; conferma **struttura 3+2** (i documenti di Luca la confermano già).
@@ -39,6 +40,6 @@
 
 ### Prossimo step
 - Chiedere a Luca conferma su: 17 file senza anno/mese, 6 PDF corsa con titolo interno diverso dal nome, e struttura/settimana tipo di novembre (step B già implementato).
-- Validare la bozza della settimana 46 e fare una prova newsletter prima dell'invio domenicale.
+- Validare la bozza della settimana 46 (app, Telegram e newsletter ora allineati) e monitorare l'invio domenicale 15/11.
 - Verifica end-to-end MyWhoosh su una settimana nuova (45): durate e step corretti e `mywhoosh_workout_id` valorizzato.
 - Monitorare invio domenicale; valutare il wiring del push MyWhoosh nel workflow domenicale.

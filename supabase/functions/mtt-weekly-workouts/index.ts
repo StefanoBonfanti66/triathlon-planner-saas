@@ -152,11 +152,21 @@ function renderStaticContent(skeleton: WeekSkeleton, year: number, weekNumber: n
   const pick = (d: Discipline) =>
     skeleton.sessions.filter((s) => s.discipline === d).map(toContentBlock)
 
+  // Testo unico: la stessa intro viene mostrata in app, inviata su Telegram e nella newsletter.
+  const intro = [
+    `Ciao squadra, ecco il piano di questa settimana.`,
+    `Nuovo formato: 3 discipline obbligatorie (nuoto, bici, corsa) + 2 di forza a corpo libero, più le facoltative per chi vuole aggiungere. Il martedì sera la corsa è la seduta di gruppo con il coach; il giovedì il nuoto è la seduta di gruppo in piscina, con un'ora a disposizione e il lavoro deciso dal coach. In questo momento siamo in fase ${skeleton.phaseLabel.toLowerCase()}: ${skeleton.mesoProgression}. ${skeleton.isRecovery ? 'Questa è una settimana di scarico: riduciamo i volumi per permettere al corpo di assorbire il lavoro delle settimane precedenti.' : 'Stiamo costruendo solide basi aerobiche e di forza con volumi e intensità pensati per atleti amatori.'}`,
+    `⚠️ Prima di iniziare: esegui il test FTP. È un test di 20 minuti al massimo sostenibile in bici: il risultato (media potenza × 0,95) definisce le tue zone di allenamento, cioè l'intensità giusta per ogni seduta. Senza FTP non sappiamo se RPE 3 per te è troppo facile o troppo duro. Clicca il bottone "Come fare il test FTP" nella email per la guida passo passo. Rifai il test ogni 6 settimane per tenere aggiornate le tue zone man mano che migliori.`,
+    `Come regolare l'intensità: usiamo l'RPE (Rate of Perceived Exertion, "sforzo percepito" su scala 1-10). 1-2 = recupero, 3-4 = fondo aerobico (parli mentre ti alleni), 5-6 = soglia (respiro affannato ma sostenibile), 7-8 = duro, 9-10 = massimo. Se leggi un'allenamento con "RPE 3", significa che devi tenere un ritmo molto facile, quasi chiacchierato.`,
+    'Gli allenamenti sono un punto di partenza: adatta intensità e durate alle tue sensazioni, senza forzare. Se hai dubbi, chiedi nel gruppo Telegram.',
+    'Buon allenamento!',
+  ].join('\n\n')
+
   return {
     week_number: weekNumber,
     year,
     title: skeletonTitle(skeleton, year, weekNumber),
-    intro: `Fase ${skeleton.phaseLabel} — ${skeleton.mesoProgression}. Struttura della settimana: 3 sedute obbligatorie (nuoto, bici, corsa) + 2 di forza a corpo libero, più le sedute facoltative. Il martedì sera la corsa è la seduta di gruppo con il coach; il giovedì il nuoto è la seduta di gruppo in piscina (60 minuti con il coach). Allenamenti non personalizzati pensati per amatori 30-60 anni: adatta intensità e volumi in base alle tue sensazioni.`,
+    intro,
     swim: pick('swim'),
     bike: pick('bike'),
     run: pick('run'),
@@ -175,14 +185,7 @@ function renderStaticContent(skeleton: WeekSkeleton, year: number, weekNumber: n
     },
     newsletter: {
       subject: `Allenamenti MTT · Settimana ${weekNumber}/${year} — ${skeleton.phaseLabel}`,
-      intro: [
-        `Ciao squadra, ecco il piano di questa settimana.`,
-        `Nuovo formato: 3 sedute obbligatorie (nuoto, bici, corsa) + 2 di forza a corpo libero, più le facoltative per chi vuole aggiungere. Il martedì sera la corsa è la seduta di gruppo con il coach; il giovedì il nuoto è la seduta di gruppo in piscina, con un'ora a disposizione e il lavoro deciso dal coach. In questo momento siamo in fase ${skeleton.phaseLabel.toLowerCase()}: ${skeleton.mesoProgression}. ${skeleton.isRecovery ? 'Questa è una settimana di scarico: riduciamo i volumi per permettere al corpo di assorbire il lavoro delle settimane precedenti.' : 'Stiamo costruendo solide basi aerobiche e di forza con volumi e intensità pensati per atleti amatori.'}`,
-        `⚠️ Prima di iniziare: esegui il **test FTP**. È un test di 20 minuti al massimo sostenibile in bici: il risultato (media potenza × 0,95) definisce le tue zone di allenamento, cioè l'intensità giusta per ogni seduta. Senza FTP non sappiamo se RPE 3 per te è troppo facile o troppo duro. Clicca il bottone "Come fare il test FTP" nella email per la guida passo passo. Rifai il test ogni 6 settimane per tenere aggiornate le tue zone man mano che migliori.`,
-        `Come regolare l'intensità: usiamo l'RPE (Rate of Perceived Exertion, "sforzo percepito" su scala 1-10). 1-2 = recupero, 3-4 = fondo aerobico (parli mentre ti alleni), 5-6 = soglia (respiro affannato ma sostenibile), 7-8 = duro, 9-10 = massimo. Se leggi un'allenamento con "RPE 3", significa che devi tenere un ritmo molto facile, quasi chiacchierato.`,
-        'Gli allenamenti sono un punto di partenza: adatta intensità e durate alle tue sensazioni, senza forzare. Se hai dubbi, chiedi nel gruppo Telegram.',
-        'Buon allenamento!',
-      ].join('\n\n'),
+      intro,
       extra: '',
     },
   }
@@ -259,7 +262,12 @@ export function validateContent(c: unknown, skeleton: WeekSkeleton): string | nu
 
 // Il giorno e il carattere facoltativo sono decisi dallo scheletro, non dal LLM:
 // li ricopiamo per garantire una settimana coerente anche se il modello li omette.
+// Lo stesso vale per i rimandi tra sedute alternative (es. gruppo vs tecnica):
+// se il LLM li salta, li reintegriamo noi.
 function applySkeletonMeta(content: Record<string, unknown>, skeleton: WeekSkeleton) {
+  const swimAltHint = skeleton.sessions
+    .find((s) => s.discipline === 'swim' && /gruppo/i.test(s.title))
+    ?.mainOutline.find((line) => line.startsWith('Se non puoi venire al gruppo'))
   for (const d of DISCIPLINES) {
     const blocks = content[d]
     if (!Array.isArray(blocks)) continue
@@ -273,6 +281,13 @@ function applySkeletonMeta(content: Record<string, unknown>, skeleton: WeekSkele
       if (s.optional) block.optional = true
       if (typeof block.duration !== 'string' || !block.duration.trim()) block.duration = s.duration
       if (typeof block.title !== 'string' || !block.title.trim()) block.title = s.title
+      const isSwimGroup = d === 'swim' && /gruppo/i.test(String(block.title ?? ''))
+      if (isSwimGroup && swimAltHint) {
+        const main = Array.isArray(block.main) ? block.main as string[] : []
+        if (!main.some((line) => typeof line === 'string' && line.includes('Tecnica e variazioni'))) {
+          block.main = [...main, swimAltHint]
+        }
+      }
     })
   }
 }
@@ -395,7 +410,7 @@ export async function renderWithLLM(
     skeleton: skeleton.sessions,
     required_schema: {
       title: 'string',
-      intro: 'string',
+      intro: 'string — 3-5 paragrafi (separati da \\n\\n), testo UNICO mostrato in app, su Telegram e nella newsletter. Presenta il formato della settimana: 3 discipline obbligatorie (nuoto, bici, corsa) + 2 di forza a corpo libero, più le facoltative. Come PRIMA COSA invita gli atleti a eseguire il test FTP (20 min al massimo sostenibile, guida nel bottone della email) perché il risultato definisce le zone di allenamento e senza FTP non si può tarare l\'intensità; il test va ripetuto ogni 6 settimane. Spiega cos\'è l\'RPE (sforzo percepito su scala 1-10: 3-4 = fondo facile, 5-6 = soglia, 7-8 = duro, 9-10 = massimo). Poi entra nel dettaglio della fase attuale e di cosa stiamo costruendo. Tono caldo da coach, entusiasta ma professionale.',
       swim: [{ discipline: 'swim', title: 'string', day: 'string', optional: 'boolean', duration: 'string', warmup: ['string'], main: ['string'], cooldown: ['string'], tips: ['string'] }],
       bike: [{ discipline: 'bike', title: 'string', day: 'string', optional: 'boolean', duration: 'string', warmup: ['string'], main: ['string'], cooldown: ['string'], tips: ['string'] }],
       run: [{ discipline: 'run', title: 'string', day: 'string', optional: 'boolean', duration: 'string', warmup: ['string'], main: ['string'], cooldown: ['string'], tips: ['string'] }],
@@ -405,7 +420,7 @@ export async function renderWithLLM(
       adaptation_tips: { ftp: 'string (solo percezione/RPE)', vo2max: 'string', pace: 'string' },
       newsletter: {
         subject: 'string — oggetto email newsletter, max 60 char, es. "Allenamenti MTT · Settimana 46 — Forza e tecnica"',
-        intro: 'string — 3-5 paragrafi (separati da \\n\\n). Presenta il formato della settimana: 3 sedute obbligatorie (nuoto, bici, corsa) + 2 di forza a corpo libero, più le facoltative. Come PRIMA COSA invita gli atleti a eseguire il test FTP (20 min al massimo sostenibile, guida nel bottone della email) perché il risultato definisce le zone di allenamento e senza FTP non si può tarare l\'intensità; il test va ripetuto ogni 6 settimane. Spiega cos\'è l\'RPE (sforzo percepito su scala 1-10: 3-4 = fondo facile, 5-6 = soglia, 7-8 = duro, 9-10 = massimo). Poi entra nel dettaglio della fase attuale e di cosa stiamo costruendo. Tono caldo da coach, entusiasta ma professionale.',
+        intro: 'string — usa esattamente lo stesso testo del campo intro (verrà comunque allineato automaticamente)',
         extra: 'string — sempre stringa vuota "" (lo compila l\'admin)',
       },
     },
@@ -510,6 +525,8 @@ export async function renderWithLLM(
     content.week_number = weekNumber
     content.year = year
     content.title = skeletonTitle(skeleton, year, weekNumber)
+    const nl = content.newsletter as Record<string, unknown> | undefined
+    if (nl) nl.intro = content.intro
     llmLog('ai-ok', { model, status: res.status, finishReason, tokens, contentLength: text.length })
     return { kind: 'ai-ok', content, model, status: res.status, finishReason, tokens }
   } catch (e: any) {
@@ -641,6 +658,10 @@ export async function handleGenerate(
   const workoutContent = useAI
     ? (llmResult.content as Record<string, unknown>)
     : renderStaticContent(skeleton, year, week_number)
+
+  // Intro unica: app, Telegram e newsletter leggono lo stesso testo.
+  const newsletterContent = workoutContent.newsletter as Record<string, unknown> | undefined
+  if (newsletterContent) newsletterContent.intro = workoutContent.intro
 
   const { data, error } = await supabaseClient
     .from('team_workouts')
@@ -803,9 +824,10 @@ if (import.meta.main) {
         tips += `*FTP:* ${content.adaptation_tips.ftp}\n\n`
         tips += `*VO2max:* ${content.adaptation_tips.vo2max}\n\n`
         tips += `*Andature/Velocita:* ${content.adaptation_tips.pace}\n\n`
-        const strengthTips = content.tips_by_discipline?.strength
-        if (Array.isArray(strengthTips) && strengthTips.length) {
-          tips += `*Forza:* ${strengthTips.join(' · ')}\n\n`
+        for (const d of DISCIPLINES) {
+          const list = content.tips_by_discipline?.[d]
+          if (!Array.isArray(list) || !list.length) continue
+          tips += `*${DISCIPLINE_META[d].label}:* ${list.join(' · ')}\n\n`
         }
         tips += `_${content.notes}_`
         await sendMsg(tips)

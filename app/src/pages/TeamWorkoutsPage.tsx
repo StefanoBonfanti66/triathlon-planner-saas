@@ -199,6 +199,23 @@ export default function TeamWorkoutsPage() {
                         </div>
                       ))}
 
+                      {/* Consigli per disciplina */}
+                      {(() => {
+                        const disc = activeTab[workout.id] as 'swim' | 'bike' | 'run' | 'strength';
+                        const tips = workout.content.tips_by_discipline?.[disc] ?? [];
+                        if (!tips.length) return null;
+                        return (
+                          <div className="mb-6 p-4 bg-blue-50 rounded-xl border border-blue-200">
+                            <h4 className="font-bold text-blue-900 mb-2">Consigli {DISCIPLINE_LABELS[disc]}</h4>
+                            <ul className="space-y-1">
+                              {tips.map((item, i) => (
+                                <li key={i} className="text-sm text-blue-800">• {item}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        );
+                      })()}
+
                       {/* Suggerimenti adattamento */}
                       <div className="mt-6 p-4 bg-amber-50 rounded-xl border border-amber-200">
                         <h4 className="font-bold text-amber-900 mb-2">Come adattare in base alle tue capacità</h4>
