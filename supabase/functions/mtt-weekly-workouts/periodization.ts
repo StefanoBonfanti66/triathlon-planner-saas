@@ -140,13 +140,13 @@ function strengthA(recovery: boolean, weeks = 3): SkeletonSession {
     focus: 'forza generale e stabilità',
     intensity: 'RPE 5-6 su 10, tecnica pulita senza cedimento',
     day: 'Lunedì',
+    warmup: ['Riscaldamento 5-10min: mobilità di anche, spalle e caviglie'],
     main: [
-      'Riscaldamento 5-10min: mobilità di anche, spalle e caviglie',
       `${rounds}: 12 squat a corpo libero, 10 affondi per lato, 10 piegamenti sulle braccia`,
       `${rounds}: 30" plank frontale, 20" plank laterale per lato, 15 ponti glutei`,
       'Recupero 60-90" tra i giri, respiro sempre controllato',
-      'Defaticamento 5min: stretching di quadricipiti, femorali e petto',
     ],
+    cooldown: ['Defaticamento 5min: stretching di quadricipiti, femorali e petto'],
     recoveryMain: [
       '2 giri leggeri invece di 3',
       'Solo mobilità e tecnica, nessun cedimento muscolare',
@@ -163,12 +163,12 @@ function strengthCircuit(recovery: boolean, weeks = 3): SkeletonSession {
     focus: 'forza funzionale e appoggio',
     intensity: 'RPE 6-7 su 10 sul circuito, corsa sempre controllata',
     day: 'Venerdì',
+    warmup: ['10min di corsa facile + mobilità dinamica'],
     main: [
-      '10min di corsa facile + mobilità dinamica',
       `${weeks === 2 ? '2' : '3'} serie: 10 squat, 200m corsa progressiva, 10 affondi per lato, 200m corsa progressiva, 10 balzi, 100m scatto`,
       'Recupero 60-90" tra le serie, mai a secco',
-      '5min defaticamento + stretching',
     ],
+    cooldown: ['5min defaticamento + stretching'],
     recoveryMain: [
       '2 serie leggere invece di 3',
       'Corsa solo facile, nessuno scatto',
@@ -232,12 +232,12 @@ function bikeTecnica(recovery: boolean): SkeletonSession {
     focus: 'tecnica di pedalata e fondo aerobico',
     intensity: 'RPE 3-4 su 10',
     day: 'Mercoledì',
+    warmup: ['15min riscaldamento graduale'],
     main: [
-      '15min riscaldamento graduale',
       '30-40min fondo in Z2, cadenza 85-95rpm',
       '4x30s allunghi di cadenza con 1min facile',
-      '10min defaticamento',
     ],
+    cooldown: ['10min defaticamento'],
     recoveryMain: [
       '45min molto facili in Z1-Z2',
       'Cadenza agile, zero sforzo',
@@ -301,12 +301,12 @@ function bikeRoller(recovery: boolean): SkeletonSession {
     intensity: 'RPE 3-4 su 10 (Z2), cadenza 80-90rpm',
     day: 'Mercoledì',
     optional: true,
+    warmup: ['15min riscaldamento graduale'],
     main: [
-      '15min riscaldamento graduale',
       '80-120min sui rulli a 80-90rpm, Z2',
       '4-6 blocchi: 9min facile + 1min al massimo rapporto in piedi',
-      'Defaticamento 10min',
     ],
+    cooldown: ['Defaticamento 10min'],
     recoveryMain: [
       '60-70min facili in Z2, senza blocchi di forza',
       'Cadenza agile, zero fatica',
@@ -432,16 +432,16 @@ function bikeWinter(recovery: boolean, weekInMeso: number): SkeletonSession {
   return makeSession({
     discipline: 'bike',
     title: 'Bici - Fondo Z2 con blocchi di forza',
-    duration: weekInMeso >= 2 ? '120min' : '100min',
+    duration: weekInMeso >= 2 ? '2h25–3h25 outdoor / 1h45–2h25 rulli' : '100min',
     focus: 'fondo aerobico e forza specifica',
     intensity: 'RPE 3-4 su 10 (Z2), blocchi in piedi RPE 6',
     day: 'Sabato',
+    warmup: ['15min riscaldamento progressivo'],
     main: [
-      '15min riscaldamento progressivo',
       `Principale: ${weekInMeso >= 2 ? '2-3h' : '100min'} outdoor in Z2 (RPE 3-4), oppure 80-120min sui rulli a 80-90rpm`,
       'Inserisci 4-6 blocchi: 9min facile + 1min al massimo rapporto in piedi',
-      'Defaticamento 10min',
     ],
+    cooldown: ['Defaticamento 10min'],
     recoveryMain: [
       '60-70min facili in Z2, senza blocchi di forza',
       'Cadenza agile, zero fatica',
