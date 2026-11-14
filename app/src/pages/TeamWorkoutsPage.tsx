@@ -135,16 +135,36 @@ export default function TeamWorkoutsPage() {
                       </div>
 
                       {/* Content per disciplina */}
+                      {(() => {
+                        const dayBlocks = workout.content[activeTab[workout.id]] ?? []
+                        const groups = new Map<string, boolean>()
+                        dayBlocks.forEach((b) => {
+                          if (b.choiceGroup && !groups.has(b.choiceGroup)) {
+                            const count = dayBlocks.filter((x) => x.choiceGroup === b.choiceGroup).length
+                            groups.set(b.choiceGroup, count > 1)
+                          }
+                        })
+                        return Array.from(groups.entries()).map(([choiceGroup, hasMultiple]) => {
+                          if (!hasMultiple) return null
+                          return (
+                            <div key={choiceGroup} className="mb-3 p-3 bg-amber-50 rounded-lg border border-amber-200">
+                              <p className="text-sm text-amber-800 font-medium">Scegli una sola opzione tra quelle elencate per questo giorno.</p>
+                            </div>
+                          )
+                        })
+                      })()}
                       {(workout.content[activeTab[workout.id]] ?? []).map((block, idx) => (
                         <div key={idx} className="mb-6 bg-slate-50 rounded-xl p-4">
                           <div className="flex flex-wrap items-center gap-2 mb-2">
                             <h4 className="font-bold text-slate-900">{block.title}</h4>
                             {block.day && <span className="text-[10px] font-bold uppercase tracking-wide bg-slate-200 text-slate-600 px-2 py-0.5 rounded">{block.day}</span>}
+                            {block.time && <span className="text-[10px] font-bold uppercase tracking-wide bg-slate-200 text-slate-600 px-2 py-0.5 rounded">{block.time}</span>}
+                            {block.coachAppointment && <span className="text-[10px] font-bold uppercase tracking-wide bg-amber-100 text-amber-700 px-2 py-0.5 rounded">Coach Simone</span>}
                             {block.optional && <span className="text-[10px] font-bold uppercase tracking-wide bg-violet-100 text-violet-700 px-2 py-0.5 rounded">Facoltativo</span>}
                           </div>
                           {block.duration && <p className="text-sm text-slate-600 mb-3">Durata: {block.duration}</p>}
                           
-                          {block.warmup && block.warmup.length > 0 && (
+                          {!block.coachAppointment && block.warmup && block.warmup.length > 0 && (
                             <div className="mb-3">
                               <p className="font-semibold text-sm text-slate-700 mb-1">Riscaldamento</p>
                               <ul className="space-y-1">
@@ -164,7 +184,7 @@ export default function TeamWorkoutsPage() {
                             </ul>
                           </div>
 
-                          {block.cooldown && block.cooldown.length > 0 && (
+                          {!block.coachAppointment && block.cooldown && block.cooldown.length > 0 && (
                             <div className="mb-3">
                               <p className="font-semibold text-sm text-slate-700 mb-1">Defaticamento</p>
                               <ul className="space-y-1">

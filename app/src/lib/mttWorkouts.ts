@@ -5,7 +5,10 @@ export interface WorkoutBlock {
   title: string;
   duration?: string;
   day?: string;
+  time?: string;
   optional?: boolean;
+  coachAppointment?: boolean;
+  choiceGroup?: string;
   warmup?: string[];
   main: string[];
   cooldown?: string[];

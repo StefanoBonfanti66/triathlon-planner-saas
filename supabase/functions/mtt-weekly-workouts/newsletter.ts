@@ -10,7 +10,10 @@ export interface NewsletterBlock {
   title: string
   duration?: string
   day?: string
+  time?: string
   optional?: boolean
+  coachAppointment?: boolean
+  choiceGroup?: string
   warmup?: string[]
   main: string[]
   cooldown?: string[]
@@ -68,15 +71,27 @@ function disciplineSection(
   tips?: string[],
 ): string {
   if (!blocks?.length) return ''
-  const rows = blocks.map((b) => `
+  const seenGroups = new Set<string>()
+  const rows = blocks.map((b) => {
+    let groupNote = ''
+    if (b.choiceGroup && !seenGroups.has(b.choiceGroup)) {
+      const groupBlocks = blocks.filter((x) => x.choiceGroup === b.choiceGroup)
+      if (groupBlocks.length > 1) {
+        groupNote = `<tr><td colspan="2" style="padding:8px 0 4px;font-size:12px;font-weight:bold;color:#b45309;">Scegli una sola opzione tra quelle elencate per questo giorno.</td></tr>`
+        seenGroups.add(b.choiceGroup)
+      }
+    }
+    const isCoach = b.coachAppointment === true
+    return `${groupNote}
     <tr><td colspan="2" style="padding:14px 0 4px;font-size:14px;font-weight:bold;color:#0f172a;">
-      ${b.day ? `<span style="color:#64748b;font-weight:normal;">${esc(b.day)} · </span>` : ''}${esc(b.title)}${b.duration ? ` <span style="color:#64748b;font-weight:normal;">(${esc(b.duration)})</span>` : ''}${b.optional ? ' <span style="color:#b45309;font-weight:normal;">(facoltativo)</span>' : ''}
+      ${b.day ? `<span style="color:#64748b;font-weight:normal;">${esc(b.day)} · </span>` : ''}${esc(b.title)}${b.time ? ` <span style="color:#64748b;font-weight:normal;">alle ${esc(b.time)}</span>` : ''}${b.duration ? ` <span style="color:#64748b;font-weight:normal;">(${esc(b.duration)})</span>` : ''}${isCoach ? ' <span style="color:#b45309;font-weight:normal;">appuntamento con coach Simone</span>' : ''}${b.optional ? ' <span style="color:#b45309;font-weight:normal;">(facoltativo)</span>' : ''}
     </td></tr>
-    ${bulletRows('Riscaldamento', b.warmup, '#3b82f6')}
+    ${isCoach ? '' : bulletRows('Riscaldamento', b.warmup, '#3b82f6')}
     ${bulletRows('Parte principale', b.main, '#3b82f6')}
-    ${bulletRows('Defaticamento', b.cooldown, '#3b82f6')}
+    ${isCoach ? '' : bulletRows('Defaticamento', b.cooldown, '#3b82f6')}
     ${b.brickRun ? bulletRows(`Corsa dopo bici${b.brickRun.duration ? ` (${b.brickRun.duration})` : ''}`, b.brickRun.main, '#c2410c') : ''}
-    ${bulletRows('Consigli', b.tips, '#2563eb')}`).join('')
+    ${bulletRows('Consigli', b.tips, '#2563eb')}`
+  }).join('')
 
   return `
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 8px;">
@@ -183,14 +198,31 @@ export function newsletterPlainText(content: NewsletterWorkoutContent, weekNumbe
   const addBlocks = (label: string, blocks: NewsletterBlock[], tips?: string[]) => {
     if (!blocks?.length) return
     lines.push(label.toUpperCase())
+    const seenGroups = new Set<string>()
     for (const b of blocks) {
+      let groupNote = ''
+      if (b.choiceGroup && !seenGroups.has(b.choiceGroup)) {
+        const groupBlocks = blocks.filter((x) => x.choiceGroup === b.choiceGroup)
+        if (groupBlocks.length > 1) {
+          groupNote = '  Scegli una sola opzione tra quelle elencate per questo giorno.'
+          seenGroups.add(b.choiceGroup)
+        }
+      }
+      if (groupNote) lines.push(groupNote)
       const day = b.day ? `${b.day} · ` : ''
+      const time = b.time ? ` alle ${b.time}` : ''
       const optional = b.optional ? ' (facoltativo)' : ''
-      lines.push(`• ${day}${b.title}${b.duration ? ` (${b.duration})` : ''}${optional}`)
-      addLines('Riscaldamento', b.warmup)
+      const isCoach = b.coachAppointment === true
+      const coach = isCoach ? ' · appuntamento con coach Simone' : ''
+      lines.push(`• ${day}${b.title}${time}${b.duration ? ` (${b.duration})` : ''}${optional}${coach}`)
+      if (!isCoach) {
+        addLines('Riscaldamento', b.warmup)
+      }
       lines.push('  Parte principale:')
       for (const m of b.main) lines.push(`   - ${m}`)
-      addLines('Defaticamento', b.cooldown)
+      if (!isCoach) {
+        addLines('Defaticamento', b.cooldown)
+      }
       if (b.brickRun) {
         lines.push(`  Corsa dopo bici${b.brickRun.duration ? ` (${b.brickRun.duration})` : ''}:`)
         for (const m of b.brickRun.main) lines.push(`   - ${m}`)

@@ -1309,17 +1309,36 @@ const AdminPage: React.FC = () => {
                                     <div key={discipline} className="space-y-3">
                                         <h4 className="text-xs font-black uppercase text-slate-400 tracking-widest">{discipline === 'swim' ? '🏊 Nuoto' : discipline === 'bike' ? '🚴 Bici' : discipline === 'run' ? '🏃 Corsa' : '💪 Forza'}</h4>
                                         <div className="space-y-3">
+                                            {(() => {
+                                              const groups = new Map<string, boolean>()
+                                              blocks.forEach((b: any) => {
+                                                if (b.choiceGroup && !groups.has(b.choiceGroup)) {
+                                                  const count = blocks.filter((x: any) => x.choiceGroup === b.choiceGroup).length
+                                                  groups.set(b.choiceGroup, count > 1)
+                                                }
+                                              })
+                                              return Array.from(groups.entries()).map(([choiceGroup, hasMultiple]) => {
+                                                if (!hasMultiple) return null
+                                                return (
+                                                  <div key={choiceGroup} className="mb-2 p-2 bg-amber-50 rounded border border-amber-200">
+                                                    <p className="text-xs text-amber-800 font-medium">Scegli una sola opzione tra quelle elencate per questo giorno.</p>
+                                                  </div>
+                                                )
+                                              })
+                                            })()}
                                             {blocks.map((block: any, i: number) => (
                                                 <div key={i} className="p-3 bg-slate-50 rounded-xl border border-slate-100">
                                                     <div className="flex justify-between items-start mb-2">
                                                         <div className="flex flex-wrap items-center gap-2">
                                                             <div className="font-bold text-slate-800">{block.title}</div>
                                                             {block.day && <span className="text-[10px] font-black bg-slate-200 text-slate-600 px-2 py-0.5 rounded uppercase">{block.day}</span>}
+                                                            {block.time && <span className="text-[10px] font-black bg-slate-200 text-slate-600 px-2 py-0.5 rounded uppercase">{block.time}</span>}
+                                                            {block.coachAppointment && <span className="text-[10px] font-black bg-amber-100 text-amber-700 px-2 py-0.5 rounded uppercase">Coach Simone</span>}
                                                             {block.optional && <span className="text-[10px] font-black bg-violet-100 text-violet-700 px-2 py-0.5 rounded uppercase">Facoltativo</span>}
                                                         </div>
                                                         {block.duration && <span className="text-[10px] font-black bg-slate-200 text-slate-600 px-2 py-0.5 rounded">{block.duration}</span>}
                                                     </div>
-                                                    {block.warmup?.length && (
+                                                    {!block.coachAppointment && block.warmup?.length && (
                                                         <div className="space-y-1">
                                                             <div className="text-[9px] font-bold text-slate-500 uppercase mb-1">Riscaldamento</div>
                                                             <ul className="list-disc list-inside text-sm text-slate-600 space-y-1">{block.warmup.map((w: string) => <li key={w}>{w}</li>)}</ul>
@@ -1329,7 +1348,7 @@ const AdminPage: React.FC = () => {
                                                         <div className="text-[9px] font-bold text-slate-500 uppercase mb-1">Parte principale</div>
                                                         <ul className="list-disc list-inside text-sm text-slate-600 space-y-1">{block.main.map((m: string) => <li key={m}>{m}</li>)}</ul>
                                                     </div>
-                                                    {block.cooldown?.length && (
+                                                    {!block.coachAppointment && block.cooldown?.length && (
                                                         <div className="space-y-1">
                                                             <div className="text-[9px] font-bold text-slate-500 uppercase mb-1">Defaticamento</div>
                                                             <ul className="list-disc list-inside text-sm text-slate-600 space-y-1">{block.cooldown.map((c: string) => <li key={c}>{c}</li>)}</ul>

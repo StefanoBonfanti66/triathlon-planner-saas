@@ -11,6 +11,7 @@ import {
 
 const MTT_ADMIN_EMAILS = ['sbonfanti@hotmail.com', 'bonfantistefano4@gmail.com']
 const MTT_FALLBACK_CHAT_ID = '-5117971075'
+const CHOICE_GROUP_MESSAGE = '*Scegli una sola opzione per questo giorno: gruppo con Simone oppure una delle due alternative autonome.*\n\n'
 
 const DISCIPLINES: Discipline[] = ['swim', 'bike', 'run', 'strength']
 const DAY_ORDER = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica']
@@ -43,11 +44,13 @@ type LlmCause =
   | 'unexpected-finish-reason'
   | 'parse-failed'
   | 'validation-failed'
+  | 'normalization-failed'
+  | 'post-normalization-validation-failed'
   | 'ai-ok'
 
 export type { LlmCause }
 export type { LlmResult }
-export { workoutJsonSchema, disciplineBlockSchema }
+export { workoutJsonSchema, disciplineBlockSchema, toContentBlock, skeletonTitle, CHOICE_GROUP_MESSAGE, buildTelegramDayMessages }
 
 interface LlmTokens {
   prompt?: number
@@ -66,15 +69,16 @@ interface LlmResult {
   tokens?: LlmTokens
   parseError?: string
   validationError?: string
+  normalizationError?: string
 }
 
 const baseCorsHeaders = {
-  // DEBUG_FORCE_REDEPLOY_v2  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Vary': 'Origin',
 }
 
-function corsHeadersFor(req: Request) {
+export function corsHeadersFor(req: Request) {
   const origin = req.headers.get('Origin') ?? ''
   const allowed = origin === 'https://triathlon-planner-saas.vercel.app'
     || /^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(origin)
@@ -127,15 +131,22 @@ async function requireMttAdmin(supabaseClient: any, req: Request) {
 }
 
 function toContentBlock(s: SkeletonSession) {
+  const isCoachAppointment = s.coachAppointment === true
   return {
     discipline: s.discipline,
+    sessionId: s.sessionId,
     title: s.title,
     duration: s.duration,
     ...(s.day ? { day: s.day } : {}),
+    ...(s.time ? { time: s.time } : {}),
+    ...(isCoachAppointment ? { coachAppointment: true } : {}),
+    ...(s.choiceGroup ? { choiceGroup: s.choiceGroup } : {}),
     ...(s.optional ? { optional: true } : {}),
-    warmup: DEFAULT_WARMUP[s.discipline],
-    main: s.mainOutline,
-    cooldown: DEFAULT_COOLDOWN[s.discipline],
+    warmup: isCoachAppointment ? [] : (s.warmup ?? DEFAULT_WARMUP[s.discipline]),
+    main: isCoachAppointment
+      ? ['Appuntamento con il coach Simone. Il programma della seduta è deciso dal coach.']
+      : s.mainOutline,
+    cooldown: isCoachAppointment ? [] : (s.cooldown ?? DEFAULT_COOLDOWN[s.discipline]),
     tips: s.discipline === 'strength'
       ? [`Intensità: ${s.intensity}`, `Focus: ${s.focus}`, 'A corpo libero: nessuna attrezzatura, mai a cedimento']
       : [`Intensità: ${s.intensity}`, `Focus: ${s.focus}`],
@@ -143,14 +154,62 @@ function toContentBlock(s: SkeletonSession) {
   }
 }
 
+// Normalizzazione unica degli appuntamenti con Simone (coeur: percorso AI e fallback).
+// Per gli appuntamenti coach impone deterministamente titolo, giorno, orario, durata 60min,
+// coachAppointment, choiceGroup, optional coerente, e svuota tutti i campi tecnici.
+// Non conserva titolo/durata prodotti dal modello per gli appuntamenti.
+// Non consente al modello di attribuire coachAppointment a sessioni autonome.
+function normalizeBlock(block: Record<string, unknown>, skeletonSession: SkeletonSession): Record<string, unknown> {
+  const isCoach = skeletonSession.coachAppointment === true
+  const normalized: Record<string, unknown> = {
+    discipline: skeletonSession.discipline,
+    sessionId: skeletonSession.sessionId,
+    title: skeletonSession.title,
+    day: skeletonSession.day ?? null,
+    time: skeletonSession.time ?? null,
+    optional: skeletonSession.optional ?? null,
+    coachAppointment: skeletonSession.coachAppointment ?? null,
+    choiceGroup: skeletonSession.choiceGroup ?? null,
+    duration: skeletonSession.duration,
+    warmup: [],
+    main: [],
+    cooldown: [],
+    tips: [],
+  }
+  if (!isCoach) {
+    // Per le sessioni autonome si conservano i contenuti tecnici prodotti dal modello o dallo skeleton,
+    // ma si garantiscono i campi strutturali coerenti. Priorità: blocco sorgente > scheletro > default.
+    normalized.warmup = Array.isArray(block.warmup) && block.warmup.length > 0
+      ? block.warmup
+      : Array.isArray(skeletonSession.warmup) && skeletonSession.warmup.length > 0
+        ? skeletonSession.warmup
+        : DEFAULT_WARMUP[skeletonSession.discipline]
+    normalized.main = Array.isArray(block.main) && block.main.length > 0 ? block.main : skeletonSession.mainOutline
+    normalized.cooldown = Array.isArray(block.cooldown) && block.cooldown.length > 0
+      ? block.cooldown
+      : Array.isArray(skeletonSession.cooldown) && skeletonSession.cooldown.length > 0
+        ? skeletonSession.cooldown
+        : DEFAULT_COOLDOWN[skeletonSession.discipline]
+    normalized.tips = Array.isArray(block.tips) && block.tips.length > 0
+      ? block.tips
+      : [`Intensità: ${skeletonSession.intensity}`, `Focus: ${skeletonSession.focus}`]
+  } else {
+    // Appuntamento coach: una sola nota non tecnica, nessun dettaglio tecnico.
+    normalized.main = [
+      'Appuntamento con il coach Simone. Il programma della seduta è deciso dal coach.',
+    ]
+  }
+  return normalized
+}
+
 function skeletonTitle(skeleton: WeekSkeleton, year: number, weekNumber: number): string {
   const recovery = skeleton.isRecovery ? ' · scarico' : ''
   return `Allenamenti MTT - Settimana ${weekNumber}/${year} · ${skeleton.phaseLabel} (sett. ${skeleton.weekInMeso}/4${recovery})`
 }
 
-function renderStaticContent(skeleton: WeekSkeleton, year: number, weekNumber: number) {
+export function renderStaticContent(skeleton: WeekSkeleton, year: number, weekNumber: number) {
   const pick = (d: Discipline) =>
-    skeleton.sessions.filter((s) => s.discipline === d).map(toContentBlock)
+    skeleton.sessions.filter((s) => s.discipline === d).map((s) => normalizeBlock({}, s))
 
   // Testo unico: la stessa intro viene mostrata in app, inviata su Telegram e nella newsletter.
   const intro = [
@@ -239,8 +298,34 @@ export function validateContent(c: unknown, skeleton: WeekSkeleton): string | nu
       if (!Array.isArray(block.main) || block.main.length < 1 || (block.main as unknown[]).some((x) => typeof x !== 'string')) {
         return `${d}: main non valido`
       }
+      const isCoach = block.coachAppointment === true
+      if (!isCoach) {
+        if (!Array.isArray(block.warmup) || block.warmup.length < 1) return `${d}: warmup mancante per alternativa ${block.title}`
+        if (!Array.isArray(block.cooldown) || block.cooldown.length < 1) return `${d}: cooldown mancante per alternativa ${block.title}`
+      }
+      if (typeof block.sessionId !== 'string' || !block.sessionId.trim()) return `${d}: sessionId mancante`
     }
   }
+
+  // Controlli di associazione sicura: sessionId sconosciuti, duplicati, coachAppointment su sessioni autonome, sessioni mancanti.
+  const byId = new Map<string, SkeletonSession>()
+  for (const s of skeleton.sessions) byId.set(s.sessionId, s)
+  const seenIds = new Set<string>()
+  for (const d of DISCIPLINES) {
+    const arr = o[d]
+    if (!Array.isArray(arr)) continue
+    for (const block of arr as Array<Record<string, unknown>>) {
+      const sid = block.sessionId as string | undefined
+      if (!sid) return `${d}: sessionId mancante`
+      const skel = byId.get(sid)
+      if (!skel) return `${d}: sessionId sconosciuto ${sid}`
+      if (seenIds.has(sid)) return `${d}: sessionId duplicato ${sid}`
+      seenIds.add(sid)
+      if (block.coachAppointment === true && skel.coachAppointment !== true) return `${d}: coachAppointment non autorizzato per ${sid}`
+    }
+  }
+  const missing = skeleton.sessions.filter((s) => !seenIds.has(s.sessionId))
+  if (missing.length > 0) return `sessioni mancanti: ${missing.map((m) => m.sessionId).join(', ')}`
 
   const at = o.adaptation_tips as Record<string, unknown> | undefined
   if (!at || typeof at.ftp !== 'string' || typeof at.vo2max !== 'string' || typeof at.pace !== 'string') {
@@ -260,47 +345,75 @@ export function validateContent(c: unknown, skeleton: WeekSkeleton): string | nu
   return null
 }
 
-// Il giorno e il carattere facoltativo sono decisi dallo scheletro, non dal LLM:
-// li ricopiamo per garantire una settimana coerente anche se il modello li omette.
-// Lo stesso vale per i rimandi tra sedute alternative (es. gruppo vs tecnica):
-// se il LLM li salta, li reintegriamo noi.
-function applySkeletonMeta(content: Record<string, unknown>, skeleton: WeekSkeleton) {
+// Il giorno e il carattere facoltativo sono decisi dallo scheletro, non dal LLM.
+// L'associazione blocco-sessione avviene per sessionId (identificatore stabile), mai per indice
+// né per titolo libero. Prima dell'associazione si verificano:
+// identificatori sconosciuti, duplicati, sessioni mancanti, disciplina incompatibile.
+// In caso di associazione non sicura viene restituito un errore e il chiamante usa il fallback.
+function applySkeletonMeta(content: Record<string, unknown>, skeleton: WeekSkeleton): string | null {
+  const byId = new Map<string, SkeletonSession>()
+  for (const s of skeleton.sessions) {
+    if (byId.has(s.sessionId)) return `sessionId duplicato nello skeleton: ${s.sessionId}`
+    byId.set(s.sessionId, s)
+  }
+
+  const seenIds = new Set<string>()
+
   const swimAltHint = skeleton.sessions
     .find((s) => s.discipline === 'swim' && /gruppo/i.test(s.title))
     ?.mainOutline.find((line) => line.startsWith('Se non puoi venire al gruppo'))
+
   for (const d of DISCIPLINES) {
     const blocks = content[d]
     if (!Array.isArray(blocks)) continue
-    const sessions = skeleton.sessions.filter((s) => s.discipline === d)
-    blocks.forEach((raw, i) => {
+    for (const raw of blocks) {
       const block = raw as Record<string, unknown>
-      const s = sessions[i]
-      if (!s) return
-      block.discipline = d
-      if (s.day) block.day = s.day
-      if (s.optional) block.optional = true
-      if (typeof block.duration !== 'string' || !block.duration.trim()) block.duration = s.duration
-      if (typeof block.title !== 'string' || !block.title.trim()) block.title = s.title
-      const isSwimGroup = d === 'swim' && /gruppo/i.test(String(block.title ?? ''))
+      const sessionId = typeof block.sessionId === 'string' ? block.sessionId : undefined
+      if (!sessionId) return `${d}: blocco senza sessionId`
+      const s = byId.get(sessionId)
+      if (!s) return `${d}: sessionId sconosciuto ${sessionId}`
+      if (seenIds.has(sessionId)) return `${d}: sessionId duplicato ${sessionId}`
+      seenIds.add(sessionId)
+      if (s.discipline !== d) return `${d}: disciplina incompatibile per sessionId ${sessionId} (attesa ${s.discipline})`
+
+      const normalized = normalizeBlock(block, s)
+      Object.assign(block, normalized)
+
+      // Reintegra il rimando gruppo/alternativa per il nuoto gruppo se il modello lo ha omesso
+      const isSwimGroup = d === 'swim' && s.coachAppointment === true && !!s.choiceGroup
       if (isSwimGroup && swimAltHint) {
         const main = Array.isArray(block.main) ? block.main as string[] : []
         if (!main.some((line) => typeof line === 'string' && line.includes('Tecnica e variazioni'))) {
           block.main = [...main, swimAltHint]
         }
       }
-    })
+    }
   }
+
+  const missing = skeleton.sessions.filter((s) => !seenIds.has(s.sessionId))
+  if (missing.length > 0) {
+    return `sessioni mancanti nel contenuto AI: ${missing.map((m) => `${m.sessionId} (${m.day} ${m.title})`).join(', ')}`
+  }
+
+  return null
 }
 
 const disciplineBlockSchema = {
   type: 'object',
   additionalProperties: false,
-  required: ['discipline', 'title', 'duration', 'warmup', 'main', 'cooldown', 'tips', 'day', 'optional'],
+  required: [
+    'discipline', 'sessionId', 'title', 'day', 'time', 'optional', 'coachAppointment',
+    'choiceGroup', 'duration', 'warmup', 'main', 'cooldown', 'tips',
+  ],
   properties: {
     discipline: { type: 'string' },
+    sessionId: { type: 'string' },
     title: { type: 'string' },
-    day: { type: 'string' },
-    optional: { type: 'boolean' },
+    day: { type: ['string', 'null'] },
+    time: { type: ['string', 'null'] },
+    optional: { type: ['boolean', 'null'] },
+    coachAppointment: { type: ['boolean', 'null'] },
+    choiceGroup: { type: ['string', 'null'] },
     duration: { type: 'string' },
     warmup: { type: 'array', items: { type: 'string' } },
     main: { type: 'array', items: { type: 'string' } },
@@ -411,10 +524,10 @@ export async function renderWithLLM(
     required_schema: {
       title: 'string',
       intro: 'string — 3-5 paragrafi (separati da \\n\\n), testo UNICO mostrato in app, su Telegram e nella newsletter. Presenta il formato della settimana: 3 discipline obbligatorie (nuoto, bici, corsa) + 2 di forza a corpo libero, più le facoltative. Come PRIMA COSA invita gli atleti a eseguire il test FTP (20 min al massimo sostenibile, guida nel bottone della email) perché il risultato definisce le zone di allenamento e senza FTP non si può tarare l\'intensità; il test va ripetuto ogni 6 settimane. Spiega cos\'è l\'RPE (sforzo percepito su scala 1-10: 3-4 = fondo facile, 5-6 = soglia, 7-8 = duro, 9-10 = massimo). Poi entra nel dettaglio della fase attuale e di cosa stiamo costruendo. Tono caldo da coach, entusiasta ma professionale.',
-      swim: [{ discipline: 'swim', title: 'string', day: 'string', optional: 'boolean', duration: 'string', warmup: ['string'], main: ['string'], cooldown: ['string'], tips: ['string'] }],
-      bike: [{ discipline: 'bike', title: 'string', day: 'string', optional: 'boolean', duration: 'string', warmup: ['string'], main: ['string'], cooldown: ['string'], tips: ['string'] }],
-      run: [{ discipline: 'run', title: 'string', day: 'string', optional: 'boolean', duration: 'string', warmup: ['string'], main: ['string'], cooldown: ['string'], tips: ['string'] }],
-      strength: [{ discipline: 'strength', title: 'string', day: 'string', optional: 'boolean', duration: 'string', warmup: ['string'], main: ['string'], cooldown: ['string'], tips: ['string'] }],
+      swim: [{ discipline: 'swim', sessionId: 'string', title: 'string', day: 'string', optional: 'boolean', time: 'string|null', coachAppointment: 'boolean|null', choiceGroup: 'string|null', duration: 'string', warmup: ['string'], main: ['string'], cooldown: ['string'], tips: ['string'] }],
+      bike: [{ discipline: 'bike', sessionId: 'string', title: 'string', day: 'string', optional: 'boolean', time: 'string|null', coachAppointment: 'boolean|null', choiceGroup: 'string|null', duration: 'string', warmup: ['string'], main: ['string'], cooldown: ['string'], tips: ['string'] }],
+      run: [{ discipline: 'run', sessionId: 'string', title: 'string', day: 'string', optional: 'boolean', time: 'string|null', coachAppointment: 'boolean|null', choiceGroup: 'string|null', duration: 'string', warmup: ['string'], main: ['string'], cooldown: ['string'], tips: ['string'] }],
+      strength: [{ discipline: 'strength', sessionId: 'string', title: 'string', day: 'string', optional: 'boolean', time: 'string|null', coachAppointment: 'boolean|null', choiceGroup: 'string|null', duration: 'string', warmup: ['string'], main: ['string'], cooldown: ['string'], tips: ['string'] }],
       notes: 'string',
       tips_by_discipline: { swim: ['string'], bike: ['string'], run: ['string'], strength: ['string'] },
       adaptation_tips: { ftp: 'string (solo percezione/RPE)', vo2max: 'string', pace: 'string' },
@@ -521,7 +634,14 @@ export async function renderWithLLM(
       return { kind: 'validation-failed', status: res.status, finishReason, tokens, validationError }
     }
     const content = parsed as Record<string, unknown>
-    applySkeletonMeta(content, skeleton)
+    const normError = applySkeletonMeta(content, skeleton)
+    if (normError) {
+      llmLog('normalization-failed', {
+        model, status: res.status, finishReason, tokens, contentLength: text.length,
+        normalizationError: normError,
+      })
+      return { kind: 'normalization-failed', status: res.status, finishReason, tokens, normalizationError: normError }
+    }
     content.week_number = weekNumber
     content.year = year
     content.title = skeletonTitle(skeleton, year, weekNumber)
@@ -582,11 +702,14 @@ async function dispatchNewsletter(
   }
 }
 
-interface RenderBlock {
+export interface RenderBlock {
   title?: string
   duration?: string
   day?: string
+  time?: string
   optional?: boolean
+  coachAppointment?: boolean
+  choiceGroup?: string
   warmup?: string[]
   main?: string[]
   cooldown?: string[]
@@ -597,8 +720,10 @@ interface RenderBlock {
 function renderBlockMessage(block: RenderBlock, discipline: Discipline, includeDay: boolean): string {
   const meta = DISCIPLINE_META[discipline] ?? DISCIPLINE_META.run
   const dayPrefix = includeDay && block.day ? `${block.day} · ` : ''
+  const timePrefix = block.time ? ` alle ${block.time}` : ''
   const optional = block.optional ? ' · _facoltativo_' : ''
-  let msg = `*${meta.emoji} ${dayPrefix}${block.title ?? meta.label}*${block.duration ? ` (${block.duration})` : ''}${optional}\n\n`
+  const coach = block.coachAppointment ? ' · _coach Simone_' : ''
+  let msg = `*${meta.emoji} ${dayPrefix}${block.title ?? meta.label}*${timePrefix}${block.duration ? ` (${block.duration})` : ''}${optional}${coach}\n\n`
   if (block.warmup?.length) {
     msg += `*Riscaldamento:*\n${block.warmup.map((x) => `• ${x}`).join('\n')}\n\n`
   }
@@ -610,6 +735,27 @@ function renderBlockMessage(block: RenderBlock, discipline: Discipline, includeD
     msg += `*Consigli:*\n${block.tips.map((x) => `💡 ${x}`).join('\n')}\n`
   }
   return msg
+}
+
+// Costruisce i messaggi Telegram per un singolo giorno: avviso di scelta
+// una sola volta per gruppo di alternative, poi un messaggio per blocco.
+function buildTelegramDayMessages(
+  todays: Array<{ block: RenderBlock; discipline: Discipline }>,
+): string[] {
+  const messages: string[] = []
+  const seenGroups = new Set<string>()
+  for (const { block, discipline } of todays) {
+    if (block.choiceGroup && !seenGroups.has(block.choiceGroup)) {
+      const groupBlocks = todays.filter(({ block: b }) => b.choiceGroup === block.choiceGroup)
+      if (groupBlocks.length > 1) {
+        messages.push(CHOICE_GROUP_MESSAGE)
+        seenGroups.add(block.choiceGroup)
+      }
+    }
+    messages.push(renderBlockMessage(block, discipline, false))
+    if (block.brickRun) messages.push(renderBrickMessage(block))
+  }
+  return messages
 }
 
 function renderBrickMessage(block: RenderBlock): string {
@@ -655,13 +801,40 @@ export async function handleGenerate(
 
   const llmResult = await renderWithLLM(skeleton, year, week_number, previousTitle, fetchFn)
   const useAI = llmResult?.kind === 'ai-ok'
-  const workoutContent = useAI
-    ? (llmResult.content as Record<string, unknown>)
-    : renderStaticContent(skeleton, year, week_number)
+  let workoutContent: Record<string, unknown>
+
+  if (useAI) {
+    const rawContent = llmResult.content as Record<string, unknown>
+    // Validazione finale sul contenuto NORMALIZZATO (dopo applySkeletonMeta),
+    // prima di qualsiasi persistenza. I metadati autorevoli provengono dallo
+    // skeleton; i flag del modello (coachAppointment, sessionId, time, ecc.)
+    // non sono mai accettati acriticamente.
+    const postNormError = validateContent(rawContent, skeleton)
+    if (postNormError) {
+      llmLog('post-normalization-validation-failed', {
+        model: llmResult.model,
+        status: llmResult.status,
+        validationError: postNormError,
+      })
+      workoutContent = renderStaticContent(skeleton, year, week_number)
+    } else {
+      workoutContent = rawContent
+    }
+  } else {
+    workoutContent = renderStaticContent(skeleton, year, week_number)
+  }
 
   // Intro unica: app, Telegram e newsletter leggono lo stesso testo.
   const newsletterContent = workoutContent.newsletter as Record<string, unknown> | undefined
   if (newsletterContent) newsletterContent.intro = workoutContent.intro
+
+  // Validazione finale del contenuto per persistenza: sia AI che fallback
+  // devono passare validateContent prima di qualsiasi scrittura. Se il
+  // fallback non è valido, errore e nessuna scrittura.
+  const finalValidationError = validateContent(workoutContent, skeleton)
+  if (finalValidationError) {
+    throw new Error(`Contenuto finale non valido prima della persistenza: ${finalValidationError}`)
+  }
 
   const { data, error } = await supabaseClient
     .from('team_workouts')
@@ -778,6 +951,27 @@ if (import.meta.main) {
         return data
       }
 
+      // Costruisce i messaggi Telegram per un singolo giorno: avviso di scelta
+      // una sola volta per gruppo di alternative, poi un messaggio per blocco.
+      function buildTelegramDayMessages(
+        todays: Array<{ block: RenderBlock; discipline: Discipline }>,
+      ): string[] {
+        const messages: string[] = []
+        const seenGroups = new Set<string>()
+        for (const { block, discipline } of todays) {
+          if (block.choiceGroup && !seenGroups.has(block.choiceGroup)) {
+            const groupBlocks = todays.filter(({ block: b }) => b.choiceGroup === block.choiceGroup)
+            if (groupBlocks.length > 1) {
+              messages.push(CHOICE_GROUP_MESSAGE)
+              seenGroups.add(block.choiceGroup)
+            }
+          }
+          messages.push(renderBlockMessage(block, discipline, false))
+          if (block.brickRun) messages.push(renderBrickMessage(block))
+        }
+        return messages
+      }
+
       try {
         let header = `*🏊🚴🏃💪 ${content.title}*\n\n`
         header += `${content.intro}\n\n`
@@ -801,9 +995,8 @@ if (import.meta.main) {
             const todays = allBlocks.filter(({ block }) => block.day === day)
             if (!todays.length) continue
             await sendMsg(`*📅 ${day.toUpperCase()}*\n\n`)
-            for (const { block, discipline } of todays) {
-              await sendMsg(renderBlockMessage(block, discipline, false))
-              if (block.brickRun) await sendMsg(renderBrickMessage(block))
+            for (const msg of buildTelegramDayMessages(todays)) {
+              await sendMsg(msg)
             }
           }
         } else {
@@ -813,7 +1006,15 @@ if (import.meta.main) {
             if (!blocks.length) continue
             const meta = DISCIPLINE_META[d]
             await sendMsg(`*${meta.emoji} ${meta.label.toUpperCase()}*\n\n`)
+            const seenGroups = new Set<string>()
             for (const { block } of blocks) {
+              if (block.choiceGroup && !seenGroups.has(block.choiceGroup)) {
+                const groupBlocks = blocks.filter(({ block: b }) => b.choiceGroup === block.choiceGroup)
+                if (groupBlocks.length > 1) {
+                  await sendMsg(CHOICE_GROUP_MESSAGE)
+                  seenGroups.add(block.choiceGroup)
+                }
+              }
               await sendMsg(renderBlockMessage(block, d, true))
               if (block.brickRun) await sendMsg(renderBrickMessage(block))
             }

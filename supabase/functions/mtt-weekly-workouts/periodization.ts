@@ -19,6 +19,12 @@ export interface SkeletonSession {
   day?: Weekday
   optional?: boolean
   brickRun?: { duration: string; main: string[] }
+  coachAppointment?: boolean
+  time?: string
+  choiceGroup?: string
+  sessionId: string
+  warmup?: string[]
+  cooldown?: string[]
 }
 
 export interface WeekSkeleton {
@@ -94,21 +100,34 @@ interface SessionInput {
   optional?: boolean
   recoveryMain?: string[]
   brickRun?: { duration: string; main: string[] }
+  coachAppointment?: boolean
+  time?: string
+  choiceGroup?: string
+  sessionId?: string
+  warmup?: string[]
+  cooldown?: string[]
 }
 
 function makeSession(input: SessionInput, recovery: boolean): SkeletonSession {
+  const coachDuration = input.coachAppointment ? input.duration : scaled(input.duration, recovery)
   return {
     discipline: input.discipline,
-    title: recovery ? `${input.title} (scarico)` : input.title,
-    duration: scaled(input.duration, recovery),
+    title: (recovery && !input.coachAppointment) ? `${input.title} (scarico)` : input.title,
+    duration: coachDuration,
     focus: input.focus,
     intensity: recovery ? 'RPE 3-4 su 10, tutto facile' : input.intensity,
     mainOutline: recovery
       ? input.recoveryMain ?? ['Volume ridotto del ~35%', 'Tutto facile, zero fatica percepita']
       : input.main,
-    ...(input.day ? { day: input.day } : {}),
-    ...(input.optional ? { optional: true } : {}),
+    day: input.day,
+    optional: input.optional,
+    sessionId: input.sessionId ?? `${String(input.day ?? '').toLocaleLowerCase('it-IT')}-${input.title.toLocaleLowerCase('it-IT').replace(/[^a-z0-9]+/g, '-')}`,
     ...(input.brickRun && !recovery ? { brickRun: input.brickRun } : {}),
+    ...(input.coachAppointment ? { coachAppointment: true } : {}),
+    ...(input.time ? { time: input.time } : {}),
+    ...(input.choiceGroup ? { choiceGroup: input.choiceGroup } : {}),
+    ...(input.warmup ? { warmup: input.warmup } : {}),
+    ...(input.cooldown ? { cooldown: input.cooldown } : {}),
   }
 }
 
@@ -167,20 +186,20 @@ function swimTechnique(recovery: boolean, weeks = 3, optional = false): Skeleton
     intensity: 'RPE 4-6 su 10, mai a tutta',
     day: 'Giovedì',
     optional,
+    choiceGroup: 'giovedì-nuoto',
+    warmup: ['400m sciolti misto'],
     main: [
-      'Alternativa al gruppo in piscina, per chi non può venire con il coach',
-      '400m sciolti misto',
       '8x50m tecnica (bipodalico, bilanciato, catch) rec 15"',
       '400m pull + 400m pinne + 400m libero continuo (oppure 10x100m rec 15")',
       '8x50m forti rec 20"',
-      '100-200m dorso o remate per chiudere',
-      'Totale: 2.300-2.500m',
+      'Distanza variante pull/pinne/libero: ~2.500-2.600m',
+      'Distanza variante 10x100m: ~2.300-2.400m',
     ],
+    cooldown: ['100-200m dorso o remate per chiudere'],
     recoveryMain: [
       '400m sciolti + 4x50m tecnica',
       '400m pull facili + 4x100m aerobici rec 20"',
       '200m defaticamento',
-      'Totale: ~1.500m',
     ],
   }, recovery)
 }
@@ -226,22 +245,24 @@ function bikeTecnica(recovery: boolean): SkeletonSession {
   }, recovery)
 }
 
-function swimGroup(recovery: boolean): SkeletonSession {
+export function swimGroup(recovery: boolean): SkeletonSession {
   return makeSession({
     discipline: 'swim',
-    title: 'Nuoto - Gruppo in piscina',
+    title: 'Allenamento in vasca con coach Simone',
     duration: '60min',
     focus: 'seduta di gruppo con il coach',
     intensity: 'RPE 4-6 su 10, segui le indicazioni del coach',
     day: 'Giovedì',
+    time: '19:30',
+    coachAppointment: true,
+    choiceGroup: 'giovedì-nuoto',
     main: [
-      'Seduta di gruppo in piscina: 60 minuti a disposizione',
-      'Segui il lavoro proposto dal coach in vasca (tecnica e ritmo)',
-      'Se non puoi venire al gruppo, scegli la seduta "Nuoto - Tecnica e variazioni" di oggi',
+      'Appuntamento con il coach Simone: la seduta in vasca si svolge alle 19:30.',
+      'Il programma della seduta è deciso dal coach Simone.',
     ],
     recoveryMain: [
-      'Seduta di gruppo in scarico: segui il coach e resta facile',
-      'Nessuna serie forte, priorità a tecnica e recupero',
+      'Appuntamento con il coach Simone: la seduta in vasca si svolge alle 19:30.',
+      'Il programma della seduta è deciso dal coach Simone.',
     ],
   }, recovery)
 }
@@ -255,14 +276,14 @@ function swimDry(recovery: boolean): SkeletonSession {
     intensity: 'RPE 4-6 su 10',
     day: 'Giovedì',
     optional: true,
+    choiceGroup: 'giovedì-nuoto',
+    warmup: ['10min mobilità spalle (circonduzioni, petto e dorso)'],
     main: [
-      '10min mobilità spalle (circonduzioni, petto e dorso)',
       '3 serie di 12 remate con banda elastica (simulazione pull)',
       '1 min plank + 1 min side-plank per lato',
       '20 superman (core/lombari)',
-      '5min stretching globale',
-      'In alternativa: nuoto in acque libere se disponibile.',
     ],
+    cooldown: ['5min stretching globale'],
     recoveryMain: [
       '10min mobilità spalle',
       '2 serie leggere di remate con banda elastica',
@@ -293,23 +314,42 @@ function bikeRoller(recovery: boolean): SkeletonSession {
   }, recovery)
 }
 
-function runGroup(recovery: boolean): SkeletonSession {
+export function runGroup(recovery: boolean): SkeletonSession {
   return makeSession({
     discipline: 'run',
-    title: 'Corsa - Gruppo con il coach',
+    title: 'Corsa con coach Simone',
     duration: '60min',
     focus: 'qualità di corsa guidata dal coach',
     intensity: 'RPE 5-7 su 10, segui le indicazioni del coach',
-      day: 'Martedì',
-      main: [
-        'Seduta di gruppo con il coach: conduce il suo allenamento, seguite le sue indicazioni',
-        'Ritmo controllato: l\'obiettivo è la qualità, non la gara',
-        'Se non puoi venire martedì sera: 1-2km riscaldamento + andature, poi 4x2km a ritmo medio rec 2min di corsa facile, 1km defaticamento (proposta dell\'app)',
-      ],
-      recoveryMain: [
-      'Seduta di gruppo in scarico: il coach guida, seguitelo e restate facile',
-      'Nessuna serie forte, priorità a tecnica e recupero',
+    day: 'Martedì',
+    time: '19:00',
+    coachAppointment: true,
+    choiceGroup: 'martedì-corsa',
+    main: [
+      'Appuntamento con il coach Simone: la seduta di gruppo si svolge alle 19:00.',
+      'Il programma della seduta è deciso dal coach Simone.',
     ],
+    recoveryMain: [
+      'Appuntamento con il coach Simone: la seduta di gruppo si svolge alle 19:00.',
+      'Il programma della seduta è deciso dal coach Simone.',
+    ],
+  }, recovery)
+}
+
+function runOutdoor(recovery: boolean): SkeletonSession {
+  return makeSession({
+    discipline: 'run',
+    title: 'Corsa autonoma all\'aperto',
+    duration: '60min',
+    focus: 'corsa libera autonoma',
+    intensity: 'RPE 3-4 su 10, ritmo conversazione',
+    day: 'Martedì',
+    optional: true,
+    choiceGroup: 'martedì-corsa',
+    warmup: ['10min riscaldamento facile'],
+    main: ['40min corsa continua a ritmo moderato'],
+    cooldown: ['10min defaticamento camminata'],
+    recoveryMain: ['40min molto facile, camminata/corsa alternata'],
   }, recovery)
 }
 
@@ -322,15 +362,11 @@ function treadmillRun(recovery: boolean): SkeletonSession {
     intensity: 'RPE 3-5 su 10',
     day: 'Martedì',
     optional: true,
-    main: [
-      '10min riscaldamento facile',
-      '30min corsa continua a ritmo moderato (pendenza 1-2% se disponibile)',
-      '5min defaticamento camminata',
-    ],
-    recoveryMain: [
-      '30min molto facile, camminata/corsa alternata',
-      'Nessuno sforzo intenso',
-    ],
+    choiceGroup: 'martedì-corsa',
+    warmup: ['10min riscaldamento facile'],
+    main: ['30min corsa continua a ritmo moderato (pendenza 1-2% se disponibile)'],
+    cooldown: ['5min defaticamento camminata'],
+    recoveryMain: ['30min molto facile, camminata/corsa alternata'],
   }, recovery)
 }
 
@@ -428,6 +464,7 @@ function buildSessions(phase: MacroPhase, weekInMeso: number, isRecovery: boolea
     return [
       strengthA(isRecovery),
       runGroup(isRecovery),
+      runOutdoor(isRecovery),
       treadmillRun(isRecovery),
       swimTechnique(isRecovery, 3, true),
       bikeTecnica(isRecovery),
