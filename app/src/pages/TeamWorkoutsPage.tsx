@@ -175,14 +175,22 @@ export default function TeamWorkoutsPage() {
                             </div>
                           )}
 
-                          <div className="mb-3">
-                            <p className="font-semibold text-sm text-slate-700 mb-1">Parte principale</p>
-                            <ul className="space-y-1">
+                          {block.coachAppointment ? (
+                            <div className="mb-3">
                               {block.main.map((item, i) => (
-                                <li key={i} className="text-sm text-slate-600">• {item}</li>
+                                <p key={i} className="text-sm text-slate-600">{item}</p>
                               ))}
-                            </ul>
-                          </div>
+                            </div>
+                          ) : (
+                            <div className="mb-3">
+                              <p className="font-semibold text-sm text-slate-700 mb-1">Parte principale</p>
+                              <ul className="space-y-1">
+                                {block.main.map((item, i) => (
+                                  <li key={i} className="text-sm text-slate-600">• {item}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
 
                           {!block.coachAppointment && block.cooldown && block.cooldown.length > 0 && (
                             <div className="mb-3">
@@ -206,7 +214,7 @@ export default function TeamWorkoutsPage() {
                             </div>
                           )}
 
-                          {block.tips && block.tips.length > 0 && (
+                          {!block.coachAppointment && block.tips && block.tips.length > 0 && (
                             <div className="mt-3 p-3 bg-blue-50 rounded-lg">
                               <p className="font-semibold text-sm text-blue-900 mb-1">Consigli</p>
                               <ul className="space-y-1">

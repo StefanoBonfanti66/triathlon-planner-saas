@@ -1344,10 +1344,18 @@ const AdminPage: React.FC = () => {
                                                             <ul className="list-disc list-inside text-sm text-slate-600 space-y-1">{block.warmup.map((w: string) => <li key={w}>{w}</li>)}</ul>
                                                         </div>
                                                     )}
-                                                    <div className="space-y-1">
-                                                        <div className="text-[9px] font-bold text-slate-500 uppercase mb-1">Parte principale</div>
-                                                        <ul className="list-disc list-inside text-sm text-slate-600 space-y-1">{block.main.map((m: string) => <li key={m}>{m}</li>)}</ul>
-                                                    </div>
+                                                    {block.coachAppointment ? (
+                                                        <div className="space-y-1">
+                                                            {block.main.map((m: string) => (
+                                                                <p key={m} className="text-sm text-slate-600">{m}</p>
+                                                            ))}
+                                                        </div>
+                                                    ) : (
+                                                        <div className="space-y-1">
+                                                            <div className="text-[9px] font-bold text-slate-500 uppercase mb-1">Parte principale</div>
+                                                            <ul className="list-disc list-inside text-sm text-slate-600 space-y-1">{block.main.map((m: string) => <li key={m}>{m}</li>)}</ul>
+                                                        </div>
+                                                    )}
                                                     {!block.coachAppointment && block.cooldown?.length && (
                                                         <div className="space-y-1">
                                                             <div className="text-[9px] font-bold text-slate-500 uppercase mb-1">Defaticamento</div>
@@ -1360,7 +1368,7 @@ const AdminPage: React.FC = () => {
                                                             <ul className="list-disc list-inside text-sm text-orange-800 space-y-1">{block.brickRun.main.map((c: string) => <li key={c}>{c}</li>)}</ul>
                                                         </div>
                                                     )}
-                                                    {block.tips?.length && (
+                                                    {!block.coachAppointment && block.tips && block.tips.length > 0 && (
                                                         <div className="space-y-1">
                                                             <div className="text-[9px] font-bold text-slate-500 uppercase mb-1">Consigli</div>
                                                             <ul className="list-disc list-inside text-sm text-slate-600 space-y-1">{block.tips.map((t: string) => <li key={t}>{t}</li>)}</ul>
